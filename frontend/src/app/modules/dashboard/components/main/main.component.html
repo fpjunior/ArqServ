@@ -1,0 +1,174 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header/Toolbar -->
+  <header class="bg-blue-600 text-white shadow-lg">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="text-2xl">📁</div>
+          <span class="text-xl font-bold">ArqServ</span>
+          <span class="text-blue-200" *ngIf="currentUser">
+            - {{ currentUser.role === 'empresa' ? 'Empresa de Digitalização' : currentUser.municipio }}
+          </span>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <span class="text-sm">{{ currentUser?.name }}</span>
+          <div class="relative group">
+            <button class="p-2 rounded-full hover:bg-blue-500 transition-colors">
+              <div class="text-xl">👤</div>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden group-hover:block">
+              <button class="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                      (click)="logout()">
+                <span class="text-lg">🚪</span>
+                <span>Sair</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="p-6">
+    <!-- Welcome Section -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        Bem-vindo, {{ currentUser?.name }}!
+      </h1>
+      <p class="text-gray-600">
+        <span *ngIf="currentUser?.role === 'empresa'">
+          Gerencie documentos de todas as prefeituras cadastradas
+        </span>
+        <span *ngIf="currentUser?.role === 'prefeitura'">
+          Acesse os documentos digitalizados de {{ currentUser?.municipio }}
+        </span>
+      </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+        <div class="flex items-center gap-4">
+          <div class="bg-blue-500 text-white p-3 rounded-lg">
+            <div class="text-2xl">📄</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.totalDocuments }}</div>
+            <div class="text-sm text-gray-600">Documentos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+        <div class="flex items-center gap-4">
+          <div class="bg-green-500 text-white p-3 rounded-lg">
+            <div class="text-2xl">👥</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.totalServers }}</div>
+            <div class="text-sm text-gray-600">Servidores</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+        <div class="flex items-center gap-4">
+          <div class="bg-yellow-500 text-white p-3 rounded-lg">
+            <div class="text-2xl">⬆️</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.recentUploads }}</div>
+            <div class="text-sm text-gray-600">Uploads Recentes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200" *ngIf="currentUser?.role === 'empresa'">
+        <div class="flex items-center gap-4">
+          <div class="bg-purple-500 text-white p-3 rounded-lg">
+            <div class="text-2xl">⏳</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.pendingReviews }}</div>
+            <div class="text-sm text-gray-600">Pendentes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-6">Ações Rápidas</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group"
+             (click)="navigateToDocuments()">
+          <div class="text-center">
+            <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">🔍</div>
+            <h3 class="font-semibold text-gray-900 mb-2">Buscar Documentos</h3>
+            <p class="text-sm text-gray-600">Consulte e visualize documentos por servidor</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group"
+             (click)="navigateToServers()">
+          <div class="text-center">
+            <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">👥</div>
+            <h3 class="font-semibold text-gray-900 mb-2">Listar Servidores</h3>
+            <p class="text-sm text-gray-600">Navegue pela lista de servidores cadastrados</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group" 
+             *ngIf="currentUser?.role === 'empresa'" 
+             (click)="navigateToUpload()">
+          <div class="text-center">
+            <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">☁️</div>
+            <h3 class="font-semibold text-gray-900 mb-2">Enviar Documentos</h3>
+            <p class="text-sm text-gray-600">Faça upload de novos documentos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-6">Documentos Recentes</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200" 
+             *ngFor="let doc of recentDocuments">
+          <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 truncate">{{ doc.fileName }}</h3>
+                <p class="text-sm text-gray-600">{{ doc.serverName }}</p>
+              </div>
+              <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">{{ doc.type }}</span>
+            </div>
+            
+            <div class="flex justify-between items-center text-sm text-gray-500 mb-4">
+              <span>{{ formatDate(doc.uploadDate) }}</span>
+              <span>{{ doc.size }}</span>
+            </div>
+
+            <div class="flex gap-2">
+              <button class="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      (click)="viewDocument(doc.id)" 
+                      title="Visualizar">
+                <span>👁️</span>
+                <span>Visualizar</span>
+              </button>
+              <button class="flex-1 bg-green-50 text-green-600 hover:bg-green-100 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      (click)="downloadDocument(doc.id)" 
+                      title="Baixar">
+                <span>📥</span>
+                <span>Baixar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

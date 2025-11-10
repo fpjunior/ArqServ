@@ -1,0 +1,53 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div class="container mx-auto px-6 py-8">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+        <span class="mr-3 text-blue-600 text-4xl">👥</span>
+        Servidores
+      </h1>
+    </div>
+
+    <!-- Seção de busca -->
+    <div class="mb-8">
+      <div class="relative max-w-md">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+        <input 
+          type="text" 
+          placeholder="Buscar servidores" 
+          class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors shadow-sm"
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()">
+      </div>
+    </div>
+
+    <!-- Grid de Grupos de Servidores -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div 
+        *ngFor="let letter of alphabet; let i = index" 
+        [class]="getGroupColor(letter)"
+        (click)="navigateToGroup(letter)"
+        class="bg-white rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-1 border border-gray-200">
+        
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+               [class.bg-blue-500]="i % 8 === 0"
+               [class.bg-green-500]="i % 8 === 1" 
+               [class.bg-purple-500]="i % 8 === 2"
+               [class.bg-orange-500]="i % 8 === 3"
+               [class.bg-red-500]="i % 8 === 4"
+               [class.bg-indigo-500]="i % 8 === 5"
+               [class.bg-pink-500]="i % 8 === 6"
+               [class.bg-teal-500]="i % 8 === 7">
+            👤
+          </div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900">Servidores {{ letter }}</div>
+            <div class="text-gray-600 text-sm">{{ serverGroups[letter] || 0 }} servidores</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

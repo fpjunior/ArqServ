@@ -1,0 +1,50 @@
+/* 
+  Estilos personalizados para ficar igual ao e-Prontuário
+  Usando as mesmas classes e gradientes
+*/
+
+/* Botão de entrar com gradiente azul igual ao header principal */
+.btn-login-gradient {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+  border: none;
+}
+
+.btn-login-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+}
+
+/* Header da tela de login com gradiente igual ao header principal */
+.header-login {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+}
+
+/* Animação de entrada suave para os cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Aplicar animação nos cards */
+.bg-white {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Melhorar a transição do backdrop blur em navegadores mais antigos */
+@supports not (backdrop-filter: blur(10px)) {
+  .backdrop-blur-sm {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Proteção específica para o botão de senha */
+.password-toggle-btn {
+  position: absolute !important;
+}

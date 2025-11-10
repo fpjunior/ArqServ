@@ -1,0 +1,117 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+html, body { 
+  height: 100%; 
+  overflow: hidden !important;
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  font-family: Roboto, "Helvetica Neue", sans-serif; 
+}
+
+/* Force no scrollbars globally when login component is active */
+.login-active {
+  overflow: hidden !important;
+}
+
+.login-active * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.login-active *::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* EMERGENCY FIX: REMOVE ALL OVERLAYS */
+.cdk-overlay-backdrop,
+.cdk-overlay-dark-backdrop,
+.cdk-overlay-transparent-backdrop,
+.mat-overlay-backdrop,
+.mat-dialog-backdrop,
+.cdk-overlay-container,
+.cdk-global-overlay-wrapper,
+.cdk-overlay-pane {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
+}
+
+/* Remove any pseudo-elements that might create overlays */
+*::before,
+*::after {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Force all content to be visible and clickable */
+app-root,
+router-outlet,
+app-login,
+app-main {
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+  background: transparent !important;
+}
+
+/* RESET AND FIX OVERLAY ISSUES */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure main content is always visible */
+body, html {
+  position: relative !important;
+  z-index: 1 !important;
+  background: transparent !important;
+}
+
+/* Custom utilities */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-shadow {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Material Design adjustments */
+.mat-mdc-card {
+  border-radius: 0.5rem;
+  position: relative;
+  z-index: 10;
+  background: white !important;
+}
+
+.mat-mdc-button {
+  border-radius: 0.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure all interactive elements are clickable */
+button, 
+input, 
+mat-card, 
+mat-form-field,
+.mat-mdc-button,
+.mat-mdc-form-field {
+  pointer-events: auto !important;
+  z-index: 100 !important;
+}

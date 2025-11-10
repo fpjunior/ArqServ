@@ -1,0 +1,129 @@
+<div class="p-6 bg-gray-50 min-h-screen">
+  <!-- Search Section -->
+  <section class="mb-8">
+    <div class="relative max-w-2xl mx-auto">
+      <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Buscar documentos, servidores ou informações" 
+        class="w-full pl-12 pr-4 py-4 bg-white border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg"
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()">
+    </div>
+  </section>
+
+  <!-- Overview Cards -->
+  <section class="mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Visão Geral</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.totalServers }}</p>
+            <p class="text-sm text-gray-500">Servidores Cadastrados</p>
+          </div>
+          <div class="text-4xl">📊</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Documentos</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.totalDocuments | number }}</p>
+            <p class="text-sm text-gray-500">Total de Arquivos</p>
+          </div>
+          <div class="text-4xl">📄</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200 border-l-4 border-yellow-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Uploads</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.recentUploads }}</p>
+            <p class="text-sm text-gray-500">Últimos 30 dias</p>
+          </div>
+          <div class="text-4xl">⬆️</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200 border-l-4 border-purple-500" *ngIf="currentUser?.role === 'empresa'">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Pendentes</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.pendingReviews }}</p>
+            <p class="text-sm text-gray-500">Aguardando Revisão</p>
+          </div>
+          <div class="text-4xl">⏳</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Actions -->
+  <section class="mb-8">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Ações Rápidas</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group"
+           (click)="navigateToServers()">
+        <div class="flex items-center gap-4">
+          <div class="text-4xl">👥</div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Gerenciar Servidores</div>
+            <div class="text-sm text-gray-600">Visualize e organize servidores por grupos</div>
+          </div>
+          <div class="text-gray-400 group-hover:text-blue-600 transition-colors text-xl">→</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group" 
+           *ngIf="currentUser?.role === 'empresa'" 
+           (click)="navigateToUpload()">
+        <div class="flex items-center gap-4">
+          <div class="text-4xl">☁️</div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Upload de Documentos</div>
+            <div class="text-sm text-gray-600">Adicione novos arquivos ao sistema</div>
+          </div>
+          <div class="text-gray-400 group-hover:text-blue-600 transition-colors text-xl">→</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group"
+           (click)="navigateToReports()">
+        <div class="flex items-center gap-4">
+          <div class="text-4xl">📈</div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Relatórios</div>
+            <div class="text-sm text-gray-600">Visualize estatísticas detalhadas</div>
+          </div>
+          <div class="text-gray-400 group-hover:text-blue-600 transition-colors text-xl">→</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Activity -->
+  <section class="mb-8" *ngIf="recentDocuments.length > 0">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Atividade Recente</h3>
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+      <div class="divide-y divide-gray-200">
+        <div class="p-4 hover:bg-gray-50 transition-colors duration-200" 
+             *ngFor="let doc of recentDocuments.slice(0, 5)">
+          <div class="flex items-center gap-4">
+            <div class="text-2xl">📄</div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">{{ doc.fileName }}</div>
+              <div class="text-sm text-gray-600">{{ doc.serverName }} • {{ formatDate(doc.uploadDate) }}</div>
+            </div>
+            <button class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200" 
+                    (click)="viewDocument(doc.id)">
+              <span class="text-lg">👁️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

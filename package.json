@@ -1,0 +1,38 @@
+{
+  "name": "arqserv",
+  "version": "1.0.0",
+  "description": "Sistema de Arquivo de Servidores - Gerenciamento de documentos digitalizados",
+  "scripts": {
+    "frontend:install": "cd frontend && npm install",
+    "frontend:start": "cd frontend && npm start",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:test": "cd frontend && npm test",
+    "backend:install": "cd backend && npm install",
+    "backend:start": "cd backend && npm start",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:test": "cd backend && npm test",
+    "install:all": "npm run frontend:install && npm run backend:install",
+    "start:frontend": "npm run frontend:start",
+    "start:backend": "npm run backend:start",
+    "dev": "concurrently \"npm run frontend:start\" \"npm run backend:dev\"",
+    "build": "npm run frontend:build && npm run backend:build"
+  },
+  "keywords": [
+    "documento",
+    "arquivo",
+    "servidor",
+    "publico",
+    "angular",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "Equipe ArqServ",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/arqserv.git"
+  }
+}

@@ -1,0 +1,272 @@
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.dashboard-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.user-info {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  font-size: 0.9rem;
+}
+
+.dashboard-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.welcome-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.welcome-title {
+  font-size: 2rem;
+  font-weight: 400;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.welcome-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  cursor: default;
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  background: linear-gradient(135deg, #3f51b5, #5c6bc0);
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Actions Grid */
+.actions-section {
+  margin-bottom: 3rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.action-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  padding: 1rem;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.action-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: #3f51b5;
+  margin-bottom: 1rem;
+}
+
+.action-card h3 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.action-card p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Recent Documents */
+.recent-section {
+  margin-bottom: 2rem;
+}
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.document-card {
+  transition: transform 0.2s ease;
+}
+
+.document-card:hover {
+  transform: translateY(-2px);
+}
+
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.document-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
+  color: #333;
+  word-break: break-word;
+}
+
+.document-server {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.document-type {
+  font-size: 0.8rem;
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.document-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.document-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.document-actions button {
+  color: #3f51b5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 1rem;
+  }
+  
+  .toolbar-content {
+    padding: 0 0.5rem;
+  }
+  
+  .user-name {
+    display: none;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .documents-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+}

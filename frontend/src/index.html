@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>ArqServ - Sistema de Arquivo de Servidores</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    /* Emergency CSS to prevent overlay issues */
+    body {
+      position: relative !important;
+      z-index: 1 !important;
+    }
+    .cdk-overlay-backdrop,
+    .cdk-overlay-container,
+    .mat-overlay-backdrop {
+      display: none !important;
+      visibility: hidden !important;
+    }
+  </style>
+</head>
+<body class="mat-typography">
+  <app-root></app-root>
+  <script>
+    // Emergency script to remove any overlays
+    document.addEventListener('DOMContentLoaded', function() {
+      setInterval(function() {
+        const overlays = document.querySelectorAll('.cdk-overlay-backdrop, .cdk-overlay-container, .mat-overlay-backdrop, .cdk-overlay-dark-backdrop');
+        overlays.forEach(function(overlay) {
+          if (overlay) {
+            overlay.remove();
+          }
+        });
+      }, 100);
+    });
+  </script>
+</body>
+</html>

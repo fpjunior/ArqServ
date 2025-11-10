@@ -1,0 +1,149 @@
+:host {
+  position: relative !important;
+  z-index: 100 !important;
+  display: block !important;
+}
+
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+.login-card-wrapper {
+  width: 100%;
+  max-width: 400px;
+  position: relative !important;
+  z-index: 101 !important;
+}
+
+.login-card {
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background: white;
+  position: relative !important;
+  z-index: 102 !important;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.logo-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #3f51b5;
+}
+
+.login-title {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.login-content {
+  padding: 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-field {
+  width: 100%;
+}
+
+.login-button {
+  height: 48px;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: 1rem;
+  border-radius: 8px;
+  position: relative !important;
+  z-index: 103 !important;
+  pointer-events: auto !important;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.footer-text {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Loading animation */
+.login-button mat-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    padding: 1.5rem;
+  }
+  
+  .login-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Custom snackbar styles */
+:host ::ng-deep .success-snackbar {
+  background-color: #4caf50;
+  color: white;
+}
+
+:host ::ng-deep .error-snackbar {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Force all interactive elements to be clickable */
+:host ::ng-deep button,
+:host ::ng-deep input,
+:host ::ng-deep mat-form-field,
+:host ::ng-deep .mat-mdc-form-field,
+:host ::ng-deep .mat-mdc-button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1000 !important;
+}

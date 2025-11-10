@@ -1,0 +1,129 @@
+.servers-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Seção de busca */
+.search-section {
+  margin-bottom: 2rem;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  max-width: 400px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.search-icon {
+  margin-right: 0.75rem;
+  color: #6b7280;
+  font-size: 1.125rem;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  color: #374151;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Grupos de servidores */
+.server-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.server-group {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e1e5e9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.server-group:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.group-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.group-info {
+  flex: 1;
+}
+
+.group-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.group-count {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Cores dos grupos */
+.blue .group-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.green .group-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.purple .group-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.orange .group-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.red .group-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.indigo .group-icon { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.pink .group-icon { background: linear-gradient(135deg, #ec4899, #db2777); }
+.teal .group-icon { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .servers-content {
+    padding: 1rem;
+  }
+  
+  .server-groups {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .server-group {
+    padding: 1rem;
+  }
+  
+  .group-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+}
+
+.server-group {
+  animation: fadeInUp 0.3s ease;
+}
