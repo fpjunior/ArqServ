@@ -3,11 +3,6 @@ import { AuthGuard } from './shared/guards/auth.guard';
 
 export const routes: Routes = [
   {
-    path: '',
-    redirectTo: '/dashboard',
-    pathMatch: 'full'
-  },
-  {
     path: 'auth/login',
     loadComponent: () => import('./modules/auth/components/login/login-simple.component')
       .then(m => m.LoginSimpleComponent)
@@ -23,6 +18,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       {
+        path: '',
+        redirectTo: '/dashboard',
+        pathMatch: 'full'
+      },
+      {
         path: 'dashboard',
         loadComponent: () => import('./modules/dashboard/components/dashboard-home/dashboard-home.component')
           .then(m => m.DashboardHomeComponent)
@@ -31,6 +31,16 @@ export const routes: Routes = [
         path: 'servers',
         loadComponent: () => import('./modules/dashboard/components/servers-list/servers-list.component')
           .then(m => m.ServersListComponent)
+      },
+      {
+        path: 'servers/:letter',
+        loadComponent: () => import('./modules/dashboard/components/servers-by-letter/servers-by-letter.component')
+          .then(m => m.ServersByLetterComponent)
+      },
+      {
+        path: 'servers/:letter/:id',
+        loadComponent: () => import('./modules/dashboard/components/server-details/server-details.component')
+          .then(m => m.ServerDetailsComponent)
       }
     ]
   },

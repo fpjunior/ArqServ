@@ -145,7 +145,7 @@ export class DashboardHomeComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    public router: Router
   ) {}
 
   ngOnInit() {
@@ -218,5 +218,9 @@ export class DashboardHomeComponent implements OnInit {
   refreshData() {
     this.loadDashboardData();
     // Mostrar feedback de atualização
+  }
+
+  navigateToServer(serverId: string) {
+    this.router.navigate(['/servers', serverId]);
   }
 }

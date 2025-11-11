@@ -67,9 +67,10 @@ export class ServersListComponent implements OnInit {
     return this.colors[index % this.colors.length];
   }
 
-  navigateToGroup(group: string): void {
-    console.log(`Navegando para grupo ${group} de servidores`);
-    // TODO: Implementar navegação para grupo específico
+  navigateToGroup(letter: string): void {
+    console.log(`Navegando para servidores com letra ${letter}`);
+    // Navegar para a página de servidores por letra
+    this.router.navigate(['/servers', letter]);
   }
 
   onSearch(): void {

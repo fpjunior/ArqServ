@@ -1,0 +1,122 @@
+<div class="min-h-screen bg-gray-100">
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <div class="bg-white shadow-sm px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button (click)="goBack()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h1 class="text-3xl font-bold text-gray-900">{{ server?.name || 'Servidor' }}</h1>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <div class="bg-gray-100 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center font-medium">
+            JC
+          </div>
+          <span class="text-gray-700 font-medium">João Carlos</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="flex-1 p-8">
+      <!-- Search Bar -->
+      <div class="mb-6">
+        <div class="relative max-w-md">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+            placeholder="Buscar arquivos"
+            class="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+      </div>
+
+      <!-- Files List -->
+      <div class="space-y-3">
+        <div *ngFor="let file of filteredFiles" 
+             class="group bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer"
+             (click)="openFile(file)">
+          <div class="flex items-center space-x-4">
+            <!-- File Type Icon -->
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-lg flex items-center justify-center"
+                   [ngClass]="{
+                     'bg-red-100': file.type === 'pdf',
+                     'bg-blue-100': file.type === 'img', 
+                     'bg-green-100': file.type === 'doc',
+                     'bg-gray-100': file.type === 'other'
+                   }">
+                <svg class="w-6 h-6" 
+                     [ngClass]="{
+                       'text-red-600': file.type === 'pdf',
+                       'text-blue-600': file.type === 'img',
+                       'text-green-600': file.type === 'doc', 
+                       'text-gray-600': file.type === 'other'
+                     }"
+                     fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- File Info -->
+            <div class="flex-1">
+              <h3 class="text-lg font-medium text-gray-900">{{ file.name }}</h3>
+              <div class="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                <span>{{ file.size }}</span>
+                <span>{{ file.lastModified | date:'dd/MM/yyyy' }}</span>
+                <span class="capitalize bg-gray-100 px-2 py-1 rounded-full text-xs">
+                  {{ file.type.toUpperCase() }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <button
+                (click)="viewFile(file); $event.stopPropagation()"
+                class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50 group-hover:bg-green-50"
+                title="Visualizar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+
+              <button
+                (click)="downloadFile(file); $event.stopPropagation()"
+                class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50 group-hover:bg-blue-50"
+                title="Baixar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="filteredFiles.length === 0" class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum arquivo encontrado</h3>
+          <p class="text-gray-500">
+            {{ searchTerm ? 'Tente ajustar os termos da busca' : 'Este servidor não possui arquivos cadastrados' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

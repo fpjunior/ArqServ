@@ -217,5 +217,70 @@
         </button>
       </div>
     </div>
+
+    <!-- Acesso Rápido a Servidores -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="bg-blue-100 p-2 rounded-lg">
+          <span class="text-blue-600 text-xl">👥</span>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800">Acesso Rápido</h2>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Card Ana Maria -->
+        <div 
+          (click)="navigateToServer('65')"
+          class="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
+          <div class="flex items-center space-x-3">
+            <div class="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+              AM
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800">Ana Maria</h3>
+              <p class="text-sm text-gray-600">24 arquivos</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card João Santos -->
+        <div 
+          (click)="navigateToServer('74')"
+          class="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
+          <div class="flex items-center space-x-3">
+            <div class="bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+              JS
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800">João Santos</h3>
+              <p class="text-sm text-gray-600">18 arquivos</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Maria Silva -->
+        <div 
+          (click)="navigateToServer('77')"
+          class="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
+          <div class="flex items-center space-x-3">
+            <div class="bg-purple-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+              MS
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800">Maria Silva</h3>
+              <p class="text-sm text-gray-600">31 arquivos</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 text-center">
+        <button 
+          (click)="router.navigate(['/servers'])"
+          class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+          Ver todos os servidores →
+        </button>
+      </div>
+    </div>
   </div>
 </div>
