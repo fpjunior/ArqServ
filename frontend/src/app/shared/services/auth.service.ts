@@ -12,16 +12,17 @@ export interface User {
 }
 
 export interface LoginResponse {
-  user: User;
+  success: boolean;
+  message: string;
   token: string;
-  refreshToken: string;
+  user: User;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000/api'; // Backend URL - será configurado posteriormente
+  private apiUrl = 'http://localhost:3002/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
 
@@ -43,60 +44,23 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<LoginResponse> {
-    // Por enquanto, simularemos o login para desenvolvimento
-    return this.simulateLogin(email, password);
-    
-    // Quando o backend estiver pronto, use esta implementação:
-    // return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password })
-    //   .pipe(
-    //     tap(response => this.handleAuthResponse(response)),
-    //     catchError(this.handleError)
-    //   );
-  }
-
-  private simulateLogin(email: string, password: string): Observable<LoginResponse> {
-    // Simulação de login para desenvolvimento
-    const mockUsers = [
-      {
-        id: '1',
-        email: 'admin@empresa.com',
-        name: 'Administrador Empresa',
-        role: 'empresa' as const
-      },
-      {
-        id: '2',
-        email: 'prefeitura@cidade.gov.br',
-        name: 'Gestor Municipal',
-        role: 'prefeitura' as const,
-        municipio: 'Cidade Exemplo'
-      }
-    ];
-
-    const user = mockUsers.find(u => u.email === email);
-    
-    if (user && password === '123456') {
-      const response: LoginResponse = {
-        user,
-        token: 'mock_jwt_token_' + Date.now(),
-        refreshToken: 'mock_refresh_token_' + Date.now()
-      };
-
-      return of(response).pipe(
-        tap(response => this.handleAuthResponse(response))
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password })
+      .pipe(
+        map(response => {
+          if (response.success) {
+            return response;
+          } else {
+            throw new Error(response.message || 'Erro no login');
+          }
+        }),
+        tap(response => this.handleAuthResponse(response)),
+        catchError(this.handleError)
       );
-    } else {
-      return new Observable(observer => {
-        setTimeout(() => {
-          observer.error({ error: { message: 'Credenciais inválidas' } });
-        }, 1000);
-      });
-    }
   }
 
   private handleAuthResponse(response: LoginResponse): void {
     localStorage.setItem('arqserv_token', response.token);
     localStorage.setItem('arqserv_user', JSON.stringify(response.user));
-    localStorage.setItem('arqserv_refresh_token', response.refreshToken);
 
     this.tokenSubject.next(response.token);
     this.currentUserSubject.next(response.user);
@@ -105,7 +69,6 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem('arqserv_token');
     localStorage.removeItem('arqserv_user');
-    localStorage.removeItem('arqserv_refresh_token');
 
     this.tokenSubject.next(null);
     this.currentUserSubject.next(null);
