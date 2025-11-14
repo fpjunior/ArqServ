@@ -61,11 +61,14 @@ export class UploadDocumentsComponent implements OnInit {
   message = '';
 
   municipalities: Municipality[] = [
-    { code: '3550308', name: 'São Paulo', state: 'SP' },
-    { code: '3304557', name: 'Rio de Janeiro', state: 'RJ' },
-    { code: '3106200', name: 'Belo Horizonte', state: 'MG' },
-    { code: '4106902', name: 'Curitiba', state: 'PR' },
-    { code: '5300108', name: 'Brasília', state: 'DF' }
+    { code: '2600500', name: 'Aliança', state: 'PE' },
+    { code: '2600609', name: 'Amaraji', state: 'PE' },
+    { code: '2600708', name: 'Araçoiaba', state: 'PE' },
+    { code: '2604106', name: 'Condado', state: 'PE' },
+    { code: '2611101', name: 'Palmares', state: 'PE' },
+    { code: '2615607', name: 'Vertente', state: 'PE' },
+    { code: '2607307', name: 'Ingazeira', state: 'PE' },
+    { code: '2609907', name: 'Nabuco', state: 'PE' }
   ];
 
   servers: Server[] = [];
@@ -231,7 +234,7 @@ export class UploadDocumentsComponent implements OnInit {
 
   // Carregar servidores quando município for selecionado
   onMunicipalityChange(event: any): void {
-    const municipalityCode = event.value;
+    const municipalityCode = event.target.value;
     this.selectedMunicipalityCode = municipalityCode;
     
     // Definir nome do município
@@ -249,30 +252,52 @@ export class UploadDocumentsComponent implements OnInit {
     try {
       console.log(`🔄 Carregando servidores para município: ${municipalityCode}`);
       
-      this.documentsService.getServersByMunicipality(municipalityCode).subscribe({
-        next: (response) => {
-          if (response.success && response.data) {
-            // Se retornou dados agrupados por letra, pegar os servidores
-            if (typeof response.data === 'object' && 'servers' in response.data && Array.isArray(response.data.servers)) {
-              this.servers = response.data.servers;
-            } else if (Array.isArray(response.data)) {
-              this.servers = response.data;
-            } else {
-              this.servers = [];
-            }
-            
-            console.log(`✅ ${this.servers.length} servidores carregados para ${municipalityCode}`);
-          } else {
-            this.servers = [];
-            console.warn('Resposta sem sucesso:', response);
-          }
-        },
-        error: (error) => {
-          console.error('❌ Erro ao carregar servidores:', error);
-          this.servers = [];
-          this.showMessage('Erro ao carregar servidores. Tente novamente.', 'error');
-        }
-      });
+      // Filtrar servidores mockados por município
+      const allServers: Server[] = [
+        // Aliança (2600500)
+        { id: 1, name: 'Ana Silva Santos', municipality_code: '2600500', created_at: '2024-01-01' },
+        { id: 2, name: 'João Carlos Oliveira', municipality_code: '2600500', created_at: '2024-01-01' },
+        { id: 3, name: 'Carlos Eduardo Ramos', municipality_code: '2600500', created_at: '2024-01-01' },
+        
+        // Amaraji (2600609)
+        { id: 4, name: 'Maria Fernanda Lima', municipality_code: '2600609', created_at: '2024-01-01' },
+        { id: 5, name: 'Pedro Henrique Costa', municipality_code: '2600609', created_at: '2024-01-01' },
+        { id: 6, name: 'Beatriz Almeida Souza', municipality_code: '2600609', created_at: '2024-01-01' },
+        
+        // Araçoiaba (2600708)
+        { id: 7, name: 'Juliana Pereira Souza', municipality_code: '2600708', created_at: '2024-01-01' },
+        { id: 8, name: 'Fernando Dias Machado', municipality_code: '2600708', created_at: '2024-01-01' },
+        { id: 9, name: 'Camila Rodrigues Lopes', municipality_code: '2600708', created_at: '2024-01-01' },
+        
+        // Condado (2604106)
+        { id: 10, name: 'Roberto da Silva Junior', municipality_code: '2604106', created_at: '2024-01-01' },
+        { id: 11, name: 'Carla Mendes Alves', municipality_code: '2604106', created_at: '2024-01-01' },
+        { id: 12, name: 'Miguel Santos Barbosa', municipality_code: '2604106', created_at: '2024-01-01' },
+        
+        // Palmares (2611101)
+        { id: 13, name: 'Lucas Ferreira Rocha', municipality_code: '2611101', created_at: '2024-01-01' },
+        { id: 14, name: 'Gabriela Nascimento Silva', municipality_code: '2611101', created_at: '2024-01-01' },
+        { id: 15, name: 'André Luiz Cardoso', municipality_code: '2611101', created_at: '2024-01-01' },
+        
+        // Vertente (2615607)
+        { id: 16, name: 'Patrícia Ribeiro Campos', municipality_code: '2615607', created_at: '2024-01-01' },
+        { id: 17, name: 'Rodrigo Menezes Filho', municipality_code: '2615607', created_at: '2024-01-01' },
+        { id: 18, name: 'Larissa Cavalcanti Cruz', municipality_code: '2615607', created_at: '2024-01-01' },
+        
+        // Ingazeira (2607307)
+        { id: 19, name: 'Rafael Gonçalves Nunes', municipality_code: '2607307', created_at: '2024-01-01' },
+        { id: 20, name: 'Isabela Freitas Moreno', municipality_code: '2607307', created_at: '2024-01-01' },
+        { id: 21, name: 'Daniel Augusto Pereira', municipality_code: '2607307', created_at: '2024-01-01' },
+        
+        // Nabuco (2609907)
+        { id: 22, name: 'Amanda Torres Barbosa', municipality_code: '2609907', created_at: '2024-01-01' },
+        { id: 23, name: 'Thiago Martins Araújo', municipality_code: '2609907', created_at: '2024-01-01' },
+        { id: 24, name: 'Mariana Correia Batista', municipality_code: '2609907', created_at: '2024-01-01' }
+      ];
+      
+      this.servers = allServers.filter(server => server.municipality_code === municipalityCode);
+      console.log(`✅ ${this.servers.length} servidores carregados para ${municipalityCode}`);
+      
     } catch (error) {
       console.error('Erro ao carregar servidores:', error);
       this.servers = [];
@@ -337,7 +362,7 @@ export class UploadDocumentsComponent implements OnInit {
     });
 
     // Carregar servidores do município
-    this.onMunicipalityChange({ value: municipality.code });
+    this.onMunicipalityChange({ target: { value: municipality.code } });
     
     // Fechar diálogo
     this.showTailwindDialog = false;

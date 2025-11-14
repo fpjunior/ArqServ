@@ -1,6 +1,6 @@
 
 <!-- Diálogo Novo Município usando MunicipalityDialogComponent -->
-<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center">
   <app-municipality-dialog 
     (municipalityCreated)="onMunicipalityCreated($event)"
     (cancelled)="onMunicipalityDialogCancelled()">
@@ -8,7 +8,7 @@
 </div>
 
 <!-- Diálogo Novo Servidor usando ServerDialogComponent -->
-<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center">
   <app-server-dialog 
     [data]="{ municipalityCode: selectedMunicipalityCode, municipalityName: selectedMunicipalityName }"
     (serverCreated)="onServerCreated($event)"
@@ -37,20 +37,21 @@
         <div class="flex items-start gap-4">
           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-2">Município *</label>
-            <mat-select formControlName="municipality_code" required (selectionChange)="onMunicipalityChange($event)" 
-                       class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base">
-              <mat-option *ngFor="let municipality of municipalities" [value]="municipality.code">
-                {{municipality.name}} - {{municipality.code}}
-              </mat-option>
-            </mat-select>
+            <select formControlName="municipality_code" required (change)="onMunicipalityChange($event)" 
+                    class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="" disabled>Selecione um município</option>
+              <option *ngFor="let municipality of municipalities" [value]="municipality.code">
+                {{municipality.name}} - {{municipality.state}}
+              </option>
+            </select>
             <div *ngIf="uploadForm.get('municipality_code')?.hasError('required') && uploadForm.get('municipality_code')?.touched" class="text-red-500 text-sm mt-1">
               Município é obrigatório
             </div>
           </div>
-          <div class="pt-8">
-            <button mat-raised-button color="primary" type="button" (click)="openMunicipalityDialog()" 
-                    class="h-12 px-4 flex items-center gap-2">
-              <mat-icon>add</mat-icon>
+          <div class="pt-6">
+            <button type="button" (click)="openMunicipalityDialog()" 
+                    class="h-12 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+              <mat-icon class="text-lg">add</mat-icon>
               Novo Município
             </button>
           </div>
@@ -60,20 +61,21 @@
         <div class="flex items-start gap-4">
           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-2">Servidor *</label>
-            <mat-select formControlName="server_id" required 
-                       class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base">
-              <mat-option *ngFor="let server of servers" [value]="server.id">
+            <select formControlName="server_id" required 
+                    class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              <option value="" disabled>Selecione um servidor</option>
+              <option *ngFor="let server of servers" [value]="server.id">
                 {{server.name}}
-              </mat-option>
-            </mat-select>
+              </option>
+            </select>
             <div *ngIf="uploadForm.get('server_id')?.hasError('required') && uploadForm.get('server_id')?.touched" class="text-red-500 text-sm mt-1">
               Servidor é obrigatório
             </div>
           </div>
-          <div class="pt-8">
-            <button mat-raised-button color="accent" type="button" (click)="openServerDialog()" 
-                    class="h-12 px-4 flex items-center gap-2">
-              <mat-icon>person_add</mat-icon>
+          <div class="pt-6">
+            <button type="button" (click)="openServerDialog()" 
+                    class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+              <mat-icon class="text-lg">person_add</mat-icon>
               Novo Servidor
             </button>
           </div>
