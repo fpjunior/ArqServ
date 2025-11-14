@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth.routes');
 const documentRoutes = require('./routes/document.routes');
+const serverRoutes = require('./routes/server.routes');
+const municipalityRoutes = require('./routes/municipality.routes');
 
 // Configurar variáveis de ambiente
 dotenv.config();
@@ -24,6 +26,8 @@ app.use((req, res, next) => {
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/servers', serverRoutes);
+app.use('/api/municipalities', municipalityRoutes);
 
 // Rota de teste
 app.get('/api/test', (req, res) => {

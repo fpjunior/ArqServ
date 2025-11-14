@@ -1,8 +1,12 @@
 const Document = require('../models/document.model');
 const Municipality = require('../models/municipality.model');
-const googleDriveService = require('../services/googleDrive.service');
+const Server = require('../models/server.model');
+const GoogleDriveService = require('../services/googleDrive.service');
 const multer = require('multer');
 const path = require('path');
+
+// Instanciar serviço do Google Drive
+const googleDriveService = new GoogleDriveService();
 
 // Configurar multer para upload de arquivos
 const storage = multer.memoryStorage();
@@ -34,7 +38,10 @@ class DocumentController {
 
   static async uploadFile(req, res) {
     try {
-      const { title, description, category, municipality_code } = req.body;
+      // Verificar se Google Drive está disponível
+      await googleDriveService.ensureInitialized();
+      
+      const { title, description, category, municipality_code, server_id, server_name, municipality_name } = req.body;
       const file = req.file;
 
       if (!file) {
@@ -44,42 +51,56 @@ class DocumentController {
         });
       }
 
-      if (!title || !category || !municipality_code) {
+      if (!title || !category || !municipality_code || !server_id) {
         return res.status(400).json({
           success: false,
-          message: 'Campos obrigatórios: title, category, municipality_code'
+          message: 'Campos obrigatórios: title, category, municipality_code, server_id'
         });
       }
 
-      // Verificar se o município existe
-      const municipality = await Municipality.findByCode(municipality_code);
-      if (!municipality) {
-        return res.status(404).json({
-          success: false,
-          message: 'Município não encontrado'
-        });
+      // Verificar se o servidor existe
+      let server = await Server.findById(server_id);
+      if (!server) {
+        // Se servidor não existe, tentar criar
+        if (!server_name) {
+          return res.status(400).json({
+            success: false,
+            message: 'Server não encontrado e server_name não fornecido para criação'
+          });
+        }
+
+        try {
+          // Criar estrutura de pastas no Google Drive
+          const folderStructure = await googleDriveService.createServerFolderStructure(
+            municipality_name || 'Município',
+            municipality_code,
+            server_name
+          );
+
+          // Criar servidor no banco
+          server = await Server.create({
+            name: server_name,
+            municipality_code,
+            drive_folder_id: folderStructure.serverFolderId
+          });
+
+          console.log(`✅ Servidor ${server_name} criado automaticamente`);
+        } catch (error) {
+          console.error('❌ Erro ao criar servidor:', error);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao criar servidor automaticamente'
+          });
+        }
       }
 
-      // Se não tem pasta do drive, criar estrutura
-      let driveFolderId = municipality.drive_folder_id;
-      if (!driveFolderId) {
-        console.log(`📁 Criando estrutura de pastas para ${municipality.name}`);
-        const folderStructure = await googleDriveService.createMunicipalityFolders(
-          municipality.name, 
-          municipality.code
-        );
-        
-        driveFolderId = folderStructure.mainFolderId;
-        await Municipality.updateDriveFolderId(municipality_code, driveFolderId);
-      }
-
-      // Upload para o Google Drive
+      // Upload para a pasta do servidor no Google Drive
       const fileName = `${Date.now()}_${file.originalname}`;
       const driveFile = await googleDriveService.uploadFile(
         file.buffer,
         fileName,
         file.mimetype,
-        driveFolderId
+        server.drive_folder_id
       );
 
       // Salvar no banco de dados
@@ -88,6 +109,7 @@ class DocumentController {
         description: description || '',
         category,
         municipality_code,
+        server_id: server.id,
         file_name: file.originalname,
         file_path: `https://drive.google.com/file/d/${driveFile.id}/view`,
         file_size: file.size,
@@ -101,6 +123,7 @@ class DocumentController {
         message: 'Documento enviado com sucesso',
         data: {
           document,
+          server: server,
           driveFileId: driveFile.id
         }
       });

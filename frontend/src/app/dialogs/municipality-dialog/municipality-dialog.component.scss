@@ -1,0 +1,21 @@
+// Estilos convertidos para Tailwind CSS
+// Mantendo apenas estilos específicos se necessário
+
+:host {
+  display: block;
+}
+
+// Override para Material Dialog se necessário
+.mat-mdc-dialog-container {
+  padding: 0 !important;
+}
+
+.mat-mdc-dialog-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.mat-mdc-dialog-actions {
+  padding: 0 !important;
+  margin: 0 !important;
+}

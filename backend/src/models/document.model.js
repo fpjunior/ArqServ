@@ -11,6 +11,7 @@ class Document {
         description,
         category,
         municipality_code,
+        server_id,
         file_name,
         file_path,
         file_size,
@@ -21,15 +22,15 @@ class Document {
 
       const query = `
         INSERT INTO documents (
-          title, description, category, municipality_code, 
+          title, description, category, municipality_code, server_id,
           file_name, file_path, file_size, mime_type, 
           google_drive_id, uploaded_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         RETURNING *
       `;
 
       const values = [
-        title, description, category, municipality_code,
+        title, description, category, municipality_code, server_id,
         file_name, file_path, file_size, mime_type,
         google_drive_id, uploaded_by
       ];

@@ -1,0 +1,87 @@
+<div class="bg-white p-6 rounded-lg shadow-lg relative z-50 min-w-[500px]">
+  <!-- Cabeçalho -->
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+      <mat-icon class="text-green-600">person_add</mat-icon>
+    </div>
+    <h2 class="text-xl font-semibold text-gray-800">Novo Servidor</h2>
+  </div>
+
+  <!-- Informação do Município -->
+  <div *ngIf="data.municipalityName" class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-md mb-6">
+    <mat-icon class="text-green-600">location_on</mat-icon>
+    <span class="text-gray-700">Município: <strong class="text-gray-900">{{ data.municipalityName }}</strong></span>
+  </div>
+
+  <!-- Formulário -->
+  <form [formGroup]="serverForm" class="space-y-4">
+    <!-- Nome do Servidor -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Nome Completo do Servidor
+      </label>
+      <input 
+        type="text" 
+        formControlName="name" 
+        placeholder="Ex: Ana Silva Santos"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+        [class.border-red-500]="serverForm.get('name')?.invalid && serverForm.get('name')?.touched">
+      <div *ngIf="serverForm.get('name')?.invalid && serverForm.get('name')?.touched" class="mt-1 text-sm text-red-600">
+        <span *ngIf="serverForm.get('name')?.hasError('required')">Nome é obrigatório</span>
+        <span *ngIf="serverForm.get('name')?.hasError('minlength')">Nome deve ter pelo menos 3 caracteres</span>
+      </div>
+    </div>
+
+    <!-- Preview da estrutura de pastas -->
+    <div *ngIf="serverForm.get('name')?.value" class="p-4 bg-orange-50 border border-orange-200 rounded-md border-l-4 border-l-orange-500">
+      <h4 class="text-sm font-semibold text-orange-800 mb-3 flex items-center gap-2">
+        <mat-icon class="text-lg">folder</mat-icon>
+        Estrutura que será criada:
+      </h4>
+      <div class="font-mono text-sm text-orange-700 space-y-1">
+        <div class="flex items-center gap-1">
+          <mat-icon class="text-xs">folder</mat-icon>
+          <span>{{ data.municipalityName || 'Município' }}</span>
+        </div>
+        <div class="ml-4 flex items-center gap-1">
+          <mat-icon class="text-xs">folder</mat-icon>
+          <span>Servidores {{ getFirstLetter() }}</span>
+        </div>
+        <div class="ml-8 flex items-center gap-1">
+          <mat-icon class="text-xs">folder</mat-icon>
+          <span>{{ serverForm.get('name')?.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status de criação -->
+    <div *ngIf="isCreating" class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+      <div class="animate-spin">
+        <mat-icon class="text-blue-600">hourglass_empty</mat-icon>
+      </div>
+      <span class="text-blue-700 font-medium">Criando pasta no Google Drive...</span>
+    </div>
+  </form>
+
+  <!-- Botões -->
+  <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+    <button 
+      type="button"
+      (click)="onCancel()" 
+      [disabled]="isCreating"
+      class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors">
+      Cancelar
+    </button>
+    <button 
+      type="button"
+      (click)="onCreate()"
+      [disabled]="serverForm.invalid || isCreating"
+      class="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center gap-2">
+      <mat-icon *ngIf="!isCreating" class="text-lg">person_add</mat-icon>
+      <div *ngIf="isCreating" class="animate-spin">
+        <mat-icon class="text-lg">hourglass_empty</mat-icon>
+      </div>
+      {{ isCreating ? 'Criando...' : 'Criar Servidor' }}
+    </button>
+  </div>
+</div>

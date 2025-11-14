@@ -28,6 +28,11 @@ export const routes: Routes = [
           .then(m => m.DashboardHomeComponent)
       },
       {
+        path: 'upload',
+        loadComponent: () => import('./components/upload-documents/upload-documents.component')
+          .then(m => m.UploadDocumentsComponent)
+      },
+      {
         path: 'servers',
         loadComponent: () => import('./modules/dashboard/components/servers-list/servers-list.component')
           .then(m => m.ServersListComponent)

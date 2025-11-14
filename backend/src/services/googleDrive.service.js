@@ -5,17 +5,21 @@ const path = require('path');
 class GoogleDriveService {
   constructor() {
     this.drive = null;
-    this.initializeDrive();
+    this.isInitialized = false;
+    // Não inicializar automaticamente
   }
 
   async initializeDrive() {
+    if (this.isInitialized) return;
+    
     try {
       // Carregar credenciais diretamente
       const credentialsPath = path.join(__dirname, '..', 'google-drive-credentials.json');
       console.log('📁 Buscando credenciais em:', credentialsPath);
       
       if (!fs.existsSync(credentialsPath)) {
-        throw new Error(`Arquivo de credenciais não encontrado: ${credentialsPath}`);
+        console.warn('⚠️ Arquivo de credenciais do Google Drive não encontrado. Funcionalidades do Drive indisponíveis.');
+        return false;
       }
 
       const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
@@ -28,12 +32,25 @@ class GoogleDriveService {
 
       // Inicializar cliente do Drive
       this.drive = google.drive({ version: 'v3', auth });
+      this.isInitialized = true;
       
       console.log('✅ Google Drive API inicializada com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao inicializar Google Drive API:', error);
-      throw error;
+      return false;
+    }
+  }
+
+  /**
+   * Verificar se está inicializado antes de usar
+   */
+  async ensureInitialized() {
+    if (!this.isInitialized) {
+      const success = await this.initializeDrive();
+      if (!success) {
+        throw new Error('Google Drive API não está disponível');
+      }
     }
   }
 
@@ -160,7 +177,78 @@ class GoogleDriveService {
   }
 
   /**
-   * Criar estrutura de pastas para um município
+   * Criar estrutura completa de pastas para município e servidor
+   */
+  async createServerFolderStructure(municipalityName, municipalityCode, serverName) {
+    try {
+      await this.ensureInitialized();
+      
+      console.log(`📁 Criando estrutura para ${municipalityName} - Servidor: ${serverName}`);
+      
+      // Buscar ou criar pasta do município
+      let municipalityFolder = await this.findFolderByName(municipalityName, '1swo92v1_TeQVuZ4bUx9Xlv3dWwaKSCbc');
+      
+      if (!municipalityFolder) {
+        municipalityFolder = await this.createFolder(municipalityName, '1swo92v1_TeQVuZ4bUx9Xlv3dWwaKSCbc');
+        console.log(`✅ Pasta do município criada: ${municipalityName}`);
+      }
+
+      // Determinar letra inicial do servidor
+      const firstLetter = serverName.charAt(0).toUpperCase();
+      const letterFolderName = `Servidores ${firstLetter}`;
+
+      // Buscar ou criar pasta da letra
+      let letterFolder = await this.findFolderByName(letterFolderName, municipalityFolder.id);
+      
+      if (!letterFolder) {
+        letterFolder = await this.createFolder(letterFolderName, municipalityFolder.id);
+        console.log(`✅ Pasta da letra criada: ${letterFolderName}`);
+      }
+
+      // Buscar ou criar pasta do servidor
+      let serverFolder = await this.findFolderByName(serverName, letterFolder.id);
+      
+      if (!serverFolder) {
+        serverFolder = await this.createFolder(serverName, letterFolder.id);
+        console.log(`✅ Pasta do servidor criada: ${serverName}`);
+      }
+
+      return {
+        municipalityFolderId: municipalityFolder.id,
+        letterFolderId: letterFolder.id,
+        serverFolderId: serverFolder.id,
+        structure: {
+          municipality: municipalityName,
+          letter: letterFolderName,
+          server: serverName
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Erro ao criar estrutura de pastas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar pasta por nome dentro de um parent
+   */
+  async findFolderByName(folderName, parentId) {
+    try {
+      const response = await this.drive.files.list({
+        q: `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)'
+      });
+
+      return response.data.files[0] || null;
+    } catch (error) {
+      console.error('❌ Erro ao buscar pasta:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Criar estrutura de pastas para um município (método antigo mantido para compatibilidade)
    */
   async createMunicipalityFolders(municipalityName, municipalityCode) {
     try {
@@ -187,4 +275,6 @@ class GoogleDriveService {
   }
 }
 
-module.exports = new GoogleDriveService();
+module.exports = GoogleDriveService;
+
+module.exports = GoogleDriveService;
