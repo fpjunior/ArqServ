@@ -91,7 +91,7 @@ app.get('/api/debug/users', async (req, res) => {
   
   try {
     const client = await pool.connect();
-    const result = await client.query('SELECT email, name, role, is_active FROM users ORDER BY email');
+    const result = await client.query('SELECT email, name, role FROM users ORDER BY email');
     client.release();
     
     res.json({
