@@ -85,6 +85,28 @@ app.get('/api/debug', async (req, res) => {
   }
 });
 
+// Rota para verificar usuários (apenas para debug)
+app.get('/api/debug/users', async (req, res) => {
+  const pool = require('./config/database');
+  
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT email, name, role, is_active FROM users ORDER BY email');
+    client.release();
+    
+    res.json({
+      status: 'SUCCESS',
+      users: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro ao buscar usuários',
+      error: error.message
+    });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 ArqServ Backend rodando na porta ${PORT}`);
