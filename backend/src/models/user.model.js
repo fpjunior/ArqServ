@@ -7,7 +7,7 @@ class User {
    */
   static async findByEmail(email) {
     try {
-      const query = 'SELECT * FROM users WHERE email = $1 AND is_active = true';
+      const query = 'SELECT * FROM users WHERE email = $1';
       const values = [email];
       
       const result = await pool.query(query, values);
@@ -23,7 +23,7 @@ class User {
    */
   static async findById(id) {
     try {
-      const query = 'SELECT * FROM users WHERE id = $1 AND is_active = true';
+      const query = 'SELECT * FROM users WHERE id = $1';
       const values = [id];
       
       const result = await pool.query(query, values);
