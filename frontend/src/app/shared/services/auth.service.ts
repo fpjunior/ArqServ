@@ -2,27 +2,30 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
-  role: 'prefeitura' | 'empresa';
-  municipio?: string;
+  role: string;
+  municipality?: string;
 }
 
 export interface LoginResponse {
-  success: boolean;
+  status: string;
   message: string;
-  token: string;
-  user: User;
+  data: {
+    token: string;
+    user: User;
+  };
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3002/api';
+  private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
 
@@ -47,7 +50,7 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password })
       .pipe(
         map(response => {
-          if (response.success) {
+          if (response.status === 'SUCCESS') {
             return response;
           } else {
             throw new Error(response.message || 'Erro no login');
@@ -59,11 +62,11 @@ export class AuthService {
   }
 
   private handleAuthResponse(response: LoginResponse): void {
-    localStorage.setItem('arqserv_token', response.token);
-    localStorage.setItem('arqserv_user', JSON.stringify(response.user));
+    localStorage.setItem('arqserv_token', response.data.token);
+    localStorage.setItem('arqserv_user', JSON.stringify(response.data.user));
 
-    this.tokenSubject.next(response.token);
-    this.currentUserSubject.next(response.user);
+    this.tokenSubject.next(response.data.token);
+    this.currentUserSubject.next(response.data.user);
   }
 
   logout(): void {

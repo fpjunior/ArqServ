@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { catchError, map, filter } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // Interfaces
 export interface Municipality {
@@ -53,7 +54,7 @@ export interface DocumentFilters {
   providedIn: 'root'
 })
 export class DocumentsService {
-  private apiUrl = 'http://localhost:3002/api';
+  private apiUrl = environment.apiUrl;
   private uploadProgressSubject = new BehaviorSubject<UploadProgress | null>(null);
   
   // Observable para progresso de upload
