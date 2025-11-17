@@ -12,8 +12,8 @@ class GoogleDriveService {
 
   async initialize() {
     try {
-      // Verificar se as credenciais existem
-      const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH || '/app/google-drive-credentials.json';
+      // Verificar se as credenciais existem - primeiro tentar path do .env local
+      const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH || process.env.GOOGLE_DRIVE_CREDENTIALS_PATH || '/app/google-drive-credentials.json';
       
       if (!fs.existsSync(credentialsPath)) {
         console.log('⚠️  Google Drive credentials not found. Upload will work in LOCAL mode only.');

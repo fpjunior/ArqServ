@@ -35,8 +35,8 @@ services:
       DB_PASSWORD: arqserv123
       JWT_SECRET: arqserv_jwt_secret_2024
       CORS_ORIGIN: http://localhost:4200
-      GOOGLE_CREDENTIALS_PATH: /app/google-drive-credentials.json
-      GOOGLE_DRIVE_ROOT_FOLDER_ID: ${GOOGLE_DRIVE_ROOT_FOLDER_ID:-}
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-drive-credentials.json
+      GOOGLE_DRIVE_ROOT_FOLDER_ID: 1j4oRSFWX69Ty3KpegiKAD0_L47xiOqyX
     ports:
       - "3005:3005"
     volumes:
@@ -47,6 +47,8 @@ services:
       - backend_node_modules:/app/node_modules
       # Volume para uploads (salvar arquivos permanentemente)
       - uploads_data:/app/uploads
+      # Volume para credenciais do Google Drive
+      - ./backend/credentials:/app/credentials
     depends_on:
       postgres:
         condition: service_healthy
