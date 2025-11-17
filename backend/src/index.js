@@ -44,6 +44,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const googleDriveService = require('./services/google-drive.service');
+const googleDriveOAuthService = require('./services/google-drive-oauth.service');
 
 // Configuração do upload - salvar arquivos localmente primeiro
 const storage = multer.diskStorage({
@@ -136,29 +137,29 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
 
     console.log(`📁 Preparando upload para: ${municipalityName} > ${serverName}`);
 
-    // Inicializar Google Drive service se não foi inicializado
-    if (!googleDriveService.isInitialized()) {
-      await googleDriveService.initialize();
+    // Inicializar Google Drive OAuth service se não foi inicializado
+    if (!googleDriveOAuthService.isInitialized()) {
+      await googleDriveOAuthService.initialize();
     }
 
-    // Tentar upload para Google Drive
-    if (googleDriveService.isInitialized()) {
+    // Tentar upload para Google Drive OAuth primeiro
+    if (googleDriveOAuthService.isInitialized()) {
       try {
-        console.log('☁️ Uploading to Google Drive...');
-        googleDriveData = await googleDriveService.uploadFile(
+        console.log('☁️ Uploading to Google Drive via OAuth...');
+        googleDriveData = await googleDriveOAuthService.uploadFile(
           file.path,
           file.originalname,
           municipalityName,
           serverName
         );
         uploadedToGoogleDrive = true;
-        console.log('✅ Google Drive upload successful:', googleDriveData);
+        console.log('✅ Google Drive OAuth upload successful:', googleDriveData);
       } catch (driveError) {
-        console.error('❌ Google Drive upload failed:', driveError.message);
+        console.error('❌ Google Drive OAuth upload failed:', driveError.message);
         console.log('📁 Falling back to local storage...');
       }
     } else {
-      console.log('📁 Google Drive not available, using local storage');
+      console.log('📁 Google Drive OAuth not available, using local storage');
     }
 
     // Preparar dados para inserção no banco
@@ -484,12 +485,17 @@ app.listen(PORT, async () => {
   console.log(`🚀 ArqServ Backend rodando na porta ${PORT}`);
   console.log(`📡 Acesse: http://localhost:${PORT}/api/test`);
   
-  // Inicializar Google Drive service
-  console.log('🔄 Inicializando Google Drive service...');
-  const driveInitialized = await googleDriveService.initialize();
-  if (driveInitialized) {
-    console.log('✅ Google Drive service pronto!');
+  // Inicializar Google Drive services
+  console.log('🔄 Inicializando Google Drive services...');
+  
+  const driveOAuthInitialized = await googleDriveOAuthService.initialize();
+  const driveServiceInitialized = await googleDriveService.initialize();
+  
+  if (driveOAuthInitialized) {
+    console.log('✅ Google Drive OAuth service pronto!');
+  } else if (driveServiceInitialized) {
+    console.log('✅ Google Drive service account pronto (com limitações)');
   } else {
-    console.log('⚠️ Google Drive service não disponível - uploads serão salvos localmente');
+    console.log('⚠️ Google Drive não configurado - uploads serão salvos localmente');
   }
 });
