@@ -68,6 +68,17 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   getPageTitle(): string {
+    if (this.currentRoute.startsWith('/documentacoes-financeiras/')) {
+      const category = this.currentRoute.split('/')[2];
+      const categoryNames: { [key: string]: string } = {
+        'licitacoes': 'Licitações',
+        'despesas': 'Despesas', 
+        'receitas': 'Receitas',
+        'contratos': 'Contratos'
+      };
+      return categoryNames[category] || 'Documentações Financeiras';
+    }
+    
     switch (this.currentRoute) {
       case '/dashboard':
         return 'Bem-vindo ao ArqServ';
@@ -81,6 +92,17 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   getPageSubtitle(): string {
+    if (this.currentRoute.startsWith('/documentacoes-financeiras/')) {
+      const category = this.currentRoute.split('/')[2];
+      const categoryDescriptions: { [key: string]: string } = {
+        'licitacoes': 'Documentos de processos licitatórios',
+        'despesas': 'Registros de gastos e despesas',
+        'receitas': 'Documentos de receitas e arrecadação',
+        'contratos': 'Contratos firmados e documentação'
+      };
+      return categoryDescriptions[category] || 'Gerencie documentos financeiros';
+    }
+    
     switch (this.currentRoute) {
       case '/dashboard':
         return 'Gestão Compartilhada de Arquivos';
