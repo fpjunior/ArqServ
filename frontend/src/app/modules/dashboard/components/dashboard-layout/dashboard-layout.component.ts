@@ -87,6 +87,10 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Gerenciar Servidores';
       case '/upload':
         return 'Upload de Documentos';
+      case '/users':
+        return 'Usuários';
+      case '/users/new':
+        return 'Cadastrar Usuário';
       case '/documentacoes-financeiras':
         return 'Documentações Financeiras';
       default:
@@ -113,6 +117,10 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Organize servidores por grupos alfabéticos';
       case '/upload':
         return 'Faça upload de documentos para o Google Drive';
+      case '/users':
+        return 'Gerencie usuários do sistema';
+      case '/users/new':
+        return 'Adicione novos usuários ao sistema';
       case '/documentacoes-financeiras':
         return 'Gerencie documentos financeiros e contábeis';
       default:

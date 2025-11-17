@@ -56,6 +56,16 @@ export const routes: Routes = [
         path: 'documentacoes-financeiras/:category',
         loadComponent: () => import('./modules/dashboard/components/financial-category-details/financial-category-details.component')
           .then(m => m.FinancialCategoryDetailsComponent)
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./modules/dashboard/components/users-list/users-list.component')
+          .then(m => m.UsersListComponent)
+      },
+      {
+        path: 'users/new',
+        loadComponent: () => import('./modules/dashboard/components/user-registration/user-registration.component')
+          .then(m => m.UserRegistrationComponent)
       }
     ]
   },
