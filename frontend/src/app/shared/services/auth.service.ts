@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { map, tap, catchError } from 'rxjs/operators';
+import { map, tap, catchError, switchMap, retry, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface User {
@@ -49,6 +49,8 @@ export class AuthService {
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password })
       .pipe(
+        timeout(30000), // 30 segundos para cold start
+        retry(1), // Retry uma vez em caso de timeout
         map(response => {
           if (response.status === 'SUCCESS') {
             return response;

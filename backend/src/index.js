@@ -38,6 +38,15 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Rota de health check (rápida, sem banco)
+app.get('/api/ping', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Rota de debug para verificar configurações
 app.get('/api/debug', async (req, res) => {
   const pool = require('./config/database');
