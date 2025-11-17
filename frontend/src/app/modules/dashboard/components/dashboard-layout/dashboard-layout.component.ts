@@ -73,6 +73,8 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Bem-vindo ao ArqServ';
       case '/servers':
         return 'Gerenciar Servidores';
+      case '/documentacoes-financeiras':
+        return 'Documentações Financeiras';
       default:
         return 'ArqServ';
     }
@@ -84,6 +86,8 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Gestão Compartilhada de Arquivos';
       case '/servers':
         return 'Organize servidores por grupos alfabéticos';
+      case '/documentacoes-financeiras':
+        return 'Gerencie documentos financeiros e contábeis';
       default:
         return 'Sistema de Gestão';
     }

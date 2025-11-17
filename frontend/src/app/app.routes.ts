@@ -46,6 +46,16 @@ export const routes: Routes = [
         path: 'servers/:letter/:id',
         loadComponent: () => import('./modules/dashboard/components/server-details/server-details.component')
           .then(m => m.ServerDetailsComponent)
+      },
+      {
+        path: 'documentacoes-financeiras',
+        loadComponent: () => import('./modules/dashboard/components/financial-documents/financial-documents.component')
+          .then(m => m.FinancialDocumentsComponent)
+      },
+      {
+        path: 'documentacoes-financeiras/:category',
+        loadComponent: () => import('./modules/dashboard/components/financial-category-details/financial-category-details.component')
+          .then(m => m.FinancialCategoryDetailsComponent)
       }
     ]
   },

@@ -1,0 +1,147 @@
+<div class="h-full bg-gradient-to-br from-slate-50 to-gray-100 p-6">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button 
+          (click)="navigateBack()"
+          class="p-2 hover:bg-white/80 rounded-xl transition-colors shadow-sm border border-gray-200">
+          <span class="text-xl">←</span>
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Documentações Financeiras</h1>
+          <p class="text-gray-600 mt-1">Gerencie documentos financeiros e contábeis por categoria</p>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-gray-900">{{ getTotalDocuments() }}</div>
+          <div class="text-sm text-gray-500">Total de Documentos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Financial Folders Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div 
+      *ngFor="let folder of financialFolders"
+      (click)="selectFolder(folder)"
+      class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-gray-200 overflow-hidden group">
+      
+      <!-- Gradient Header -->
+      <div [class]="'h-24 bg-gradient-to-r ' + folder.color + ' relative'">
+        <div class="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors"></div>
+        <div class="relative h-full flex items-center justify-center">
+          <span class="text-4xl filter drop-shadow-lg">{{ folder.icon }}</span>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+            {{ folder.name }}
+          </h3>
+          <span class="bg-gray-100 text-gray-700 text-sm px-2 py-1 rounded-full font-medium">
+            {{ folder.count }}
+          </span>
+        </div>
+        
+        <p class="text-gray-600 text-sm mb-4 leading-relaxed">{{ folder.description }}</p>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-sm text-gray-500">
+            <span>📁</span>
+            <span>Categoria</span>
+          </div>
+          <button class="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors group-hover:translate-x-1 transform duration-200">
+            Abrir →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+    <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+          <span class="text-white text-xl">📊</span>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900">{{ financialFolders.length }}</div>
+          <div class="text-sm text-gray-500">Categorias Ativas</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+          <span class="text-white text-xl">✅</span>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900">{{ getTotalDocuments() }}</div>
+          <div class="text-sm text-gray-500">Documentos Cadastrados</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+          <span class="text-white text-xl">🔄</span>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900">Hoje</div>
+          <div class="text-sm text-gray-500">Última Atualização</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="mt-8 bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
+    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+      <span>⚡</span>
+      Ações Rápidas
+    </h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl transition-all border border-blue-200 hover:border-blue-300">
+        <span class="text-2xl">📤</span>
+        <div class="text-left">
+          <div class="font-medium text-gray-900">Novo Upload</div>
+          <div class="text-sm text-gray-600">Adicionar documento</div>
+        </div>
+      </button>
+      
+      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-xl transition-all border border-green-200 hover:border-green-300">
+        <span class="text-2xl">📊</span>
+        <div class="text-left">
+          <div class="font-medium text-gray-900">Relatórios</div>
+          <div class="text-sm text-gray-600">Gerar relatório</div>
+        </div>
+      </button>
+      
+      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl transition-all border border-purple-200 hover:border-purple-300">
+        <span class="text-2xl">🔍</span>
+        <div class="text-left">
+          <div class="font-medium text-gray-900">Buscar</div>
+          <div class="text-sm text-gray-600">Localizar documento</div>
+        </div>
+      </button>
+      
+      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 hover:from-yellow-100 hover:to-yellow-200 rounded-xl transition-all border border-yellow-200 hover:border-yellow-300">
+        <span class="text-2xl">⚙️</span>
+        <div class="text-left">
+          <div class="font-medium text-gray-900">Configurar</div>
+          <div class="text-sm text-gray-600">Gerenciar categorias</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
