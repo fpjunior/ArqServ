@@ -31,6 +31,7 @@ export class DashboardLayoutComponent implements OnInit {
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+      console.log('👤 [DASHBOARD] Current user:', this.currentUser);
       if (!this.currentUser) {
         this.router.navigate(['/auth/login']);
       }
@@ -64,7 +65,7 @@ export class DashboardLayoutComponent implements OnInit {
 
   navigateToUpload(): void {
     console.log('Navegando para upload de documentos');
-    // TODO: Implementar navegação para upload
+    this.router.navigate(['/upload']);
   }
 
   getPageTitle(): string {
@@ -84,6 +85,8 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Bem-vindo ao ArqServ';
       case '/servers':
         return 'Gerenciar Servidores';
+      case '/upload':
+        return 'Upload de Documentos';
       case '/documentacoes-financeiras':
         return 'Documentações Financeiras';
       default:
@@ -108,10 +111,25 @@ export class DashboardLayoutComponent implements OnInit {
         return 'Gestão Compartilhada de Arquivos';
       case '/servers':
         return 'Organize servidores por grupos alfabéticos';
+      case '/upload':
+        return 'Faça upload de documentos para o Google Drive';
       case '/documentacoes-financeiras':
         return 'Gerencie documentos financeiros e contábeis';
       default:
         return 'Sistema de Gestão';
+    }
+  }
+
+  getUserTypeLabel(): string {
+    if (!this.currentUser) return '';
+    
+    switch (this.currentUser.user_type) {
+      case 'admin':
+        return 'Administrador - ArqServ';
+      case 'prefeitura':
+        return `Prefeitura - ${this.currentUser.municipality || 'N/A'}`;
+      default:
+        return this.currentUser.role === 'admin' ? 'Administrador' : this.currentUser.municipality || this.currentUser.role || 'Usuário';
     }
   }
 }

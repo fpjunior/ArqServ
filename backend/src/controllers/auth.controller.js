@@ -9,7 +9,9 @@ const generateToken = (user) => {
       id: user.id, 
       email: user.email, 
       name: user.name,
-      role: user.role 
+      role: user.role,
+      user_type: user.user_type,
+      municipality: user.municipality
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
     { expiresIn: '24h' }
@@ -83,6 +85,7 @@ exports.login = async (req, res) => {
           email: user.email,
           name: user.name,
           role: user.role,
+          user_type: user.user_type,
           municipality: user.municipality
         }
       }
