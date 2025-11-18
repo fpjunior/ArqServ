@@ -74,6 +74,13 @@ export class DocumentsService {
     server_name?: string;
     municipality_name?: string;
   }): Observable<ApiResponse<Document>> {
+    console.log('🚀 DocumentsService.uploadDocument CHAMADO!', {
+      file: file.name,
+      size: file.size,
+      data: documentData,
+      apiUrl: this.apiUrl
+    });
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', documentData.title);

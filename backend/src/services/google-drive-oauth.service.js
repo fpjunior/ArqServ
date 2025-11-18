@@ -111,26 +111,35 @@ class GoogleDriveOAuthService {
 
   async getServerFolderId(municipalityName, serverName) {
     try {
+      console.log(`📁 Criando estrutura hierárquica para: ${municipalityName} > ${serverName}`);
+      
       // 1. Pasta do município
       const municipalityFolderId = await this.createFolderIfNotExists(
         municipalityName, 
         this.rootFolderId
       );
+      console.log(`📁 Pasta município criada: ${municipalityName} (ID: ${municipalityFolderId})`);
 
       // 2. Pasta da letra do servidor
       const firstLetter = serverName.charAt(0).toUpperCase();
       const letterFolderName = `Servidores ${firstLetter}`;
+      console.log(`📁 Criando pasta da letra: ${letterFolderName} (primeira letra de "${serverName}" é "${firstLetter}")`);
+      
       const letterFolderId = await this.createFolderIfNotExists(
         letterFolderName,
         municipalityFolderId
       );
+      console.log(`📁 Pasta letra criada: ${letterFolderName} (ID: ${letterFolderId})`);
 
       // 3. Pasta do servidor específico
+      console.log(`📁 Criando pasta do servidor: ${serverName}`);
       const serverFolderId = await this.createFolderIfNotExists(
         serverName,
         letterFolderId
       );
+      console.log(`📁 Pasta servidor criada: ${serverName} (ID: ${serverFolderId})`);
 
+      console.log(`✅ Estrutura completa: ${municipalityName} > ${letterFolderName} > ${serverName}`);
       return serverFolderId;
 
     } catch (error) {

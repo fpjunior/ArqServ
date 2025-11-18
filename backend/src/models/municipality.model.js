@@ -8,7 +8,6 @@ class Municipality {
     try {
       const query = `
         SELECT * FROM municipalities 
-        WHERE is_active = true 
         ORDER BY name
       `;
 
@@ -27,7 +26,7 @@ class Municipality {
     try {
       const query = `
         SELECT * FROM municipalities 
-        WHERE code = $1 AND is_active = true
+        WHERE code = $1
       `;
 
       const result = await pool.query(query, [code]);
@@ -72,7 +71,7 @@ class Municipality {
       const query = `
         UPDATE municipalities 
         SET ${fields}, updated_at = NOW()
-        WHERE code = $1 AND is_active = true
+        WHERE code = $1
         RETURNING *
       `;
 
@@ -92,7 +91,7 @@ class Municipality {
       const query = `
         UPDATE municipalities 
         SET drive_folder_id = $2, updated_at = NOW()
-        WHERE code = $1 AND is_active = true
+        WHERE code = $1
         RETURNING *
       `;
 
@@ -111,7 +110,7 @@ class Municipality {
     try {
       const query = `
         SELECT * FROM municipalities 
-        WHERE state = $1 AND is_active = true 
+        WHERE state = $1 
         ORDER BY name
       `;
 

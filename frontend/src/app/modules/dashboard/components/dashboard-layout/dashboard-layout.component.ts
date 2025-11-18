@@ -38,6 +38,15 @@ export class DashboardLayoutComponent implements OnInit {
     });
     
     this.currentRoute = this.router.url;
+    
+    // Adicionar atalho de teclado para logout (Ctrl/Cmd + Shift + L)
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        console.log('🔑 Logout via atalho de teclado');
+        this.forceLogout();
+      }
+    });
   }
 
   logout(): void {
@@ -53,6 +62,13 @@ export class DashboardLayoutComponent implements OnInit {
 
   cancelLogout(): void {
     this.showLogoutModal = false;
+  }
+
+  forceLogout(): void {
+    console.log('🚪 Force logout executado');
+    this.showLogoutModal = false;
+    this.authService.logout();
+    this.router.navigate(['/auth/login']);
   }
 
   navigateTo(route: string): void {

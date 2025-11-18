@@ -81,6 +81,18 @@
           </div>
         </div>
 
+        <!-- Estrutura Hierárquica no Google Drive -->
+        <div *ngIf="canShowHierarchicalPath()" class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+          <div class="flex items-start">
+            <mat-icon class="text-blue-500 mr-3 mt-0.5">folder_open</mat-icon>
+            <div>
+              <h4 class="text-sm font-medium text-blue-800 mb-1">Estrutura no Google Drive:</h4>
+              <p class="text-blue-700 font-mono text-sm">📁 {{getHierarchicalPath()}}</p>
+              <p class="text-blue-600 text-xs mt-2">O arquivo será organizado automaticamente nesta estrutura de pastas.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Título -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Título do Documento *</label>
@@ -137,8 +149,10 @@
             <mat-icon>clear</mat-icon>
             Limpar
           </button>
-          <button mat-raised-button color="primary" type="submit" 
-                  [disabled]="uploadForm.invalid || !selectedFile || isUploading"
+          
+          <button mat-raised-button color="primary" type="button" 
+                  [disabled]="isSubmitDisabled()"
+                  (click)="mainButtonClick($event)"
                   class="px-6 py-2 flex items-center gap-2">
             <mat-icon *ngIf="!isUploading">send</mat-icon>
             <mat-spinner *ngIf="isUploading" diameter="20"></mat-spinner>
