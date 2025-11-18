@@ -7,14 +7,15 @@ services:
     container_name: arqserv_postgres
     environment:
       POSTGRES_DB: arqserv_db
-      POSTGRES_USER: arqserv_user
-      POSTGRES_PASSWORD: arqserv123
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arqserv_user -d arqserv_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d arqserv_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,18 +32,20 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: arqserv_db
-      DB_USER: arqserv_user
-      DB_PASSWORD: arqserv123
-      JWT_SECRET: arqserv_jwt_secret_2024
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      JWT_SECRET: seu_jwt_secret_super_seguro_aqui
       CORS_ORIGIN: http://localhost:4200
-      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-drive-credentials.json
-      GOOGLE_DRIVE_ROOT_FOLDER_ID: 1j4oRSFWX69Ty3KpegiKAD0_L47xiOqyX
+      GOOGLE_CLIENT_ID: 1006764164537-l9fgj3hp0e327jk06q9njo1s20mt2o9c.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+      GOOGLE_REFRESH_TOKEN: 1//04VVVY8ACxzF3CgYIARAAGAQSNwF-L9IrfPptcQrxPpLSlE7RoEMQzIZG8wrfYdYvQwvKGjrVBrFhVYnBU5xy3zGDEQkcH8g8Xrc
     ports:
       - "3005:3005"
     volumes:
       # 🔥 VOLUME PRINCIPAL - Sincroniza código local com container
       - ./backend/src:/app/src
-      - ./backend/package*.json:/app/package*.json
+      - ./backend/package.json:/app/package.json
+      - ./backend/package-lock.json:/app/package-lock.json
       # Não sincronizar node_modules (preserva instalação do container)
       - backend_node_modules:/app/node_modules
       # Volume para uploads (salvar arquivos permanentemente)
