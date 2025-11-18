@@ -9,6 +9,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  user_type: 'admin' | 'prefeitura';
   municipality?: string;
 }
 

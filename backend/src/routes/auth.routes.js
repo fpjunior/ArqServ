@@ -10,6 +10,20 @@ const authController = require('../controllers/auth.controller');
 router.post('/login', authController.login);
 
 /**
+ * @route POST /api/auth/register
+ * @desc Cadastro de usuário
+ * @access Public (pode ser mudado para Private posteriormente)
+ */
+router.post('/register', authController.register);
+
+/**
+ * @route GET /api/auth/users
+ * @desc Listar usuários
+ * @access Public (pode ser mudado para Private posteriormente)
+ */
+router.get('/users', authController.getUsers);
+
+/**
  * @route GET /api/auth/test
  * @desc Teste de conexão
  * @access Public
