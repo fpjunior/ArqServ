@@ -9,11 +9,121 @@ const generateToken = (user) => {
       id: user.id, 
       email: user.email, 
       name: user.name,
-      role: user.role 
+      role: user.role,
+      user_type: user.user_type,
+      municipality: user.municipality
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
     { expiresIn: '24h' }
   );
+};
+
+// Função para cadastrar usuário
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password, user_type, municipality, role } = req.body;
+
+    console.log('📝 [REGISTER] Tentativa de cadastro:', { name, email, user_type, municipality, role });
+
+    // Validações básicas
+    if (!name || !email || !password || !user_type) {
+      console.log('❌ [REGISTER] Dados obrigatórios faltantes');
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Nome, email, senha e tipo de usuário são obrigatórios',
+        code: 'MISSING_REQUIRED_FIELDS'
+      });
+    }
+
+    // Validar se é prefeitura e tem município
+    if (user_type === 'prefeitura' && !municipality) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Município é obrigatório para usuários do tipo prefeitura',
+        code: 'MUNICIPALITY_REQUIRED'
+      });
+    }
+
+    // Verificar se o email já existe
+    console.log('🔍 [REGISTER] Verificando se email já existe:', email);
+    const existingUser = await User.findByEmail(email);
+    
+    if (existingUser) {
+      console.log('❌ [REGISTER] Email já cadastrado:', email);
+      return res.status(409).json({
+        status: 'ERROR',
+        message: 'Este email já está cadastrado',
+        code: 'EMAIL_ALREADY_EXISTS'
+      });
+    }
+
+    // Criptografar senha
+    console.log('🔐 [REGISTER] Criptografando senha...');
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Criar usuário
+    console.log('💾 [REGISTER] Criando usuário no banco...');
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      user_type,
+      municipality: user_type === 'prefeitura' ? municipality : null,
+      role: role || 'user' // Usar o role enviado ou 'user' como padrão
+    });
+
+    console.log('✅ [REGISTER] Usuário criado com sucesso:', { id: newUser.id, email: newUser.email });
+
+    // Resposta de sucesso
+    res.status(201).json({
+      status: 'SUCCESS',
+      message: 'Usuário cadastrado com sucesso',
+      data: {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          user_type: newUser.user_type,
+          municipality: newUser.municipality,
+          role: newUser.role
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [REGISTER] Erro no cadastro:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+};
+
+// Função para listar usuários
+exports.getUsers = async (req, res) => {
+  try {
+    console.log('📋 [GET_USERS] Buscando lista de usuários...');
+
+    const users = await User.findAll();
+    
+    console.log(`✅ [GET_USERS] ${users.length} usuários encontrados`);
+
+    // Resposta de sucesso
+    res.json({
+      status: 'SUCCESS',
+      message: 'Usuários recuperados com sucesso',
+      data: users
+    });
+
+  } catch (error) {
+    console.error('❌ [GET_USERS] Erro ao buscar usuários:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
 };
 
 // Função para realizar login
@@ -83,6 +193,7 @@ exports.login = async (req, res) => {
           email: user.email,
           name: user.name,
           role: user.role,
+          user_type: user.user_type,
           municipality: user.municipality
         }
       }

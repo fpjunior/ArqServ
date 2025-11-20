@@ -1,0 +1,32 @@
+// Estilos específicos para a listagem de usuários
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+  transform: translateY(-1px);
+}
+
+// Animação para os badges
+.badge-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+// Grid responsivo customizado
+@media (max-width: 768px) {
+  .grid-cols-12 {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .col-span-1,
+  .col-span-2,
+  .col-span-3 {
+    grid-column: span 1;
+  }
+}

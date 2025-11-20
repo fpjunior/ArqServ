@@ -1,11 +1,27 @@
-# Environments
-/src/environments/
-
 # Dependencies
 node_modules/
+*/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+.env.development
+backend/.env
+frontend/.env
+
+# Google Drive credentials (NEVER commit these!)
+**/google-drive-credentials.json
+credentials/
+backend/credentials/
+
+# Docker volumes and data
+postgres_data/
+backend_node_modules/
+uploads_data/
 
 # IDEs and editors
 /.idea
@@ -47,3 +63,12 @@ Thumbs.db
 /.angular/cache
 */.angular/cache
 **/.angular/cache
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+/tmp
+*.tmp
+*.temp

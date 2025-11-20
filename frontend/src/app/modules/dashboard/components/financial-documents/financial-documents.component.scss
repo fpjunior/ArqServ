@@ -1,0 +1,48 @@
+// Estilos específicos para o componente de documentações financeiras
+.financial-folder-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.financial-folder-card:hover {
+  transform: translateY(-4px);
+}
+
+.folder-icon {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.gradient-overlay {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+}
+
+// Animações suaves
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.financial-documents-container {
+  animation: fadeIn 0.6s ease-out;
+}
+
+// Responsividade para cards
+@media (max-width: 768px) {
+  .financial-folder-card {
+    margin-bottom: 1rem;
+  }
+}
+
+// Hover effects customizados
+.action-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.action-button:hover {
+  transform: translateX(4px);
+}

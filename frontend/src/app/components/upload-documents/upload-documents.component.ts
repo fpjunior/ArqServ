@@ -90,7 +90,41 @@ export class UploadDocumentsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('🔄 Upload component initialized');
+    console.log('📋 Component state:', {
+      uploadForm: this.uploadForm,
+      fb: this.fb,
+      snackBar: this.snackBar,
+      documentsService: this.documentsService
+    });
+    
+    // Teste imediato ao carregar
+    setTimeout(() => {
+      console.log('⏰ Teste após 2 segundos - componente ainda ativo');
+    }, 2000);
+    
+    this.loadMunicipalities();
     this.loadRecentDocuments();
+  }
+
+  // Método para carregar municípios
+  private loadMunicipalities(): void {
+    console.log('📍 Loading municipalities...');
+    this.documentsService.getMunicipalities().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.municipalities = response.data || [];
+          console.log(`✅ ${this.municipalities.length} municípios carregados`);
+        } else {
+          console.error('❌ Erro ao carregar municípios:', response.message);
+          this.showMessage('Erro ao carregar municípios', 'error');
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erro na requisição de municípios:', error);
+        this.showMessage('Erro ao carregar municípios', 'error');
+      }
+    });
   }
 
   private createForm(): void {
@@ -186,14 +220,35 @@ export class UploadDocumentsComponent implements OnInit {
       const selectedMunicipality = this.municipalities.find(m => m.code === this.uploadForm.get('municipality_code')?.value);
       const selectedServer = this.servers.find(s => s.id === this.uploadForm.get('server_id')?.value);
 
+      if (!selectedMunicipality) {
+        this.showMessage('Município selecionado não encontrado!', 'error');
+        this.isUploading = false;
+        return;
+      }
+
+      if (!selectedServer) {
+        this.showMessage('Servidor selecionado não encontrado!', 'error');
+        this.isUploading = false;
+        return;
+      }
+
+      // Preparar dados do documento com estrutura hierárquica completa
       const documentData = {
         title: this.uploadForm.get('title')?.value,
         description: this.uploadForm.get('description')?.value || '',
+        category: 'documento', // Categoria padrão
         municipality_code: this.uploadForm.get('municipality_code')?.value,
         server_id: this.uploadForm.get('server_id')?.value,
-        server_name: selectedServer?.name || '',
-        municipality_name: selectedMunicipality?.name || ''
+        server_name: selectedServer.name,
+        municipality_name: selectedMunicipality.name
       };
+
+      console.log('📤 Iniciando upload com estrutura hierárquica:', {
+        municipality: selectedMunicipality.name,
+        server: selectedServer.name,
+        letterGroup: `Servidores ${selectedServer.name.charAt(0).toUpperCase()}`,
+        fileName: this.selectedFile.name
+      });
 
       // Subscrever ao progresso de upload
       this.documentsService.uploadProgress$.subscribe(progress => {
@@ -202,21 +257,38 @@ export class UploadDocumentsComponent implements OnInit {
         }
       });
 
-      // Fazer upload real para API
+      // Fazer upload real para API - arquivo será organizado na estrutura:
+      // Root > Municipality > Servidores [Letter] > Server Name > arquivo
+      console.log('🚀 ========= CHAMANDO API DE UPLOAD =========');
+      console.log('📤 Dados que serão enviados:', {
+        file: {
+          name: this.selectedFile.name,
+          size: this.selectedFile.size,
+          type: this.selectedFile.type
+        },
+        data: documentData,
+        serviceExists: !!this.documentsService
+      });
+      
+      console.log('📡 Executando documentsService.uploadDocument...');
       this.documentsService.uploadDocument(this.selectedFile, documentData)
         .subscribe({
           next: (response) => {
             if (response.success) {
               this.uploadProgress = 100;
-              this.showMessage('Documento enviado com sucesso!', 'success');
+              this.showMessage(
+                `Documento enviado com sucesso para: ${selectedMunicipality.name} > Servidores ${selectedServer.name.charAt(0).toUpperCase()} > ${selectedServer.name}`, 
+                'success'
+              );
               this.resetForm();
               this.loadRecentDocuments();
             } else {
               throw new Error(response.message || 'Erro no upload');
             }
           },
-          error: (error) => {
-            this.showMessage(`Erro no upload: ${error.message}`, 'error');
+          error: (error: any) => {
+            console.error('❌ Erro no upload:', error);
+            this.showMessage(`Erro no upload: ${error?.message || 'Erro desconhecido'}`, 'error');
             this.uploadProgress = 0;
           },
           complete: () => {
@@ -226,13 +298,14 @@ export class UploadDocumentsComponent implements OnInit {
         });
 
     } catch (error: any) {
-      this.showMessage(`Erro no upload: ${error.message}`, 'error');
+      console.error('❌ Erro geral no upload:', error);
+      this.showMessage(`Erro no upload: ${error?.message || 'Erro desconhecido'}`, 'error');
       this.uploadProgress = 0;
       this.isUploading = false;
     }
   }
 
-  // Carregar servidores quando município for selecionado
+  // Método para carregar servidores quando município for selecionado
   onMunicipalityChange(event: any): void {
     const municipalityCode = event.target.value;
     this.selectedMunicipalityCode = municipalityCode;
@@ -240,6 +313,8 @@ export class UploadDocumentsComponent implements OnInit {
     // Definir nome do município
     const municipality = this.municipalities.find(m => m.code === municipalityCode);
     this.selectedMunicipalityName = municipality ? municipality.name : '';
+    
+    console.log(`📍 Carregando servidores para município: ${municipalityCode} (${this.selectedMunicipalityName})`);
     
     this.loadServersByMunicipality(municipalityCode);
     
@@ -254,10 +329,10 @@ export class UploadDocumentsComponent implements OnInit {
       
       // Filtrar servidores mockados por município
       const allServers: Server[] = [
-        // Aliança (2600500)
-        { id: 1, name: 'Ana Silva Santos', municipality_code: '2600500', created_at: '2024-01-01' },
-        { id: 2, name: 'João Carlos Oliveira', municipality_code: '2600500', created_at: '2024-01-01' },
-        { id: 3, name: 'Carlos Eduardo Ramos', municipality_code: '2600500', created_at: '2024-01-01' },
+        // Aliança (2600500) - IDs reais do banco de dados
+        { id: 6, name: 'Ana Silva Santos', municipality_code: '2600500', created_at: '2024-01-01' },
+        { id: 5, name: 'João Carlos Oliveira', municipality_code: '2600500', created_at: '2024-01-01' },
+        { id: 8, name: 'Carlos Eduardo Ramos', municipality_code: '2600500', created_at: '2024-01-01' },
         
         // Amaraji (2600609)
         { id: 4, name: 'Maria Fernanda Lima', municipality_code: '2600609', created_at: '2024-01-01' },
@@ -324,17 +399,7 @@ export class UploadDocumentsComponent implements OnInit {
     this.isDragOver = false;
   }
 
-  // Método de teste para verificar se os cliques funcionam
-  testClick(type: string): void {
-    console.log(`🎯 Botão ${type} clicado!`);
-    alert(`Botão ${type} funcionou!`);
-    
-    if (type === 'municipality') {
-      this.openMunicipalityDialog();
-    } else if (type === 'server') {
-      this.openServerDialog();
-    }
-  }
+
 
   openMunicipalityDialog(): void {
     console.log('🔄 Abrindo diálogo customizado Tailwind...');
@@ -430,6 +495,82 @@ export class UploadDocumentsComponent implements OnInit {
     return municipality ? municipality.name : '';
   }
 
+  // Obter a estrutura hierárquica atual para mostrar ao usuário
+  getHierarchicalPath(): string {
+    const municipalityCode = this.uploadForm.get('municipality_code')?.value;
+    const serverId = this.uploadForm.get('server_id')?.value;
+    
+    if (!municipalityCode || !serverId) {
+      return 'Selecione município e servidor para ver o caminho...';
+    }
+
+    const municipality = this.municipalities.find(m => m.code === municipalityCode);
+    const server = this.servers.find(s => s.id === parseInt(serverId));
+    
+    if (!municipality || !server) {
+      return 'Dados incompletos...';
+    }
+
+    const letterGroup = `Servidores ${server.name.charAt(0).toUpperCase()}`;
+    return `${municipality.name} > ${letterGroup} > ${server.name}`;
+  }
+
+  // Verificar se pode mostrar o caminho hierárquico
+  
+  // Método para debug do estado do botão
+  isSubmitDisabled(): boolean {
+    return this.uploadForm.invalid || !this.selectedFile || this.isUploading;
+  }
+
+
+
+  // Método do botão principal de upload
+  mainButtonClick(event: any): void {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    
+    if (this.isSubmitDisabled()) {
+      this.showMessage('Preencha todos os campos obrigatórios e selecione um arquivo!', 'error');
+      return;
+    }
+    
+    if (!this.selectedFile) {
+      this.showMessage('Selecione um arquivo primeiro!', 'error');
+      return;
+    }
+
+    this.isUploading = true;
+    this.uploadProgress = 0;
+
+    const formData = {
+      title: this.uploadForm.get('title')?.value || 'Documento Principal',
+      municipality_code: this.uploadForm.get('municipality_code')?.value,
+      server_id: this.uploadForm.get('server_id')?.value,
+      description: this.uploadForm.get('description')?.value || ''
+    };
+
+    this.documentsService.uploadDocument(this.selectedFile, formData)
+      .subscribe({
+        next: (response) => {
+          this.isUploading = false;
+          this.showMessage('Upload realizado com sucesso!', 'success');
+          this.loadRecentDocuments();
+          this.clearForm();
+        },
+        error: (error: any) => {
+          this.isUploading = false;
+          this.showMessage('Erro no upload: ' + (error?.message || 'Erro desconhecido'), 'error');
+        }
+      });
+  }
+
+
+  canShowHierarchicalPath(): boolean {
+    const municipalityCode = this.uploadForm.get('municipality_code')?.value;
+    const serverId = this.uploadForm.get('server_id')?.value;
+    return !!(municipalityCode && serverId);
+  }
+
   // Utility Methods
   getFileIcon(mimeType: string): string {
     if (mimeType.includes('pdf')) return 'picture_as_pdf';
@@ -479,6 +620,15 @@ export class UploadDocumentsComponent implements OnInit {
   private loadRecentDocuments(): void {
     // TODO: Carregar documentos da API
     this.recentDocuments = []; // Por enquanto vazio
+  }
+
+  private clearForm(): void {
+    console.log('🧹 Limpando formulário...');
+    this.uploadForm.reset();
+    this.selectedFile = null;
+    this.uploadProgress = 0;
+    this.isUploading = false;
+    console.log('✅ Formulário limpo');
   }
 
   viewDocument(doc: Document): void {
