@@ -71,15 +71,15 @@ export class ServerDialogComponent {
         municipality_name: this.data.municipalityName
       };
 
-      // TODO: Integrar com API para criar servidor
+      // Integrar com API para criar servidor
       const createdServer = await this.createServerAPI(serverData);
 
-      this.snackBar.open(`Servidor ${serverData.name} criado com sucesso!`, 'Fechar', {
+      this.snackBar.open(`Servidor ${createdServer.name} criado com sucesso!`, 'Fechar', {
         duration: 3000,
         panelClass: ['snackbar-success']
       });
-
-      this.serverCreated.emit(serverData);
+      // Emitir o servidor retornado pela API (contendo ID e demais campos)
+      this.serverCreated.emit(createdServer);
 
     } catch (error: any) {
       this.snackBar.open(`Erro ao criar servidor: ${error.message}`, 'Fechar', {

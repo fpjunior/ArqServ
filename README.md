@@ -65,7 +65,7 @@ cd backend
 
 ## 🔐 Credenciais de Teste
 
-- **Empresa:** admin@empresa.com / 123456
+- **Empresa:** admin@arqserv.com / 123456
 - **Prefeitura:** prefeitura@cidade.gov.br / 123456
 
 ## � Status do Desenvolvimento

@@ -325,56 +325,31 @@ export class UploadDocumentsComponent implements OnInit {
   // Carregar servidores do município
   async loadServersByMunicipality(municipalityCode: string): Promise<void> {
     try {
-      console.log(`🔄 Carregando servidores para município: ${municipalityCode}`);
-      
-      // Filtrar servidores mockados por município
-      const allServers: Server[] = [
-        // Aliança (2600500) - IDs reais do banco de dados
-        { id: 6, name: 'Ana Silva Santos', municipality_code: '2600500', created_at: '2024-01-01' },
-        { id: 5, name: 'João Carlos Oliveira', municipality_code: '2600500', created_at: '2024-01-01' },
-        { id: 8, name: 'Carlos Eduardo Ramos', municipality_code: '2600500', created_at: '2024-01-01' },
-        
-        // Amaraji (2600609)
-        { id: 4, name: 'Maria Fernanda Lima', municipality_code: '2600609', created_at: '2024-01-01' },
-        { id: 5, name: 'Pedro Henrique Costa', municipality_code: '2600609', created_at: '2024-01-01' },
-        { id: 6, name: 'Beatriz Almeida Souza', municipality_code: '2600609', created_at: '2024-01-01' },
-        
-        // Araçoiaba (2600708)
-        { id: 7, name: 'Juliana Pereira Souza', municipality_code: '2600708', created_at: '2024-01-01' },
-        { id: 8, name: 'Fernando Dias Machado', municipality_code: '2600708', created_at: '2024-01-01' },
-        { id: 9, name: 'Camila Rodrigues Lopes', municipality_code: '2600708', created_at: '2024-01-01' },
-        
-        // Condado (2604106)
-        { id: 10, name: 'Roberto da Silva Junior', municipality_code: '2604106', created_at: '2024-01-01' },
-        { id: 11, name: 'Carla Mendes Alves', municipality_code: '2604106', created_at: '2024-01-01' },
-        { id: 12, name: 'Miguel Santos Barbosa', municipality_code: '2604106', created_at: '2024-01-01' },
-        
-        // Palmares (2611101)
-        { id: 13, name: 'Lucas Ferreira Rocha', municipality_code: '2611101', created_at: '2024-01-01' },
-        { id: 14, name: 'Gabriela Nascimento Silva', municipality_code: '2611101', created_at: '2024-01-01' },
-        { id: 15, name: 'André Luiz Cardoso', municipality_code: '2611101', created_at: '2024-01-01' },
-        
-        // Vertente (2615607)
-        { id: 16, name: 'Patrícia Ribeiro Campos', municipality_code: '2615607', created_at: '2024-01-01' },
-        { id: 17, name: 'Rodrigo Menezes Filho', municipality_code: '2615607', created_at: '2024-01-01' },
-        { id: 18, name: 'Larissa Cavalcanti Cruz', municipality_code: '2615607', created_at: '2024-01-01' },
-        
-        // Ingazeira (2607307)
-        { id: 19, name: 'Rafael Gonçalves Nunes', municipality_code: '2607307', created_at: '2024-01-01' },
-        { id: 20, name: 'Isabela Freitas Moreno', municipality_code: '2607307', created_at: '2024-01-01' },
-        { id: 21, name: 'Daniel Augusto Pereira', municipality_code: '2607307', created_at: '2024-01-01' },
-        
-        // Nabuco (2609907)
-        { id: 22, name: 'Amanda Torres Barbosa', municipality_code: '2609907', created_at: '2024-01-01' },
-        { id: 23, name: 'Thiago Martins Araújo', municipality_code: '2609907', created_at: '2024-01-01' },
-        { id: 24, name: 'Mariana Correia Batista', municipality_code: '2609907', created_at: '2024-01-01' }
-      ];
-      
-      this.servers = allServers.filter(server => server.municipality_code === municipalityCode);
-      console.log(`✅ ${this.servers.length} servidores carregados para ${municipalityCode}`);
+      console.log(`🔄 Carregando servidores via API para município: ${municipalityCode}`);
+
+      this.documentsService.getServersByMunicipality(municipalityCode).subscribe({
+        next: (response: any) => {
+          if (!response || !response.success) {
+            console.warn('Servidor: resposta inesperada da API:', response);
+            this.servers = [];
+            return;
+          }
+
+          // Endpoint pode retornar { servers, groupedByLetter } ou array simples
+          const data = response.data;
+          const servers = data?.servers || data || [];
+          this.servers = servers || [];
+          console.log(`✅ ${this.servers.length} servidores carregados do backend para ${municipalityCode}`);
+        },
+        error: (error: any) => {
+          console.error('❌ Erro ao buscar servidores da API:', error);
+          this.servers = [];
+          this.showMessage('Erro ao carregar servidores.', 'error');
+        }
+      });
       
     } catch (error) {
-      console.error('Erro ao carregar servidores:', error);
+      console.error('Erro geral ao carregar servidores:', error);
       this.servers = [];
       this.showMessage('Erro ao carregar servidores.', 'error');
     }
@@ -440,15 +415,6 @@ export class UploadDocumentsComponent implements OnInit {
     this.showTailwindDialog = false;
   }
 
-  testCreateMunicipality(): void {
-    console.log('📋 Teste de criação de município');
-    const testMunicipality = {
-      code: '1234567',
-      name: 'Município Teste',
-      state: 'SP'
-    };
-    this.onMunicipalityCreated(testMunicipality);
-  }
 
   // Métodos do modal do servidor
   onServerDialogCancelled(): void {
@@ -456,37 +422,33 @@ export class UploadDocumentsComponent implements OnInit {
     this.showServerDialog = false;
   }
 
-  testCreateServer(): void {
-    console.log('📋 Teste de criação de servidor');
-    if (!this.selectedMunicipalityCode) {
-      this.showMessage('Selecione um município primeiro!', 'error');
-      return;
-    }
-    
-    const testServer = {
-      id: Date.now(), // ID temporário
-      name: 'Servidor Teste',
-      description: 'Servidor criado para teste',
-      municipality_code: this.selectedMunicipalityCode
-    };
-    
-    this.onServerCreated(testServer);
-  }
+  // Note: removed test methods for municipality and server creation to clean UI
 
   onServerCreated(server: any): void {
     console.log('📋 Servidor criado:', server);
-    
-    // Adicionar novo servidor à lista
-    this.servers.push(server);
-    
-    // Selecionar o servidor recém-criado
-    this.uploadForm.patchValue({
-      server_id: server.id
-    });
-    
+
+    // Se servidor não tiver id, tentar recarregar lista do backend
+    if (!server?.id) {
+      this.showMessage('Servidor criado sem ID recebido, atualizando lista...', 'info');
+      if (this.selectedMunicipalityCode) {
+        this.loadServersByMunicipality(this.selectedMunicipalityCode);
+      }
+    } else {
+      // Adicionar novo servidor à lista local
+      const exists = this.servers.some(s => s.id === server.id);
+      if (!exists) {
+        this.servers.push(server);
+      }
+
+      // Selecionar o servidor recém-criado
+      this.uploadForm.patchValue({
+        server_id: `${server.id}`
+      });
+    }
+
     // Fechar modal
     this.showServerDialog = false;
-    
+
     this.showMessage(`Servidor ${server.name} adicionado com sucesso!`, 'success');
   }
 
