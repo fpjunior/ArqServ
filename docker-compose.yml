@@ -1,26 +1,26 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: arqserv_postgres
-    environment:
-      POSTGRES_DB: arqserv_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d arqserv_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - arqserv_network
+  # PostgreSQL Database - USANDO BANCO CENTRAL
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: arqserv_postgres
+  #   environment:
+  #     POSTGRES_DB: arqserv_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: 123456
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./backend/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d arqserv_db"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - arqserv_network
 
   # Backend API
   backend:
@@ -29,7 +29,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3005
-      DB_HOST: postgres
+      DB_HOST: host.docker.internal
       DB_PORT: 5432
       DB_NAME: arqserv_db
       DB_USER: postgres
@@ -52,9 +52,9 @@ services:
       - uploads_data:/app/uploads
       # Volume para credenciais do Google Drive
       - ./backend/credentials:/app/credentials
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
     restart: unless-stopped
     networks:
       - arqserv_network
@@ -68,8 +68,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: arqserv123
     ports:
       - "8080:80"
-    depends_on:
-      - postgres
+    # depends_on:
+    #   - postgres
     networks:
       - arqserv_network
 
