@@ -1,5 +1,6 @@
 # Dockerfile para desenvolvimento com hot reload
-FROM node:18-alpine
+FROM node:20-alpine
+# NOTE: Supabase JS packages require Node >= 20 — switching to node:20-alpine to avoid engine warnings
 
 # Definir diretório de trabalho
 WORKDIR /app
