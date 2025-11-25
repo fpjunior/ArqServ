@@ -1,59 +1,57 @@
 const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Support either a full connection string or individual DB env variables
-const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || null;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const dbConfig = connectionString ? { connectionString } : {
-  user: process.env.DB_USER || 'arqserv_user',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'arqserv_db',
-  password: process.env.DB_PASSWORD || 'arqserv123',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurados!');
+  process.exit(1);
+}
+
+// Create Supabase client for REST API access
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+console.log(`🔧 Conectando ao Supabase via API REST`);
+
+// Create a fake pool interface that uses Supabase REST API
+const pool = {
+  supabase: supabase,
+  
+  async connect() {
+    console.log('✅ Supabase REST client ready');
+    return {
+      query: async (sql, values) => {
+        throw new Error('Use supabase client methods in models instead of raw queries');
+      },
+      release: () => {},
+    };
+  },
+
+  async query(sql, values) {
+    throw new Error('Use supabase client methods instead of pool.query()');
+  },
+
+  on(event, handler) {
+    if (event === 'connect') {
+      console.log('✅ Conectado ao banco de dados (via Supabase REST)');
+    } else if (event === 'error') {
+      // Error handler
+    }
+  },
 };
-
-// If connecting to a Supabase managed Postgres instance set SSL to true
-// Also ensure SSL when using a connectionString that targets supabase.co
-let hostToCheck = null;
-try {
-  hostToCheck = process.env.DB_HOST || (connectionString ? (new URL(connectionString.replace('postgresql://', 'http://'))).hostname : null);
-} catch (err) {
-  hostToCheck = process.env.DB_HOST || null;
-}
-
-// Fallback: if host resolves to IPv6-only in the environment (no IPv4 egress), optionally switch to Supabase pooler host
-const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-1-us-east-2.pooler.supabase.com';
-if (hostToCheck && hostToCheck.includes('supabase.co') && process.env.SUPABASE_POOLER_HOST) {
-  // user explicitly set pooler host env var
-  hostToCheck = process.env.SUPABASE_POOLER_HOST;
-}
-if (hostToCheck && hostToCheck.includes('supabase.co')) {
-  dbConfig.ssl = { rejectUnauthorized: false };
-}
-
-const pool = new Pool(dbConfig);
-
-pool.on('connect', () => {
-  console.log(`✅ Conectado ao banco de dados (${process.env.DB_HOST || 'local'})`);
-});
-
-pool.on('error', (err) => {
-  console.error('❌ Erro no DB pool:', err);
-});
 
 // Test connection at startup
 pool.connect()
   .then(client => {
-    console.log('🔗 Conexão com o banco de dados estabelecida');
+    console.log('🔗 Conexão com o banco de dados estabelecida via API REST');
     client.release();
   })
   .catch(err => {
-    console.error('❌ Erro ao conectar no banco de dados:', err);
+    console.error('❌ Erro ao conectar no banco de dados:', err.message);
   });
 
 module.exports = pool;

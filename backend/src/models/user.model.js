@@ -7,30 +7,73 @@ class User {
    */
   static async findByEmail(email) {
     try {
-      const query = 'SELECT * FROM users WHERE email = $1';
-      const values = [email];
+      const { data, error } = await pool.supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
-      const result = await pool.query(query, values);
-      return result.rows[0] || null;
+      return data || null;
     } catch (error) {
-      console.error('❌ Erro ao buscar usuário por email:', error);
+      console.error('❌ Erro ao buscar usuário por email:', error.message);
       throw error;
     }
   }
 
   /**
-   * Busca usuário por ID
+   * Busca usuário por ID com permissões
    */
   static async findById(id) {
     try {
-      const query = 'SELECT * FROM users WHERE id = $1';
-      const values = [id];
+      const { data, error } = await pool.supabase
+        .from('users')
+        .select(`
+          id, 
+          email, 
+          name, 
+          role, 
+          user_type, 
+          is_active, 
+          municipality,
+          created_at,
+          updated_at
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
-      const result = await pool.query(query, values);
-      return result.rows[0] || null;
+      return data || null;
     } catch (error) {
-      console.error('❌ Erro ao buscar usuário por ID:', error);
+      console.error('❌ Erro ao buscar usuário por ID:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Busca permissões do role
+   */
+  static async getPermissionsByRole(role) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('role_permissions')
+        .select('permission')
+        .eq('role', role);
+
+      if (error) {
+        throw error;
+      }
+      
+      return data?.map(p => p.permission) || [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar permissões:', error.message);
+      return [];
     }
   }
 
@@ -51,55 +94,32 @@ class User {
    */
   static async create(userData) {
     try {
-      let { name, email, password, user_type, municipality, role } = userData;
-      // DB column max lengths (match DB schema)
-      const MAX_LENGTHS = {
-        name: 255,
-        email: 255,
-        password: 255,
-        role: 50,
-        user_type: 20,
-        municipality: 255,
-      };
+      const { name, email, password, role = 'user' } = userData;
+      
+      // Hash da senha
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const { data, error } = await pool.supabase
+        .from('users')
+        .insert([{
+          name,
+          email,
+          password: hashedPassword,
+          role: role,
+          active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        }])
+        .select()
+        .single();
 
-      // Helper to truncate and warn
-      const truncate = (fieldName, value) => {
-        if (typeof value === 'string' && value.length > MAX_LENGTHS[fieldName]) {
-          console.warn(`⚠️ [USER.MODEL] Truncating field '${fieldName}' from length ${value.length} to ${MAX_LENGTHS[fieldName]}`);
-          return value.substring(0, MAX_LENGTHS[fieldName]);
-        }
-        return value;
-      };
-
-      // Avoid logging sensitive info like password plaintext
-      name = truncate('name', name);
-      email = truncate('email', email);
-      // hashed passwords generally are shorter than 255 but guard anyway
-      password = truncate('password', password);
-      role = truncate('role', role);
-      user_type = truncate('user_type', user_type);
-      municipality = truncate('municipality', municipality);
+      if (error) {
+        throw error;
+      }
       
-      const query = `
-        INSERT INTO users (name, email, password, user_type, municipality, role, active, created_at, updated_at) 
-        VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
-        RETURNING id, name, email, user_type, municipality, role, active, created_at
-      `;
-      
-      const values = [name, email, password, user_type, municipality, role];
-      
-      const result = await pool.query(query, values);
-      return result.rows[0];
+      return data;
     } catch (error) {
-      // Log field lengths for easier debugging (don't include password)
-      const safeInfo = {
-        name: (userData.name || '').length,
-        email: (userData.email || '').length,
-        user_type: (userData.user_type || '').length,
-        municipality: (userData.municipality || '').length,
-        role: (userData.role || '').length,
-      };
-      console.error('❌ Erro ao criar usuário:', error, 'Field lengths:', safeInfo);
+      console.error('❌ Erro ao criar usuário:', error.message);
       throw error;
     }
   }
@@ -109,16 +129,74 @@ class User {
    */
   static async findAll() {
     try {
-      const query = `
-        SELECT id, name, email, user_type, municipality, role, active, created_at, updated_at
-        FROM users 
-        ORDER BY created_at DESC
-      `;
+      const { data, error } = await pool.supabase
+        .from('users')
+        .select(`
+          id, 
+          name, 
+          email, 
+          user_type, 
+          municipality, 
+          role, 
+          is_active, 
+          created_at, 
+          updated_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
       
-      const result = await pool.query(query);
-      return result.rows;
+      return data || [];
     } catch (error) {
-      console.error('❌ Erro ao buscar usuários:', error);
+      console.error('❌ Erro ao buscar usuários:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza role/role do usuário
+   */
+  static async updateRole(userId, role) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('users')
+        .update({ role, updated_at: new Date() })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar role:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Ativa/desativa usuário
+   */
+  static async toggleActive(userId, isActive) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('users')
+        .update({ active: isActive, updated_at: new Date() })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Erro ao ativar/desativar usuário:', error.message);
       throw error;
     }
   }

@@ -2,16 +2,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 
-// Função para gerar token JWT
-const generateToken = (user) => {
+// Função para gerar token JWT com role e permissões
+const generateToken = async (user) => {
+  // Buscar permissões do role
+  const permissions = await User.getPermissionsByRole(user.role);
+  
   return jwt.sign(
     { 
       id: user.id, 
       email: user.email, 
       name: user.name,
-      role: user.role,
+      role: user.role || 'user',
       user_type: user.user_type,
-      municipality: user.municipality
+      municipality: user.municipality,
+      permissions: permissions
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
     { expiresIn: '24h' }
@@ -156,15 +160,21 @@ exports.login = async (req, res) => {
       });
     }
 
-    console.log('👤 [AUTH] Usuário encontrado:', { id: user.id, email: user.email, name: user.name });
+    // Verificar se usuário está ativo
+    if (!user.is_active) {
+      console.log('❌ [AUTH] Usuário inativo:', email);
+      return res.status(403).json({
+        status: 'ERROR',
+        message: 'Usuário inativo',
+        code: 'USER_INACTIVE'
+      });
+    }
 
-    // Verificar senha usando bcrypt.compare diretamente (igual ao lanche-go)
+    console.log('👤 [AUTH] Usuário encontrado:', { id: user.id, email: user.email, role: user.role });
+
+    // Verificar senha
     console.log('🔐 [AUTH] Verificando senha...');
-    console.log('🔐 [AUTH] Senha recebida:', password);
-    console.log('🔐 [AUTH] Senha no banco:', user.password);
-    
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('🔐 [AUTH] Resultado da comparação:', isPasswordValid);
+    const isPasswordValid = await User.checkPassword(password, user.password);
     
     if (!isPasswordValid) {
       console.log('❌ [AUTH] Senha inválida para:', email);
@@ -178,7 +188,7 @@ exports.login = async (req, res) => {
     console.log('✅ [AUTH] Senha válida, gerando token...');
 
     // Gerar token JWT
-    const token = generateToken(user);
+    const token = await generateToken(user);
 
     console.log(`✅ [AUTH] Login realizado: ${user.email}`);
 

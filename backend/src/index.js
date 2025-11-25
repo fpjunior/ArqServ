@@ -1,7 +1,11 @@
+// Load DNS wrapper for Supabase IPv6 support
+require('./config/dns-wrapper');
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
 // const documentRoutes = require('./routes/document.routes'); // Comentado temporariamente
 const serverRoutes = require('./routes/server.routes');
 const municipalityRoutes = require('./routes/municipality.routes');
@@ -28,6 +32,7 @@ app.use((req, res, next) => {
 
 // Rotas
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 // app.use('/api/documents', documentRoutes); // Comentado temporariamente
 app.use('/api/servers', serverRoutes);
 app.use('/api/municipalities', municipalityRoutes);

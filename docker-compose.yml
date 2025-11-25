@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database - USANDO BANCO CENTRAL
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: arqserv_postgres
-  #   environment:
-  #     POSTGRES_DB: arqserv_db
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: ArqServ2025
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #     - ./backend/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres -d arqserv_db"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - arqserv_network
-
-  # Backend API
   backend:
     build: ./backend
     container_name: arqserv_backend
@@ -31,42 +9,19 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3005
-      # Use DATABASE_URL to connect directly to Supabase Postgres or override DB_* vars
-      DATABASE_URL: ${DATABASE_URL}
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: 5432
-      DB_NAME: arqserv_db
-      DB_USER: arqserv_user
-      DB_PASSWORD: arqserv123
-      JWT_SECRET: seu_jwt_secret_super_seguro_aqui
-      CORS_ORIGIN: http://localhost:4200
-      # Supabase URL/keys are read from env_file above (backend/.env). Keep here for compatibility.
-      SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-      GOOGLE_CLIENT_ID: 1006764164537-l9fgj3hp0e327jk06q9njo1s20mt2o9c.apps.googleusercontent.com
-      GOOGLE_CLIENT_SECRET: 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
-      GOOGLE_REFRESH_TOKEN: 1//04VVVY8ACxzF3CgYIARAAGAQSNwF-L9IrfPptcQrxPpLSlE7RoEMQzIZG8wrfYdYvQwvKGjrVBrFhVYnBU5xy3zGDEQkcH8g8Xrc
     ports:
       - "3005:3005"
     volumes:
-      # 🔥 VOLUME PRINCIPAL - Sincroniza código local com container
       - ./backend/src:/app/src
       - ./backend/package.json:/app/package.json
       - ./backend/package-lock.json:/app/package-lock.json
-      # Não sincronizar node_modules (preserva instalação do container)
       - backend_node_modules:/app/node_modules
-      # Volume para uploads (salvar arquivos permanentemente)
       - uploads_data:/app/uploads
-      # Volume para credenciais do Google Drive
       - ./backend/credentials:/app/credentials
-    # depends_on:
-    #   postgres:
-    #     condition: service_healthy
     restart: unless-stopped
     networks:
       - arqserv_network
 
-  # PgAdmin (opcional)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: arqserv_pgadmin
@@ -75,13 +30,10 @@ services:
       PGADMIN_DEFAULT_PASSWORD: arqserv123
     ports:
       - "8080:80"
-    # depends_on:
-    #   - postgres
     networks:
       - arqserv_network
 
 volumes:
-  postgres_data:
   backend_node_modules:
   uploads_data:
 
