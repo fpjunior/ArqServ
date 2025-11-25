@@ -25,6 +25,13 @@ try {
 } catch (err) {
   hostToCheck = process.env.DB_HOST || null;
 }
+
+// Fallback: if host resolves to IPv6-only in the environment (no IPv4 egress), optionally switch to Supabase pooler host
+const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-1-us-east-2.pooler.supabase.com';
+if (hostToCheck && hostToCheck.includes('supabase.co') && process.env.SUPABASE_POOLER_HOST) {
+  // user explicitly set pooler host env var
+  hostToCheck = process.env.SUPABASE_POOLER_HOST;
+}
 if (hostToCheck && hostToCheck.includes('supabase.co')) {
   dbConfig.ssl = { rejectUnauthorized: false };
 }
