@@ -480,6 +480,85 @@ app.get('/api/debug/tables', async (req, res) => {
   }
 });
 
+// Debug endpoint: check DB network connectivity and DNS resolution
+const dns = require('dns');
+const net = require('net');
+app.get('/api/debug/db-ping', async (req, res) => {
+  try {
+    const pool = require('./config/database');
+    const connString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || null;
+    let host = process.env.DB_HOST || null;
+    let port = process.env.DB_PORT || null;
+    if (connString) {
+      try {
+        const u = new URL(connString.replace('postgresql://', 'http://'));
+        host = u.hostname;
+        port = u.port || 5432;
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    if (!host) return res.status(400).json({ status: 'ERROR', message: 'No DB host or connection string configured' });
+
+    const results = { host, port: Number(port) };
+
+    // Resolve addresses
+    try {
+      const addresses = await new Promise((resolve, reject) => {
+        dns.lookup(host, { all: true }, (err, addrs) => {
+          if (err) return reject(err);
+          resolve(addrs);
+        });
+      });
+      results.dns = addresses;
+    } catch (err) {
+      results.dnsError = err.message;
+    }
+
+    // Test TCP connect for each resolved address
+    results.tcp = [];
+    if (results.dns && results.dns.length > 0) {
+      for (const a of results.dns) {
+        const ip = a.address;
+        const family = a.family;
+        const tcpRes = { ip, family };
+        try {
+          const ok = await new Promise((resolve, reject) => {
+            const socket = net.connect({ host: ip, port: Number(port), family: family }, () => {
+              socket.end();
+              resolve(true);
+            });
+            socket.setTimeout(3000, () => {
+              socket.destroy();
+              reject(new Error('timeout'));
+            });
+            socket.on('error', (e) => { reject(e); });
+          });
+          tcpRes.connect = ok;
+        } catch (err) {
+          tcpRes.error = err.message;
+        }
+        results.tcp.push(tcpRes);
+      }
+    }
+
+    // Test pool connect
+    try {
+      const client = await pool.connect();
+      const result = await client.query('SELECT NOW()');
+      client.release();
+      results.pool = { connected: true, timestamp: result.rows[0].now };
+    } catch (err) {
+      results.pool = { connected: false, error: err.message };
+    }
+
+    return res.json({ status: 'SUCCESS', results });
+  } catch (err) {
+    return res.status(500).json({ status: 'ERROR', message: 'db-ping failed', error: err.message });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, async () => {
   console.log(`🚀 ArqServ Backend rodando na porta ${PORT}`);
