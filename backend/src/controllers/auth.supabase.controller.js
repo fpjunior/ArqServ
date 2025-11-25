@@ -66,7 +66,10 @@ exports.syncSupabaseUser = async (req, res) => {
 
     if (!supabaseUser) {
       if (!SUPABASE_URL) {
-        return res.status(500).json({ success: false, message: 'Supabase URL not configured on server' });
+        // Provide a helpful message to indicate how to fix the deployment configuration
+        const msg = 'Supabase URL not configured on server. Set SUPABASE_URL in backend environment variables (or via Docker env_file)';
+        console.error('[AUTH/SUPABASE] ' + msg);
+        return res.status(500).json({ success: false, message: msg });
       }
       // Call Supabase to retrieve user info
       const headers = { Authorization: `Bearer ${supabaseToken}`, Accept: 'application/json' };
@@ -85,11 +88,12 @@ exports.syncSupabaseUser = async (req, res) => {
 
       supabaseUser = await response.json();
     }
-    // Extract user data
+    // Extract user data from Supabase response
     const email = supabaseUser.email;
     const name = supabaseUser.user_metadata?.name || supabaseUser.email;
-    const role = supabaseUser.user_metadata?.role || 'user';
-    const user_type = supabaseUser.user_metadata?.user_type || 'prefeitura';
+    // Use let so we can prefer DB-stored role if user already exists
+    let role = supabaseUser.user_metadata?.role || 'user';
+    let user_type = supabaseUser.user_metadata?.user_type || 'prefeitura';
     const municipality = supabaseUser.user_metadata?.municipality || null;
 
     // Find or create local user
@@ -101,6 +105,14 @@ exports.syncSupabaseUser = async (req, res) => {
       const hashedPassword = await bcrypt.hash(placeholderPassword, 10);
       user = await User.create({ name, email, password: hashedPassword, user_type, municipality, role });
     }
+
+    // If the user already exists, prefer the role stored in the database
+    if (user && user.role) {
+      role = user.role;
+      user_type = user.user_type || user_type;
+    }
+
+    console.log(`[AUTH/SUPABASE] Syncing user '${email}'; final role: ${role}, user_type: ${user_type}`);
 
     // Generate backend token
     const token = generateToken(user);
