@@ -18,7 +18,14 @@ const dbConfig = connectionString ? { connectionString } : {
 };
 
 // If connecting to a Supabase managed Postgres instance set SSL to true
-if (!dbConfig.connectionString && process.env.DB_HOST && process.env.DB_HOST.includes('supabase.co')) {
+// Also ensure SSL when using a connectionString that targets supabase.co
+let hostToCheck = null;
+try {
+  hostToCheck = process.env.DB_HOST || (connectionString ? (new URL(connectionString.replace('postgresql://', 'http://'))).hostname : null);
+} catch (err) {
+  hostToCheck = process.env.DB_HOST || null;
+}
+if (hostToCheck && hostToCheck.includes('supabase.co')) {
   dbConfig.ssl = { rejectUnauthorized: false };
 }
 
