@@ -1,12 +1,12 @@
-const pkg = require('pg');
+const { Pool } = require('pg');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { Pool } = pkg;
+// Support either a full connection string or individual DB env variables
+const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || null;
 
-// Configuração da conexão PostgreSQL
-const dbConfig = {
+const dbConfig = connectionString ? { connectionString } : {
   user: process.env.DB_USER || 'arqserv_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'arqserv_db',
@@ -14,29 +14,32 @@ const dbConfig = {
   port: parseInt(process.env.DB_PORT) || 5432,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Aumentar timeout para 10 segundos
+  connectionTimeoutMillis: 10000,
 };
 
-// Criar pool de conexões
+// If connecting to a Supabase managed Postgres instance set SSL to true
+if (!dbConfig.connectionString && process.env.DB_HOST && process.env.DB_HOST.includes('supabase.co')) {
+  dbConfig.ssl = { rejectUnauthorized: false };
+}
+
 const pool = new Pool(dbConfig);
 
-// Listener para eventos do pool
 pool.on('connect', () => {
-  console.log('✅ Conectado ao PostgreSQL');
+  console.log(`✅ Conectado ao banco de dados (${process.env.DB_HOST || 'local'})`);
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Erro no PostgreSQL:', err);
+  console.error('❌ Erro no DB pool:', err);
 });
 
-// Testar conexão na inicialização
+// Test connection at startup
 pool.connect()
   .then(client => {
-    console.log('🔗 Conexão com PostgreSQL estabelecida');
+    console.log('🔗 Conexão com o banco de dados estabelecida');
     client.release();
   })
   .catch(err => {
-    console.error('❌ Erro ao conectar no PostgreSQL:', err);
+    console.error('❌ Erro ao conectar no banco de dados:', err);
   });
 
 module.exports = pool;

@@ -86,6 +86,9 @@ const startServer = async () => {
     // Testar conexão com o banco
     await testConnection();
     console.log('✅ Conectado ao PostgreSQL:', new Date().toISOString());
+    if (process.env.SUPABASE_URL) {
+      console.log('🔗 Supabase URL configured:', process.env.SUPABASE_URL);
+    }
     
     // Iniciar o servidor
     app.listen(PORT, '0.0.0.0', () => {

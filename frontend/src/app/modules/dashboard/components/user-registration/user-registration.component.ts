@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
 
 interface Municipality {
@@ -28,7 +29,8 @@ export class UserRegistrationComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService
   ) {
     this.userForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -119,18 +121,19 @@ export class UserRegistrationComponent implements OnInit {
         delete formData.municipality;
       }
 
-      this.http.post(`${environment.apiUrl}/auth/register`, formData).subscribe({
-        next: (response: any) => {
-          console.log('✅ Usuário cadastrado com sucesso:', response);
-          alert('Usuário cadastrado com sucesso!');
-          this.router.navigate(['/users']); // Navegar para lista de usuários
-        },
-        error: (error) => {
-          console.error('❌ Erro ao cadastrar usuário:', error);
-          alert(error.error?.message || 'Erro ao cadastrar usuário. Tente novamente.');
-          this.isLoading = false;
-        }
-      });
+      this.authService.register(formData.name, formData.email, formData.password, formData.user_type, formData.municipality, formData.role)
+        .subscribe({
+          next: (response: any) => {
+            console.log('✅ Usuário cadastrado com sucesso:', response);
+            alert('Usuário cadastrado com sucesso!');
+            this.router.navigate(['/users']); // Navegar para lista de usuários
+          },
+          error: (error) => {
+            console.error('❌ Erro ao cadastrar usuário:', error);
+            alert(error.error?.message || error.message || 'Erro ao cadastrar usuário. Tente novamente.');
+            this.isLoading = false;
+          }
+        });
     } else {
       this.markFormGroupTouched();
     }

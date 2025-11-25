@@ -49,6 +49,11 @@ export class DashboardLayoutComponent implements OnInit {
     });
   }
 
+  isAdmin(): boolean {
+    if (!this.currentUser) return false;
+    return this.currentUser.role === 'admin' || this.currentUser.user_type === 'admin';
+  }
+
   logout(): void {
     // Mostrar modal de confirmação
     this.showLogoutModal = true;

@@ -61,6 +61,11 @@
             <span *ngIf="loading" class="animate-spin">🔄</span>
             {{ loading ? 'Entrando...' : 'Entrar' }}
           </button>
+          <div class="mt-2 text-xs text-gray-500">
+            <button *ngIf="useSupabase && !loading" type="button" (click)="loginBackend()" class="text-blue-600 hover:underline">
+              Entrar usando o backend (ignorar Supabase)
+            </button>
+          </div>
         </form>
       </div>
 

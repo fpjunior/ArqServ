@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { AuthService } from '../../../../shared/services/auth.service';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -29,6 +30,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   hidePassword = true;
   loading = false;
+  public useSupabase = environment.useSupabaseAuth;
 
   constructor(
     private fb: FormBuilder,
@@ -55,11 +57,32 @@ export class LoginComponent {
         error: (error) => {
           this.loading = false;
           console.error('Erro ao fazer login:', error);
-          alert('Erro ao fazer login. Verifique suas credenciais.');
+          // Show the error message if available (backend or supabase)
+          const message = error?.error?.message || error?.message || 'Erro ao fazer login. Verifique suas credenciais.';
+          alert(message);
         }
       });
     } else {
       this.markFormGroupTouched();
+    }
+  }
+
+  // Optional: call backend login bypassing Supabase (useful for local dev or fallback tests)
+  loginBackend(): void {
+    if (this.loginForm.valid) {
+      this.loading = true;
+      const { email, password } = this.loginForm.value;
+      this.authService.loginBackend(email, password).subscribe({
+        next: () => {
+          this.loading = false;
+          this.router.navigate(['/dashboard']);
+        },
+        error: (err) => {
+          this.loading = false;
+          console.error('Erro no login backend:', err);
+          alert(err?.error?.message || 'Erro ao fazer login no backend.');
+        }
+      });
     }
   }
 

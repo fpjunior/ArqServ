@@ -38,7 +38,7 @@
         </div>
         
         <div 
-          *ngIf="currentUser?.user_type === 'admin'"
+          *ngIf="isAdmin()"
           class="flex items-center gap-3 px-4 py-3 text-slate-300 rounded-xl hover:bg-slate-700/50 hover:text-white transition-all cursor-pointer"
           [class.bg-blue-600]="isActiveRoute('/users')"
           [class.text-white]="isActiveRoute('/users')"
@@ -49,7 +49,7 @@
         </div>
         
         <div 
-          *ngIf="currentUser?.user_type === 'admin'" 
+          *ngIf="isAdmin()" 
           (click)="navigateToUpload()"
           class="flex items-center gap-3 px-4 py-3 text-slate-300 rounded-xl hover:bg-slate-700/50 hover:text-white transition-all cursor-pointer"
           [class.bg-blue-600]="isActiveRoute('/upload')"

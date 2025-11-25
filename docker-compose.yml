@@ -26,16 +26,23 @@ services:
   backend:
     build: ./backend
     container_name: arqserv_backend
+    env_file:
+      - ./backend/.env
     environment:
       NODE_ENV: development
       PORT: 3005
-      DB_HOST: host.docker.internal
+      # Use DATABASE_URL to connect directly to Supabase Postgres or override DB_* vars
+      DATABASE_URL: ${DATABASE_URL}
+      DB_HOST: ${DB_HOST:-host.docker.internal}
       DB_PORT: 5432
       DB_NAME: arqserv_db
       DB_USER: postgres
       DB_PASSWORD: 123456
       JWT_SECRET: seu_jwt_secret_super_seguro_aqui
       CORS_ORIGIN: http://localhost:4200
+      # Supabase URL/keys are read from env_file above (backend/.env). Keep here for compatibility.
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       GOOGLE_CLIENT_ID: 1006764164537-l9fgj3hp0e327jk06q9njo1s20mt2o9c.apps.googleusercontent.com
       GOOGLE_CLIENT_SECRET: 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
       GOOGLE_REFRESH_TOKEN: 1//04VVVY8ACxzF3CgYIARAAGAQSNwF-L9IrfPptcQrxPpLSlE7RoEMQzIZG8wrfYdYvQwvKGjrVBrFhVYnBU5xy3zGDEQkcH8g8Xrc

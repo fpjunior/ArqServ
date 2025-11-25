@@ -4,14 +4,15 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --configuration production",
-    "build:dev": "ng build --configuration development",
-    "watch": "ng build --watch --configuration development",
+    "build": "npx ng build --configuration production",
+    "build:dev": "npx ng build --configuration development",
+    "watch": "npx ng build --watch --configuration development",
     "test": "ng test",
     "serve": "ng serve --open"
   },
   "private": true,
   "dependencies": {
+    "@supabase/supabase-js": "^2.36.0",
     "@angular/animations": "^19.2.14",
     "@angular/cdk": "^19.2.19",
     "@angular/common": "^19.2.14",
@@ -27,6 +28,7 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "@angular-devkit/build-angular": "^19.2.15",
     "@angular/cli": "^19.2.19",
     "@angular/compiler-cli": "^19.2.14",

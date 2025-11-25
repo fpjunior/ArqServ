@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
 
 interface User {
@@ -37,13 +38,20 @@ export class UsersListComponent implements OnInit {
   totalItems = 0;
   itemsPerPageOptions = [5, 10, 25, 50];
 
+  currentUser: any | null = null;
+
   constructor(
     private router: Router,
     private http: HttpClient
+    , private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadUsers();
+    // Subscribe to current user to conditionally show invite button
+    this.authService.currentUser$.subscribe((user) => {
+      this.currentUser = user;
+    });
   }
 
   loadUsers(): void {
@@ -131,6 +139,22 @@ export class UsersListComponent implements OnInit {
 
   navigateToNewUser(): void {
     this.router.navigate(['/users/new']);
+  }
+
+  // Simple prompt-based invite helper
+  inviteUserPrompt(): void {
+    const email = prompt('Digite o e-mail para enviar o convite:');
+    if (!email) return;
+    if (!confirm(`Enviar convite para ${email}?`)) return;
+    this.authService.invite(email).subscribe({
+      next: (resp) => {
+        alert('Convite enviado com sucesso!');
+      },
+      error: (err) => {
+        console.error('Erro ao enviar convite', err);
+        alert('Erro ao enviar convite. Veja o console para detalhes.');
+      }
+    });
   }
 
   editUser(user: User): void {

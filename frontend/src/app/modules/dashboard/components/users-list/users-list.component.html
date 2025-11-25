@@ -13,12 +13,10 @@
         </div>
       </div>
       
-      <button 
-        (click)="navigateToNewUser()"
-        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center gap-2">
-        <span>➕</span>
-        <span>Novo Usuário</span>
-      </button>
+        <div>
+          <button class="btn btn-primary mr-2" (click)="navigateToNewUser()">Novo Usuário</button>
+          <button *ngIf="currentUser?.role === 'admin' || currentUser?.user_type === 'admin'" class="btn btn-secondary" (click)="inviteUserPrompt()">Convidar usuário</button>
+        </div>
     </div>
   </div>
 

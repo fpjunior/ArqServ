@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const AuthSupabaseController = require('../controllers/auth.supabase.controller');
 
 /**
  * @route POST /api/auth/login
@@ -15,6 +16,8 @@ router.post('/login', authController.login);
  * @access Public (pode ser mudado para Private posteriormente)
  */
 router.post('/register', authController.register);
+router.post('/supabase/sync', AuthSupabaseController.syncSupabaseUser);
+router.post('/invite', AuthSupabaseController.inviteUser);
 
 /**
  * @route GET /api/auth/users

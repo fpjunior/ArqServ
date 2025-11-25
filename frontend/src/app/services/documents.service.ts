@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse, HttpEvent, HttpEventType } 
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { catchError, map, filter } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { AuthService } from '../shared/services/auth.service';
 
 // Interfaces
 export interface Municipality {
@@ -60,7 +61,15 @@ export class DocumentsService {
   // Observable para progresso de upload
   uploadProgress$ = this.uploadProgressSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    if (!token) return new HttpHeaders();
+    return new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
+  }
 
   /**
    * Upload de documento para o Google Drive
@@ -107,7 +116,8 @@ export class DocumentsService {
       formData,
       {
         reportProgress: true,
-        observe: 'events'
+        observe: 'events',
+        headers: this.getAuthHeaders()
       }
     ).pipe(
       map((event: HttpEvent<ApiResponse<Document>>) => {
@@ -152,7 +162,7 @@ export class DocumentsService {
     const queryString = params.toString();
     const url = `${this.apiUrl}/documents/municipality/${municipalityCode}${queryString ? '?' + queryString : ''}`;
 
-    return this.http.get<ApiResponse<Document[]>>(url)
+    return this.http.get<ApiResponse<Document[]>>(url, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -160,7 +170,7 @@ export class DocumentsService {
    * Buscar documento por ID
    */
   getDocumentById(id: number): Observable<ApiResponse<Document>> {
-    return this.http.get<ApiResponse<Document>>(`${this.apiUrl}/documents/${id}`)
+    return this.http.get<ApiResponse<Document>>(`${this.apiUrl}/documents/${id}`, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -177,7 +187,7 @@ export class DocumentsService {
    * Deletar documento
    */
   deleteDocument(id: number): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/documents/${id}`)
+    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/documents/${id}`, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -201,7 +211,7 @@ export class DocumentsService {
    * Criar novo município
    */
   createMunicipality(municipality: Omit<Municipality, 'id'>): Observable<ApiResponse<Municipality>> {
-    return this.http.post<ApiResponse<Municipality>>(`${this.apiUrl}/municipalities`, municipality)
+    return this.http.post<ApiResponse<Municipality>>(`${this.apiUrl}/municipalities`, municipality, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -209,7 +219,7 @@ export class DocumentsService {
    * Listar municípios
    */
   getMunicipalities(): Observable<ApiResponse<Municipality[]>> {
-    return this.http.get<ApiResponse<Municipality[]>>(`${this.apiUrl}/municipalities`)
+    return this.http.get<ApiResponse<Municipality[]>>(`${this.apiUrl}/municipalities`, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -221,7 +231,7 @@ export class DocumentsService {
     municipality_code: string;
     municipality_name?: string;
   }): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/servers`, server)
+    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/servers`, server, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
@@ -229,7 +239,7 @@ export class DocumentsService {
    * Listar servidores por município
    */
   getServersByMunicipality(municipalityCode: string): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/servers/municipality/${municipalityCode}`)
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/servers/municipality/${municipalityCode}`, { headers: this.getAuthHeaders() })
       .pipe(catchError(this.handleError));
   }
 
