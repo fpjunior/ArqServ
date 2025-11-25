@@ -79,14 +79,21 @@ exports.syncSupabaseUser = async (req, res) => {
         method: 'GET',
         headers
       });
-
+      console.log('[AUTH/SUPABASE] Calling Supabase GET /auth/v1/user');
+      console.log('[AUTH/SUPABASE] Request headers:', Object.keys(headers));
       if (!response.ok) {
         const text = await response.text();
-        console.error('Error fetching supabase user:', response.status, text);
+        console.error('[AUTH/SUPABASE] Error fetching supabase user:', response.status, text);
         return res.status(401).json({ success: false, message: 'Invalid Supabase token' });
       }
 
-      supabaseUser = await response.json();
+      try {
+        supabaseUser = await response.json();
+        console.log('[AUTH/SUPABASE] Supabase user fetched:', { email: supabaseUser.email, id: supabaseUser.id });
+      } catch (parseErr) {
+        console.error('[AUTH/SUPABASE] Error parsing supabase user JSON:', parseErr);
+        return res.status(500).json({ success: false, message: 'Error parsing Supabase user response' });
+      }
     }
     // Extract user data from Supabase response
     const email = supabaseUser.email;
@@ -103,7 +110,12 @@ exports.syncSupabaseUser = async (req, res) => {
       // Create placeholder password (random) and hash
       const placeholderPassword = Math.random().toString(36).substring(2, 12);
       const hashedPassword = await bcrypt.hash(placeholderPassword, 10);
-      user = await User.create({ name, email, password: hashedPassword, user_type, municipality, role });
+      try {
+        user = await User.create({ name, email, password: hashedPassword, user_type, municipality, role });
+      } catch (dbErr) {
+        console.error('[AUTH/SUPABASE] Error creating user in DB:', dbErr.message, dbErr);
+        return res.status(500).json({ success: false, message: 'Error creating user in DB' });
+      }
     }
 
     // If the user already exists, prefer the role stored in the database
