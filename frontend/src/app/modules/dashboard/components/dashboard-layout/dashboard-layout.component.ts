@@ -29,12 +29,21 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Carregar usuário do localStorage imediatamente para evitar delay
+    const storedUser = localStorage.getItem('arqserv_user');
+    if (storedUser) {
+      try {
+        this.currentUser = JSON.parse(storedUser);
+        console.log('👤 [DASHBOARD] Usuário carregado do localStorage:', this.currentUser);
+      } catch (e) {
+        console.warn('⚠️ [DASHBOARD] Erro ao carregar usuário do localStorage');
+      }
+    }
+    
+    // Continuar observando mudanças do AuthService
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
-      console.log('👤 [DASHBOARD] Current user:', this.currentUser);
-      if (!this.currentUser) {
-        this.router.navigate(['/auth/login']);
-      }
+      console.log('👤 [DASHBOARD] Current user atualizado:', this.currentUser);
     });
     
     this.currentRoute = this.router.url;
@@ -50,7 +59,8 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   isAdmin(): boolean {
-    return this.authService.isAdmin();
+    // Verificar localmente primeiro para evitar delay
+    return this.currentUser?.role === 'admin';
   }
 
   logout(): void {

@@ -36,21 +36,92 @@ export class AuthService {
     // If using Supabase auth, initialize client and subscribe to supabase auth state
     if (environment.useSupabaseAuth) {
       const supabase = getSupabaseClient();
-      // OnInit: subscribe to auth state
-      supabase.auth.onAuthStateChange((event, session) => {
+      
+      // Carregar sessão atual do Supabase imediatamente
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('🔍 [AUTH] Sessão inicial do Supabase:', session ? 'Encontrada' : 'Não encontrada');
         if (session && session.access_token) {
           const user = session.user;
+          
+          // Log detalhado do user_metadata
+          console.log('📋 [AUTH] User metadata do Supabase:', {
+            user_metadata: user.user_metadata,
+            app_metadata: user.app_metadata,
+            role: user.user_metadata?.['role'],
+            email: user.email
+          });
+          
+          // Primeiro tentar carregar do localStorage se existir (preserva role correto)
+          const storedUser = localStorage.getItem('arqserv_user');
+          let userRole = 'user';
+          
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              userRole = parsedUser.role || 'user';
+              console.log('✅ [AUTH] Role recuperado do localStorage:', userRole);
+            } catch (e) {
+              console.warn('⚠️ [AUTH] Erro ao parsear usuário do localStorage');
+            }
+          }
+          
+          // Se não tem no localStorage, usar do Supabase
+          if (userRole === 'user' && user.user_metadata?.['role']) {
+            userRole = user.user_metadata['role'];
+            console.log('✅ [AUTH] Role recuperado do Supabase metadata:', userRole);
+          }
+          
+          const currentUser = {
+            id: user.id as unknown as number,
+            email: user.email || '',
+            name: user.user_metadata?.['name'] || user.email || '',
+            role: userRole
+          };
+          
           this.tokenSubject.next(session.access_token);
-          this.currentUserSubject.next({
+          this.currentUserSubject.next(currentUser);
+          localStorage.setItem('arqserv_token', session.access_token);
+          localStorage.setItem('arqserv_user', JSON.stringify(currentUser));
+          
+          console.log('✅ [AUTH] Sessão Supabase carregada:', currentUser);
+          
+          // Sincronizar com backend para garantir role correto
+          this.syncWithBackend().subscribe({
+            next: () => console.log('✅ [AUTH] Sincronização com backend concluída'),
+            error: (err) => console.warn('⚠️ [AUTH] Erro na sincronização:', err)
+          });
+        } else {
+          console.log('ℹ️ [AUTH] Nenhuma sessão ativa no Supabase');
+        }
+      });
+
+      // OnInit: subscribe to auth state changes
+      supabase.auth.onAuthStateChange((event, session) => {
+        console.log('🔄 [AUTH] Mudança de estado:', event, session ? 'com sessão' : 'sem sessão');
+        if (session && session.access_token) {
+          const user = session.user;
+          
+          console.log('📋 [AUTH] User metadata (onChange):', user.user_metadata);
+          
+          const currentUser = {
             id: user.id as unknown as number,
             email: user.email || '',
             name: user.user_metadata?.['name'] || user.email || '',
             role: user.user_metadata?.['role'] || 'user'
-          });
+          };
+          
+          this.tokenSubject.next(session.access_token);
+          this.currentUserSubject.next(currentUser);
           localStorage.setItem('arqserv_token', session.access_token);
-          localStorage.setItem('arqserv_user', JSON.stringify(this.currentUserSubject.value));
-        } else {
-          this.loadStoredAuth();
+          localStorage.setItem('arqserv_user', JSON.stringify(currentUser));
+          
+          console.log('✅ [AUTH] Usuário atualizado:', currentUser);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 [AUTH] Usuário fez logout');
+          this.tokenSubject.next(null);
+          this.currentUserSubject.next(null);
+          localStorage.removeItem('arqserv_token');
+          localStorage.removeItem('arqserv_user');
         }
       });
     } else {
@@ -62,9 +133,91 @@ export class AuthService {
     const token = localStorage.getItem('arqserv_token');
     const user = localStorage.getItem('arqserv_user');
 
+    console.log('🔍 [AUTH] loadStoredAuth - Verificando localStorage:', {
+      hasToken: !!token,
+      hasUser: !!user,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : null
+    });
+
     if (token && user) {
-      this.tokenSubject.next(token);
-      this.currentUserSubject.next(JSON.parse(user));
+      // Verificar se o token ainda é válido
+      if (this.isTokenValid(token)) {
+        this.tokenSubject.next(token);
+        this.currentUserSubject.next(JSON.parse(user));
+        console.log('✅ [AUTH] Sessão restaurada do localStorage');
+      } else {
+        // Token expirado, limpar localStorage
+        console.warn('⚠️ [AUTH] Token expirado detectado no refresh - limpando sessão');
+        localStorage.removeItem('arqserv_token');
+        localStorage.removeItem('arqserv_user');
+        this.tokenSubject.next(null);
+        this.currentUserSubject.next(null);
+      }
+    } else {
+      console.log('ℹ️ [AUTH] Nenhum token ou usuário encontrado no localStorage');
+    }
+  }
+
+  /**
+   * Verifica se o token JWT é válido e não expirou
+   */
+  private isTokenValid(token: string): boolean {
+    if (!token) return false;
+
+    try {
+      // Decodificar o token JWT (formato: header.payload.signature)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn('⚠️ [AUTH] Token inválido - formato incorreto');
+        return false;
+      }
+
+      // Decodificar o payload (parte do meio)
+      const payload = JSON.parse(atob(parts[1]));
+      
+      if (!payload || typeof payload !== 'object') {
+        console.warn('⚠️ [AUTH] Token inválido - payload inválido');
+        return false;
+      }
+
+      console.log('🔍 [AUTH] Token payload decodificado:', {
+        userId: payload.id,
+        email: payload.email,
+        role: payload.role,
+        exp: payload.exp,
+        expDate: payload.exp ? new Date(payload.exp * 1000).toLocaleString() : 'N/A',
+        iat: payload.iat,
+        iatDate: payload.iat ? new Date(payload.iat * 1000).toLocaleString() : 'N/A'
+      });
+
+      // Verificar se tem campo de expiração
+      if (!payload.exp) {
+        console.warn('⚠️ [AUTH] Token sem expiração - considerando válido');
+        return true; // Se não tem expiração, considerar válido
+      }
+
+      // Verificar se o token expirou (exp é em segundos desde epoch)
+      const now = Math.floor(Date.now() / 1000);
+      const isValid = payload.exp > now;
+      
+      if (!isValid) {
+        const expiredDate = new Date(payload.exp * 1000);
+        const nowDate = new Date();
+        const timeAgo = Math.floor((nowDate.getTime() - expiredDate.getTime()) / 1000 / 60); // minutos
+        console.warn('⚠️ [AUTH] Token expirado:', {
+          expiredAt: expiredDate.toLocaleString(),
+          now: nowDate.toLocaleString(),
+          expiredMinutesAgo: timeAgo
+        });
+      } else {
+        const timeRemaining = Math.floor((payload.exp - now) / 60); // minutos
+        console.log('✅ [AUTH] Token válido - expira em', timeRemaining, 'minutos');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('❌ [AUTH] Erro ao validar token:', error);
+      return false;
     }
   }
 
@@ -200,7 +353,11 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.tokenSubject.value;
+    const token = this.tokenSubject.value;
+    if (!token) return false;
+    
+    // Verificar se o token ainda é válido
+    return this.isTokenValid(token);
   }
 
   getCurrentUser(): User | null {

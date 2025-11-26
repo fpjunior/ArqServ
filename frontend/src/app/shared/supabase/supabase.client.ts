@@ -11,7 +11,11 @@ export function getSupabaseClient(): SupabaseClient {
     supabase = createClient(environment.supabaseUrl, environment.supabaseAnonKey, {
       auth: {
         persistSession: true,
-        autoRefreshToken: true
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+        storageKey: 'arqserv-supabase-auth',
+        flowType: 'pkce'
       }
     });
   }
@@ -19,3 +23,4 @@ export function getSupabaseClient(): SupabaseClient {
 }
 
 export default getSupabaseClient;
+
