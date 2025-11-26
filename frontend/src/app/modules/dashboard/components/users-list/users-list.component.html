@@ -7,20 +7,22 @@
           <span class="text-3xl filter drop-shadow-lg">👥</span>
         </div>
         
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">Usuários</h1>
-          <p class="text-gray-600 mt-1">Gerencie usuários do sistema</p>
-        </div>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Usuários</h1>
+        <p class="text-gray-600 mt-1">Gerencie usuários do sistema</p>
       </div>
-      
-        <div>
-          <button class="btn btn-primary mr-2" (click)="navigateToNewUser()">Novo Usuário</button>
-          <button *ngIf="currentUser?.role === 'admin'" class="btn btn-secondary" (click)="inviteUserPrompt()">Convidar usuário</button>
-        </div>
+    </div>
+    
+    <div *ngIf="currentUser?.role === 'admin'">
+      <button 
+        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+        (click)="openCreateModal()">
+        <span class="text-xl">➕</span>
+        Novo Usuário
+      </button>
     </div>
   </div>
-
-  <!-- Filters and Search -->
+</div>  <!-- Filters and Search -->
   <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 mb-6 mx-6">
     <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="flex-1 max-w-md">
@@ -269,6 +271,125 @@
     <div class="text-center">
       <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
       <p class="text-gray-600">Carregando usuários...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Criação de Usuário -->
+<div *ngIf="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-2xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold">Criar Novo Usuário</h2>
+        <button 
+          (click)="closeCreateModal()" 
+          class="text-white hover:text-gray-200 transition-colors"
+          [disabled]="isCreating">
+          <span class="text-2xl">✕</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="p-6">
+      <form (submit)="createUser(); $event.preventDefault()">
+        <!-- Nome -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">
+            Nome Completo <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="createUserForm.name"
+            name="name"
+            placeholder="Ex: João Silva"
+            required
+            [disabled]="isCreating"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+        </div>
+
+        <!-- Email -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">
+            Email <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="email" 
+            [(ngModel)]="createUserForm.email"
+            name="email"
+            placeholder="usuario@exemplo.com"
+            required
+            [disabled]="isCreating"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+        </div>
+
+        <!-- Role -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">
+            Nível de Acesso <span class="text-red-500">*</span>
+          </label>
+          <select 
+            [(ngModel)]="createUserForm.role"
+            name="role"
+            required
+            [disabled]="isCreating"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 bg-white">
+            <option value="user">Usuário - Acesso básico</option>
+            <option value="manager">Gerenciador - Upload e leitura</option>
+            <option value="admin">Administrador - Acesso total</option>
+          </select>
+        </div>
+
+        <!-- Senha -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">
+            Senha <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="password" 
+            [(ngModel)]="createUserForm.password"
+            name="password"
+            placeholder="Mínimo 6 caracteres"
+            required
+            minlength="6"
+            [disabled]="isCreating"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+        </div>
+
+        <!-- Confirmar Senha -->
+        <div class="mb-6">
+          <label class="block text-gray-700 font-semibold mb-2">
+            Confirmar Senha <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="password" 
+            [(ngModel)]="createUserForm.confirmPassword"
+            name="confirmPassword"
+            placeholder="Digite a senha novamente"
+            required
+            [disabled]="isCreating"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3">
+          <button 
+            type="button"
+            (click)="closeCreateModal()"
+            [disabled]="isCreating"
+            class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            [disabled]="isCreating"
+            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span *ngIf="isCreating" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <span>{{ isCreating ? 'Criando...' : 'Criar Usuário' }}</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

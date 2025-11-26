@@ -21,11 +21,14 @@ const generateToken = async (user) => {
 };
 
 // Função para cadastrar usuário
+// DEPRECATED: Use POST /api/admin/users para criar usuários através do painel admin
+// Este endpoint está mantido apenas para compatibilidade com sistema legacy
+// Considera-se desabilitar este endpoint em produção
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    console.log('📝 [REGISTER] Tentativa de cadastro:', { name, email, role });
+    console.log('⚠️ [REGISTER] DEPRECATED - Use /api/admin/users. Tentativa de cadastro:', { name, email, role });
 
     // Validações básicas
     if (!name || !email || !password) {
@@ -54,7 +57,7 @@ exports.register = async (req, res) => {
     console.log('🔐 [REGISTER] Criptografando senha...');
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Criar usuário
+    // Criar usuário SOMENTE na tabela (não cria no Auth - uso legado)
     console.log('💾 [REGISTER] Criando usuário no banco...');
     const newUser = await User.create({
       name,
@@ -63,7 +66,7 @@ exports.register = async (req, res) => {
       role: role || 'user' // Usar o role enviado ou 'user' como padrão
     });
 
-    console.log('✅ [REGISTER] Usuário criado com sucesso:', { id: newUser.id, email: newUser.email });
+    console.log('⚠️ [REGISTER] Usuário criado APENAS na tabela (sem Supabase Auth):', { id: newUser.id, email: newUser.email });
 
     // Resposta de sucesso
     res.status(201).json({

@@ -40,6 +40,68 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/users
+ * Cria um novo usuário (apenas admin)
+ * Cria tanto no Supabase Auth quanto na tabela users
+ */
+router.post('/users', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Validação
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Nome, email e senha são obrigatórios',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    if (!['admin', 'user', 'manager'].includes(role)) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Role inválida. Deve ser: admin, user ou manager',
+        code: 'INVALID_ROLE'
+      });
+    }
+
+    // Verificar se email já existe
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Email já cadastrado',
+        code: 'EMAIL_EXISTS'
+      });
+    }
+
+    // Criar usuário (Auth + Database)
+    const newUser = await User.createWithAuth({
+      name,
+      email,
+      password,
+      role
+    });
+
+    // Remover senha da resposta
+    const { password: _, ...userWithoutPassword } = newUser;
+
+    res.status(201).json({
+      status: 'SUCCESS',
+      message: 'Usuário criado com sucesso',
+      data: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('❌ Erro ao criar usuário:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: error.message || 'Erro ao criar usuário',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
  * PATCH /api/admin/users/:userId/role
  * Atualiza o role de um usuário
  */

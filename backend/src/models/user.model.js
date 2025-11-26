@@ -81,7 +81,7 @@ class User {
   }
 
   /**
-   * Cria um novo usuário
+   * Cria um novo usuário SOMENTE na tabela users (usado no registro público - DEPRECATED)
    */
   static async create(userData) {
     try {
@@ -111,6 +111,76 @@ class User {
       return data;
     } catch (error) {
       console.error('❌ Erro ao criar usuário:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Cria um novo usuário tanto no Supabase Auth quanto na tabela users
+   * Usado pelo admin para criar novos usuários do sistema
+   */
+  static async createWithAuth(userInput) {
+    try {
+      const { name, email, password, role = 'user' } = userInput;
+      
+      console.log(`📝 Criando usuário: ${email} com role: ${role}`);
+      
+      // 1. Criar usuário no Supabase Auth
+      const { data: authData, error: authError } = await pool.supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirmar email
+        user_metadata: {
+          name,
+          role
+        }
+      });
+
+      if (authError) {
+        console.error('❌ Erro ao criar usuário no Supabase Auth:', authError);
+        throw authError;
+      }
+
+      console.log('✅ Usuário criado no Supabase Auth:', authData.user.id);
+
+      // 2. Hash da senha para salvar na tabela users
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // 3. Criar registro na tabela users
+      const { data: dbUser, error: dbError } = await pool.supabase
+        .from('users')
+        .insert([{
+          name,
+          email,
+          password: hashedPassword,
+          role,
+          active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        }])
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('❌ Erro ao criar usuário na tabela users:', dbError);
+        // Se falhou ao criar na tabela, tentar deletar do Auth para manter consistência
+        try {
+          await pool.supabase.auth.admin.deleteUser(authData.user.id);
+          console.log('🔄 Rollback: Usuário removido do Supabase Auth');
+        } catch (rollbackError) {
+          console.error('❌ Erro no rollback:', rollbackError);
+        }
+        throw dbError;
+      }
+
+      console.log('✅ Usuário criado na tabela users:', dbUser.id);
+
+      return {
+        ...dbUser,
+        auth_id: authData.user.id
+      };
+    } catch (error) {
+      console.error('❌ Erro ao criar usuário completo:', error.message);
       throw error;
     }
   }

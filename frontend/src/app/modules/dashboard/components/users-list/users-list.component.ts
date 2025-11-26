@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
 
@@ -14,10 +15,18 @@ interface User {
   created_at: string;
 }
 
+interface CreateUserForm {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+}
+
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './users-list.component.html',
   styleUrls: ['./users-list.component.scss']
 })
@@ -37,6 +46,17 @@ export class UsersListComponent implements OnInit {
   itemsPerPageOptions = [5, 10, 25, 50];
 
   currentUser: any | null = null;
+
+  // Modal de criação de usuário
+  showCreateModal = false;
+  isCreating = false;
+  createUserForm: CreateUserForm = {
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'user'
+  };
 
   constructor(
     private router: Router,
@@ -263,5 +283,92 @@ export class UsersListComponent implements OnInit {
     this.itemsPerPage = Number(event.target.value);
     this.currentPage = 1; // Reset para primeira página
     this.updatePagination();
+  }
+
+  // Métodos do modal de criação
+  openCreateModal(): void {
+    this.showCreateModal = true;
+    this.resetCreateForm();
+  }
+
+  closeCreateModal(): void {
+    this.showCreateModal = false;
+    this.resetCreateForm();
+  }
+
+  resetCreateForm(): void {
+    this.createUserForm = {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'user'
+    };
+  }
+
+  createUser(): void {
+    // Validações
+    if (!this.createUserForm.name || !this.createUserForm.email || !this.createUserForm.password) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (this.createUserForm.password !== this.createUserForm.confirmPassword) {
+      alert('As senhas não coincidem.');
+      return;
+    }
+
+    if (this.createUserForm.password.length < 6) {
+      alert('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    this.isCreating = true;
+    
+    const token = localStorage.getItem('arqserv_token');
+    
+    if (!token) {
+      alert('Você precisa estar logado.');
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    // Preparar dados para envio (sem confirmPassword)
+    const userData = {
+      name: this.createUserForm.name,
+      email: this.createUserForm.email,
+      password: this.createUserForm.password,
+      role: this.createUserForm.role
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/admin/users`, userData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Usuário criado:', response);
+        alert('Usuário criado com sucesso!');
+        this.closeCreateModal();
+        this.loadUsers(); // Recarregar lista
+        this.isCreating = false;
+      },
+      error: (error) => {
+        console.error('❌ Erro ao criar usuário:', error);
+        this.isCreating = false;
+        
+        let errorMessage = 'Erro ao criar usuário.';
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.status === 400) {
+          errorMessage = 'Dados inválidos. Verifique os campos.';
+        } else if (error.status === 401 || error.status === 403) {
+          errorMessage = 'Você não tem permissão para criar usuários.';
+        }
+        
+        alert(errorMessage);
+      }
+    });
   }
 }
