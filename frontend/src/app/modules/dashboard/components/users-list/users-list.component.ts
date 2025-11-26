@@ -9,8 +9,6 @@ interface User {
   id: number;
   name: string;
   email: string;
-  user_type: 'admin' | 'prefeitura';
-  municipality?: string;
   role: string;
   active: boolean;
   created_at: string;
@@ -57,7 +55,23 @@ export class UsersListComponent implements OnInit {
   loadUsers(): void {
     this.isLoading = true;
     
-    this.http.get<any>(`${environment.apiUrl}/auth/users`).subscribe({
+    // Pegar token do localStorage
+    const token = localStorage.getItem('arqserv_token');
+    
+    if (!token) {
+      console.error('❌ Token não encontrado');
+      this.isLoading = false;
+      alert('Você precisa estar logado para acessar esta página.');
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+    
+    // Buscar usuários do endpoint admin
+    this.http.get<any>(`${environment.apiUrl}/admin/users`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).subscribe({
       next: (response) => {
         console.log('✅ Usuários carregados:', response);
         this.users = response.data || [];
@@ -68,43 +82,15 @@ export class UsersListComponent implements OnInit {
       error: (error) => {
         console.error('❌ Erro ao carregar usuários:', error);
         this.isLoading = false;
-        alert('Erro ao carregar usuários. Verifique se o backend está rodando.');
+        
+        if (error.status === 401 || error.status === 403) {
+          alert('Você não tem permissão para acessar esta página.');
+          this.router.navigate(['/dashboard']);
+        } else {
+          alert('Erro ao carregar usuários. Verifique se o backend está rodando.');
+        }
       }
     });
-  }
-
-  getMockUsers(): User[] {
-    return [
-      {
-        id: 1,
-        name: 'Admin ArqServ',
-        email: 'admin@arqserv.com',
-        user_type: 'admin',
-        role: 'admin',
-        active: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 2,
-        name: 'Prefeitura São Paulo',
-        email: 'prefeitura@saopaulo.sp.gov.br',
-        user_type: 'prefeitura',
-        municipality: 'São Paulo',
-        role: 'user',
-        active: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 3,
-        name: 'Teste Usuario',
-        email: 'teste@exemplo.com',
-        user_type: 'prefeitura',
-        municipality: 'São Paulo',
-        role: 'user',
-        active: true,
-        created_at: new Date().toISOString()
-      }
-    ];
   }
 
   onSearch(event: any): void {
@@ -122,11 +108,11 @@ export class UsersListComponent implements OnInit {
       const matchesSearch = 
         user.name.toLowerCase().includes(this.searchTerm) ||
         user.email.toLowerCase().includes(this.searchTerm) ||
-        (user.municipality && user.municipality.toLowerCase().includes(this.searchTerm));
+        user.role.toLowerCase().includes(this.searchTerm);
 
       const matchesFilter = 
         this.selectedFilter === 'all' ||
-        this.selectedFilter === user.user_type ||
+        this.selectedFilter === user.role ||
         (this.selectedFilter === 'active' && user.active) ||
         (this.selectedFilter === 'inactive' && !user.active);
 
@@ -174,20 +160,22 @@ export class UsersListComponent implements OnInit {
     }
   }
 
-  getUserTypeLabel(userType: string): string {
-    return userType === 'admin' ? 'ArqServ' : 'Prefeitura';
-  }
-
-  getUserTypeColor(userType: string): string {
-    return userType === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
-  }
-
   getRoleLabel(role: string): string {
-    return role === 'admin' ? 'Admin' : 'Usuário';
+    const labels: Record<string, string> = {
+      'admin': 'Administrador',
+      'manager': 'Gerenciador',
+      'user': 'Usuário'
+    };
+    return labels[role] || role;
   }
 
   getRoleColor(role: string): string {
-    return role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+    const colors: Record<string, string> = {
+      'admin': 'bg-purple-100 text-purple-800',
+      'manager': 'bg-blue-100 text-blue-800',
+      'user': 'bg-gray-100 text-gray-800'
+    };
+    return colors[role] || 'bg-gray-100 text-gray-800';
   }
 
   getStatusColor(active: boolean): string {
@@ -203,11 +191,11 @@ export class UsersListComponent implements OnInit {
   }
 
   getAdminTypeCount(): number {
-    return this.users.filter(u => u.user_type === 'admin').length;
+    return this.users.filter(u => u.role === 'admin').length;
   }
 
   getPrefeituraTypeCount(): number {
-    return this.users.filter(u => u.user_type === 'prefeitura').length;
+    return this.users.filter(u => u.role === 'user').length;
   }
 
   getAdminRoleCount(): number {

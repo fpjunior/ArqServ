@@ -23,26 +23,17 @@ const generateToken = async (user) => {
 // Função para cadastrar usuário
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, user_type, municipality, role } = req.body;
+    const { name, email, password, role } = req.body;
 
-    console.log('📝 [REGISTER] Tentativa de cadastro:', { name, email, user_type, municipality, role });
+    console.log('📝 [REGISTER] Tentativa de cadastro:', { name, email, role });
 
     // Validações básicas
-    if (!name || !email || !password || !user_type) {
+    if (!name || !email || !password) {
       console.log('❌ [REGISTER] Dados obrigatórios faltantes');
       return res.status(400).json({
         status: 'ERROR',
-        message: 'Nome, email, senha e tipo de usuário são obrigatórios',
+        message: 'Nome, email e senha são obrigatórios',
         code: 'MISSING_REQUIRED_FIELDS'
-      });
-    }
-
-    // Validar se é prefeitura e tem município
-    if (user_type === 'prefeitura' && !municipality) {
-      return res.status(400).json({
-        status: 'ERROR',
-        message: 'Município é obrigatório para usuários do tipo prefeitura',
-        code: 'MUNICIPALITY_REQUIRED'
       });
     }
 
@@ -69,8 +60,6 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      user_type,
-      municipality: user_type === 'prefeitura' ? municipality : null,
       role: role || 'user' // Usar o role enviado ou 'user' como padrão
     });
 
@@ -85,8 +74,6 @@ exports.register = async (req, res) => {
           id: newUser.id,
           name: newUser.name,
           email: newUser.email,
-          user_type: newUser.user_type,
-          municipality: newUser.municipality,
           role: newUser.role
         }
       }

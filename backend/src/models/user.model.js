@@ -126,10 +126,8 @@ class User {
           id, 
           name, 
           email, 
-          user_type, 
-          municipality, 
           role, 
-          is_active, 
+          active, 
           created_at, 
           updated_at
         `)
