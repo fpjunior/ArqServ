@@ -13,8 +13,6 @@ const generateToken = async (user) => {
       email: user.email, 
       name: user.name,
       role: user.role || 'user',
-      user_type: user.user_type,
-      municipality: user.municipality,
       permissions: permissions
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
@@ -161,7 +159,7 @@ exports.login = async (req, res) => {
     }
 
     // Verificar se usuário está ativo
-    if (!user.is_active) {
+    if (!user.active) {
       console.log('❌ [AUTH] Usuário inativo:', email);
       return res.status(403).json({
         status: 'ERROR',
@@ -202,9 +200,7 @@ exports.login = async (req, res) => {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
-          user_type: user.user_type,
-          municipality: user.municipality
+          role: user.role
         }
       }
     });

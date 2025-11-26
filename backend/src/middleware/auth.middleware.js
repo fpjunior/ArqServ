@@ -22,7 +22,7 @@ exports.authenticate = async (req, res, next) => {
     // Buscar user atualizado com role e permissões
     const { data: user, error } = await pool.supabase
       .from('users')
-      .select('id, email, name, role, user_type, is_active, municipality')
+      .select('id, email, name, role, active')
       .eq('id', decoded.id)
       .single();
 
@@ -34,7 +34,7 @@ exports.authenticate = async (req, res, next) => {
       });
     }
 
-    if (!user.is_active) {
+    if (!user.active) {
       return res.status(403).json({
         status: 'ERROR',
         message: 'Usuário inativo',
@@ -42,15 +42,13 @@ exports.authenticate = async (req, res, next) => {
       });
     }
 
-    // Carregar permissões do user
-    const { data: permissions, error: permError } = await pool.supabase
-      .from('role_permissions')
-      .select('permission')
-      .eq('role', user.role);
+    // Carregar permissões hardcoded baseado no role
+    const User = require('../models/user.model');
+    const permissions = await User.getPermissionsByRole(user.role);
 
     req.user = {
       ...user,
-      permissions: permissions?.map(p => p.permission) || []
+      permissions: permissions
     };
 
     next();

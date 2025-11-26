@@ -10,8 +10,6 @@ export interface User {
   email: string;
   name: string;
   role: string;
-  user_type: 'admin' | 'prefeitura';
-  municipality?: string;
 }
 
 export interface LoginResponse {
@@ -47,9 +45,7 @@ export class AuthService {
             id: user.id as unknown as number,
             email: user.email || '',
             name: user.user_metadata?.['name'] || user.email || '',
-            role: user.user_metadata?.['role'] || 'user',
-            user_type: (user.user_metadata?.['user_type'] as any) || 'prefeitura',
-            municipality: user.user_metadata?.['municipality']
+            role: user.user_metadata?.['role'] || 'user'
           });
           localStorage.setItem('arqserv_token', session.access_token);
           localStorage.setItem('arqserv_user', JSON.stringify(this.currentUserSubject.value));
@@ -102,9 +98,7 @@ export class AuthService {
                 id: user.id as unknown as number,
                 email: user.email || '',
                 name: user.user_metadata?.name || user.email || '',
-                role: user.user_metadata?.role || 'user',
-                user_type: (user.user_metadata?.user_type as any) || 'prefeitura',
-                municipality: user.user_metadata?.municipality
+                role: user.user_metadata?.role || 'user'
               }
             }
           };
@@ -263,6 +257,14 @@ export class AuthService {
         throw err;
       })
     );
+  }
+
+  /**
+   * Verifica se o usuário atual é admin
+   */
+  isAdmin(): boolean {
+    const user = this.currentUserSubject.value;
+    return user?.role === 'admin';
   }
 
   private handleError(error: any): Observable<never> {

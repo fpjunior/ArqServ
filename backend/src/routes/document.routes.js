@@ -14,6 +14,35 @@ router.post('/upload',
 );
 
 /**
+ * @route GET /api/documents/financial/:municipality_code
+ * @desc Listar documentos financeiros por município
+ * @access Public
+ * @params municipality_code - Código do município
+ * @query financial_document_type - Tipo de documento financeiro (opcional)
+ * @query financial_year - Ano do documento (opcional)
+ * @query financial_period - Período do documento (opcional)
+ * @query limit - Limite de resultados (opcional)
+ */
+router.get('/financial/:municipality_code', DocumentController.getFinancialDocuments);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/years
+ * @desc Buscar anos disponíveis para documentos financeiros de um município
+ * @access Public
+ * @params municipality_code - Código do município
+ */
+router.get('/financial/:municipality_code/years', DocumentController.getFinancialYears);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/types
+ * @desc Buscar tipos de documentos financeiros disponíveis para um município
+ * @access Public
+ * @params municipality_code - Código do município
+ * @query year - Ano para filtrar tipos (opcional)
+ */
+router.get('/financial/:municipality_code/types', DocumentController.getFinancialTypes);
+
+/**
  * @route GET /api/documents/municipality/:code
  * @desc Listar documentos por município
  * @access Public
@@ -50,9 +79,35 @@ router.delete('/:id', DocumentController.deleteDocument);
  * @desc Listar todos os documentos (visão administrativa)
  * @access Private (admin only)
  * @query category - Filtro por categoria (opcional)
- * @query municipality_code - Filtro por município (opcional)
+ * @query municipality_code - Filtro por município (opcional)  
  * @query limit - Limite de resultados (opcional)
  */
 router.get('/admin/all', DocumentController.getAllDocuments);
+
+/**
+ * @route GET /api/documents/financial/test  
+ * @desc Teste da API financeira
+ */
+router.get('/financial/test', (req, res) => {
+  res.json({ success: true, message: 'API financeira funcionando!' });
+});
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/years
+ * @desc Buscar anos disponíveis para documentos financeiros
+ */
+router.get('/financial/:municipality_code/years', DocumentController.getFinancialYears);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/types
+ * @desc Buscar tipos de documentos financeiros disponíveis
+ */
+router.get('/financial/:municipality_code/types', DocumentController.getFinancialTypes);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code
+ * @desc Listar documentos financeiros por município
+ */
+router.get('/financial/:municipality_code', DocumentController.getFinancialDocuments);
 
 module.exports = router;

@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS documents (
     mime_type VARCHAR(100),
     google_drive_id VARCHAR(255),
     uploaded_by INTEGER,
+    -- Campos para documentação financeira
+    document_type VARCHAR(20) DEFAULT 'servidor',
+    financial_document_type VARCHAR(100), -- balanco, orcamento, prestacao-contas, etc.
+    financial_year INTEGER,
+    financial_period VARCHAR(20), -- 1, 2, 3, 4, semestral-1, semestral-2
+    hierarchical_path TEXT, -- Caminho completo da estrutura de pastas
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

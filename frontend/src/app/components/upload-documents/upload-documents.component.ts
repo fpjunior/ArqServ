@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
@@ -36,6 +36,7 @@ interface Server {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -76,6 +77,9 @@ export class UploadDocumentsComponent implements OnInit {
   selectedMunicipalityCode: string = '';
   selectedMunicipalityName: string = '';
   
+  // Controle do tipo de upload
+  uploadType: 'servidores' | 'financeiras' = 'servidores';
+  
   // Controle do diálogo customizado
   showTailwindDialog = false;
   showServerDialog = false;
@@ -105,6 +109,12 @@ export class UploadDocumentsComponent implements OnInit {
     
     this.loadMunicipalities();
     this.loadRecentDocuments();
+    this.setupFormValidation();
+  }
+
+  private setupFormValidation(): void {
+    // Método para atualizar validações quando o tipo de upload mudar
+    // Por enquanto não é necessário, pois as validações são verificadas dinamicamente
   }
 
   // Método para carregar municípios
@@ -132,7 +142,11 @@ export class UploadDocumentsComponent implements OnInit {
       title: ['', [Validators.required, Validators.minLength(3)]],
       description: [''],
       municipality_code: ['', Validators.required],
-      server_id: ['', Validators.required]
+      server_id: [''], // Não obrigatório para documentos financeiros
+      // Novos campos para documentos financeiros
+      financial_document_type: [''],
+      financial_year: [''],
+      financial_period: ['']
     });
   }
 
@@ -481,7 +495,29 @@ export class UploadDocumentsComponent implements OnInit {
   
   // Método para debug do estado do botão
   isSubmitDisabled(): boolean {
-    return this.uploadForm.invalid || !this.selectedFile || this.isUploading;
+    if (this.isUploading || !this.selectedFile) {
+      return true;
+    }
+
+    const title = this.uploadForm.get('title')?.value;
+    const municipality = this.uploadForm.get('municipality_code')?.value;
+
+    // Campos básicos sempre obrigatórios
+    if (!title || !municipality) {
+      return true;
+    }
+
+    // Validação específica para cada tipo
+    if (this.uploadType === 'servidores') {
+      const serverId = this.uploadForm.get('server_id')?.value;
+      return !serverId;
+    } else if (this.uploadType === 'financeiras') {
+      const documentType = this.uploadForm.get('financial_document_type')?.value;
+      const year = this.uploadForm.get('financial_year')?.value;
+      return !documentType || !year;
+    }
+
+    return false;
   }
 
 
@@ -608,5 +644,66 @@ export class UploadDocumentsComponent implements OnInit {
     event.stopPropagation();
     // TODO: Implementar confirmação e delete
     this.showMessage('Documento excluído!', 'success');
+  }
+
+  // Métodos para Documentações Financeiras
+  getAvailableYears(): number[] {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = currentYear; year >= currentYear - 10; year--) {
+      years.push(year);
+    }
+    return years;
+  }
+
+  canShowFinancialPath(): boolean {
+    const municipality = this.uploadForm.get('municipality_code')?.value;
+    const documentType = this.uploadForm.get('financial_document_type')?.value;
+    const year = this.uploadForm.get('financial_year')?.value;
+    
+    return this.uploadType === 'financeiras' && municipality && documentType && year;
+  }
+
+  getFinancialPath(): string {
+    const municipality = this.municipalities.find(m => m.code === this.uploadForm.get('municipality_code')?.value);
+    const documentType = this.uploadForm.get('financial_document_type')?.value;
+    const year = this.uploadForm.get('financial_year')?.value;
+    const period = this.uploadForm.get('financial_period')?.value;
+
+    if (!municipality || !documentType || !year) {
+      return '';
+    }
+
+    let path = `${municipality.name} > Documentações Financeiras > ${year}`;
+    
+    // Adicionar tipo de documento
+    const typeNames: {[key: string]: string} = {
+      'balanco': 'Balanço Patrimonial',
+      'orcamento': 'Orçamento Anual',
+      'prestacao-contas': 'Prestação de Contas',
+      'receitas': 'Relatório de Receitas',
+      'despesas': 'Relatório de Despesas',
+      'licitacoes': 'Licitações e Contratos',
+      'folha-pagamento': 'Folha de Pagamento',
+      'outros': 'Outros'
+    };
+    
+    path += ` > ${typeNames[documentType] || documentType}`;
+    
+    // Adicionar período se especificado
+    if (period) {
+      const periodNames: {[key: string]: string} = {
+        '1': '1º Trimestre',
+        '2': '2º Trimestre', 
+        '3': '3º Trimestre',
+        '4': '4º Trimestre',
+        'semestral-1': '1º Semestre',
+        'semestral-2': '2º Semestre'
+      };
+      
+      path += ` > ${periodNames[period] || period}`;
+    }
+
+    return path;
   }
 }

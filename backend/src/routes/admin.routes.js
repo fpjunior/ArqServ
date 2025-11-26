@@ -5,6 +5,20 @@ const User = require('../models/user.model');
 const pool = require('../config/database');
 
 /**
+ * GET /api/admin/me
+ * Retorna informações do usuário atual (debug)
+ */
+router.get('/me', authenticate, (req, res) => {
+  res.json({
+    status: 'SUCCESS',
+    data: {
+      user: req.user,
+      isAdmin: req.user?.role === 'admin'
+    }
+  });
+});
+
+/**
  * GET /api/admin/users
  * Lista todos os usuários (apenas admin)
  */

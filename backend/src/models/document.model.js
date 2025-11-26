@@ -17,22 +17,32 @@ class Document {
         file_size,
         mime_type,
         google_drive_id,
-        uploaded_by
+        uploaded_by,
+        // Novos campos para documentação financeira
+        document_type = 'servidor',
+        financial_document_type,
+        financial_year,
+        financial_period,
+        hierarchical_path
       } = documentData;
 
       const query = `
         INSERT INTO documents (
           title, description, category, municipality_code, server_id,
           file_name, file_path, file_size, mime_type, 
-          google_drive_id, uploaded_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          google_drive_id, uploaded_by, document_type, 
+          financial_document_type, financial_year, financial_period, 
+          hierarchical_path, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
         RETURNING *
       `;
 
       const values = [
         title, description, category, municipality_code, server_id,
         file_name, file_path, file_size, mime_type,
-        google_drive_id, uploaded_by
+        google_drive_id, uploaded_by, document_type,
+        financial_document_type, financial_year, financial_period,
+        hierarchical_path
       ];
 
       const result = await pool.query(query, values);
@@ -194,6 +204,114 @@ class Document {
       return result.rows;
     } catch (error) {
       console.error('❌ Erro ao buscar todos os documentos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar documentos financeiros por município e filtros
+   */
+  static async findFinancialDocuments(municipalityCode, filters = {}) {
+    try {
+      let query = `
+        SELECT d.*, m.name as municipality_name
+        FROM documents d
+        LEFT JOIN municipalities m ON d.municipality_code = m.code
+        WHERE d.is_active = true 
+          AND d.document_type = 'financeira'
+          AND d.municipality_code = $1
+      `;
+      
+      const values = [municipalityCode];
+      let paramCount = 1;
+
+      // Filtros específicos para documentos financeiros
+      if (filters.financial_document_type) {
+        paramCount++;
+        query += ` AND d.financial_document_type = $${paramCount}`;
+        values.push(filters.financial_document_type);
+      }
+
+      if (filters.financial_year) {
+        paramCount++;
+        query += ` AND d.financial_year = $${paramCount}`;
+        values.push(filters.financial_year);
+      }
+
+      if (filters.financial_period) {
+        paramCount++;
+        query += ` AND d.financial_period = $${paramCount}`;
+        values.push(filters.financial_period);
+      }
+
+      query += ` ORDER BY d.financial_year DESC, d.created_at DESC`;
+
+      if (filters.limit) {
+        paramCount++;
+        query += ` LIMIT $${paramCount}`;
+        values.push(filters.limit);
+      }
+
+      const result = await pool.query(query, values);
+      return result.rows;
+    } catch (error) {
+      console.error('❌ Erro ao buscar documentos financeiros:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar anos disponíveis para documentos financeiros de um município
+   */
+  static async getAvailableFinancialYears(municipalityCode) {
+    try {
+      const query = `
+        SELECT DISTINCT financial_year
+        FROM documents 
+        WHERE municipality_code = $1 
+          AND document_type = 'financeira' 
+          AND financial_year IS NOT NULL
+          AND is_active = true
+        ORDER BY financial_year DESC
+      `;
+
+      const result = await pool.query(query, [municipalityCode]);
+      return result.rows.map(row => row.financial_year);
+    } catch (error) {
+      console.error('❌ Erro ao buscar anos disponíveis:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar tipos de documentos financeiros disponíveis para um município
+   */
+  static async getAvailableFinancialTypes(municipalityCode, year = null) {
+    try {
+      let query = `
+        SELECT DISTINCT financial_document_type, COUNT(*) as document_count
+        FROM documents 
+        WHERE municipality_code = $1 
+          AND document_type = 'financeira' 
+          AND financial_document_type IS NOT NULL
+          AND is_active = true
+      `;
+      
+      const values = [municipalityCode];
+      let paramCount = 1;
+
+      if (year) {
+        paramCount++;
+        query += ` AND financial_year = $${paramCount}`;
+        values.push(year);
+      }
+
+      query += ` GROUP BY financial_document_type ORDER BY financial_document_type`;
+
+      const result = await pool.query(query, values);
+      return result.rows;
+    } catch (error) {
+      console.error('❌ Erro ao buscar tipos de documentos financeiros:', error);
       throw error;
     }
   }

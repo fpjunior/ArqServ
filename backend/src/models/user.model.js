@@ -36,9 +36,7 @@ class User {
           email, 
           name, 
           role, 
-          user_type, 
-          is_active, 
-          municipality,
+          active, 
           created_at,
           updated_at
         `)
@@ -57,24 +55,17 @@ class User {
   }
 
   /**
-   * Busca permissões do role
+   * Busca permissões do role (hardcoded, não precisa de tabela)
    */
   static async getPermissionsByRole(role) {
-    try {
-      const { data, error } = await pool.supabase
-        .from('role_permissions')
-        .select('permission')
-        .eq('role', role);
-
-      if (error) {
-        throw error;
-      }
-      
-      return data?.map(p => p.permission) || [];
-    } catch (error) {
-      console.error('❌ Erro ao buscar permissões:', error.message);
-      return [];
-    }
+    // Permissões hardcoded por role
+    const permissions = {
+      'admin': ['users.*', 'documents.*', 'servers.*', 'settings.*'],
+      'manager': ['documents.read', 'documents.upload', 'servers.read'],
+      'user': ['documents.read']
+    };
+    
+    return permissions[role] || [];
   }
 
   /**

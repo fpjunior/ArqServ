@@ -50,8 +50,7 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   isAdmin(): boolean {
-    if (!this.currentUser) return false;
-    return this.currentUser.role === 'admin' || this.currentUser.user_type === 'admin';
+    return this.authService.isAdmin();
   }
 
   logout(): void {
@@ -152,13 +151,16 @@ export class DashboardLayoutComponent implements OnInit {
   getUserTypeLabel(): string {
     if (!this.currentUser) return '';
     
-    switch (this.currentUser.user_type) {
+    // Retorna label baseado no role
+    switch (this.currentUser.role) {
       case 'admin':
         return 'Administrador - ArqServ';
-      case 'prefeitura':
-        return `Prefeitura - ${this.currentUser.municipality || 'N/A'}`;
+      case 'manager':
+        return 'Gerenciador';
+      case 'user':
+        return 'Usuário';
       default:
-        return this.currentUser.role === 'admin' ? 'Administrador' : this.currentUser.municipality || this.currentUser.role || 'Usuário';
+        return this.currentUser.role || 'Usuário';
     }
   }
 }
