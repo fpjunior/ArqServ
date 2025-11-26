@@ -100,11 +100,21 @@ class ServerController {
       const { code } = req.params;
       const { letter } = req.query;
 
+      console.log(`\n🔍 [GET SERVERS BY MUNICIPALITY]`);
+      console.log(`📍 Código do município: ${code}`);
+      console.log(`🔤 Letra filtro: ${letter || 'todas'}`);
+      console.log(`👤 User ID: ${req.user?.id}`);
+
       let servers;
       if (letter) {
         servers = await Server.findByLetter(code, letter);
       } else {
         servers = await Server.findByMunicipality(code);
+      }
+
+      console.log(`📊 Total de servidores encontrados: ${servers.length}`);
+      if (servers.length > 0) {
+        console.log(`📝 Primeiros servidores:`, servers.slice(0, 3));
       }
 
       // Agrupar por letra se não foi especificada
@@ -118,14 +128,20 @@ class ServerController {
           return acc;
         }, {});
 
-        return res.json({
+        const response = {
           success: true,
           data: {
             servers,
             groupedByLetter
           }
-        });
+        };
+        
+        console.log(`✅ Resposta com ${servers.length} servidores agrupados por ${Object.keys(groupedByLetter).length} letras`);
+        
+        return res.json(response);
       }
+
+      console.log(`✅ Resposta com ${servers.length} servidores filtrados pela letra ${letter}`);
 
       res.json({
         success: true,
@@ -133,6 +149,8 @@ class ServerController {
       });
 
     } catch (error) {
+      console.error('❌ [ERROR] Erro ao buscar servidores:', error);
+      console.error('❌ Stack:', error.stack);
       console.error('❌ Erro ao buscar servidores:', error);
       res.status(500).json({
         success: false,

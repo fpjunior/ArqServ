@@ -328,9 +328,14 @@ export class UploadDocumentsComponent implements OnInit {
     const municipality = this.municipalities.find(m => m.code === municipalityCode);
     this.selectedMunicipalityName = municipality ? municipality.name : '';
     
-    console.log(`📍 Carregando servidores para município: ${municipalityCode} (${this.selectedMunicipalityName})`);
+    console.log(`📍 [MUNICIPALITY CHANGE] Código: ${municipalityCode}, Nome: ${this.selectedMunicipalityName}`);
     
-    this.loadServersByMunicipality(municipalityCode);
+    // Limpar lista de servidores primeiro
+    this.servers = [];
+    
+    if (municipalityCode) {
+      this.loadServersByMunicipality(municipalityCode);
+    }
     
     // Resetar seleção de servidor
     this.uploadForm.get('server_id')?.setValue('');
@@ -339,31 +344,44 @@ export class UploadDocumentsComponent implements OnInit {
   // Carregar servidores do município
   async loadServersByMunicipality(municipalityCode: string): Promise<void> {
     try {
-      console.log(`🔄 Carregando servidores via API para município: ${municipalityCode}`);
+      console.log(`🔄 [LOAD SERVERS] Iniciando busca para município: ${municipalityCode}`);
+      console.log(`🌐 [API URL] ${this.documentsService['apiUrl']}/servers/municipality/${municipalityCode}`);
 
       this.documentsService.getServersByMunicipality(municipalityCode).subscribe({
         next: (response: any) => {
+          console.log(`📦 [RESPONSE] Resposta completa:`, response);
+          
           if (!response || !response.success) {
-            console.warn('Servidor: resposta inesperada da API:', response);
+            console.warn('⚠️ [RESPONSE] Resposta inesperada da API:', response);
             this.servers = [];
             return;
           }
 
           // Endpoint pode retornar { servers, groupedByLetter } ou array simples
           const data = response.data;
+          console.log(`📋 [DATA] Data recebida:`, data);
+          
           const servers = data?.servers || data || [];
           this.servers = servers || [];
-          console.log(`✅ ${this.servers.length} servidores carregados do backend para ${municipalityCode}`);
+          
+          console.log(`✅ [SUCCESS] ${this.servers.length} servidores carregados:`, this.servers);
+          
+          if (this.servers.length === 0) {
+            this.showMessage(`Nenhum servidor encontrado para ${this.selectedMunicipalityName}`, 'info');
+          }
         },
         error: (error: any) => {
-          console.error('❌ Erro ao buscar servidores da API:', error);
+          console.error('❌ [ERROR] Erro completo:', error);
+          console.error('❌ [ERROR] Status:', error.status);
+          console.error('❌ [ERROR] Message:', error.message);
+          console.error('❌ [ERROR] Error object:', error.error);
           this.servers = [];
           this.showMessage('Erro ao carregar servidores.', 'error');
         }
       });
       
     } catch (error) {
-      console.error('Erro geral ao carregar servidores:', error);
+      console.error('💥 [EXCEPTION] Erro geral:', error);
       this.servers = [];
       this.showMessage('Erro ao carregar servidores.', 'error');
     }
