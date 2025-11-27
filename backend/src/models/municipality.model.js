@@ -1,4 +1,4 @@
-const pool = require('../config/database');
+const { supabase } = require('../config/database');
 
 class Municipality {
   /**
@@ -6,13 +6,13 @@ class Municipality {
    */
   static async findAll() {
     try {
-      const query = `
-        SELECT * FROM municipalities 
-        ORDER BY name
-      `;
+      const { data, error } = await supabase
+        .from('municipalities')
+        .select('*')
+        .order('name');
 
-      const result = await pool.query(query);
-      return result.rows;
+      if (error) throw error;
+      return data || [];
     } catch (error) {
       console.error('❌ Erro ao buscar municípios:', error);
       throw error;
@@ -24,13 +24,14 @@ class Municipality {
    */
   static async findByCode(code) {
     try {
-      const query = `
-        SELECT * FROM municipalities 
-        WHERE code = $1
-      `;
+      const { data, error } = await supabase
+        .from('municipalities')
+        .select('*')
+        .eq('code', code)
+        .single();
 
-      const result = await pool.query(query, [code]);
-      return result.rows[0] || null;
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+      return data || null;
     } catch (error) {
       console.error('❌ Erro ao buscar município:', error);
       throw error;
@@ -44,16 +45,20 @@ class Municipality {
     try {
       const { code, name, state, drive_folder_id } = municipalityData;
 
-      const query = `
-        INSERT INTO municipalities (code, name, state, drive_folder_id, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
-        RETURNING *
-      `;
+      const { data, error } = await supabase
+        .from('municipalities')
+        .insert([{
+          code,
+          name,
+          state,
+          drive_folder_id,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
 
-      const values = [code, name, state, drive_folder_id];
-      const result = await pool.query(query, values);
-
-      return result.rows[0];
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('❌ Erro ao criar município:', error);
       throw error;
@@ -65,18 +70,18 @@ class Municipality {
    */
   static async update(code, updateData) {
     try {
-      const fields = Object.keys(updateData).map((key, index) => `${key} = $${index + 2}`).join(', ');
-      const values = [code, ...Object.values(updateData)];
+      const { data, error } = await supabase
+        .from('municipalities')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('code', code)
+        .select()
+        .single();
 
-      const query = `
-        UPDATE municipalities 
-        SET ${fields}, updated_at = NOW()
-        WHERE code = $1
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, values);
-      return result.rows[0];
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('❌ Erro ao atualizar município:', error);
       throw error;
@@ -88,15 +93,18 @@ class Municipality {
    */
   static async updateDriveFolderId(code, driveFolderId) {
     try {
-      const query = `
-        UPDATE municipalities 
-        SET drive_folder_id = $2, updated_at = NOW()
-        WHERE code = $1
-        RETURNING *
-      `;
+      const { data, error } = await supabase
+        .from('municipalities')
+        .update({
+          drive_folder_id: driveFolderId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('code', code)
+        .select()
+        .single();
 
-      const result = await pool.query(query, [code, driveFolderId]);
-      return result.rows[0];
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('❌ Erro ao atualizar pasta do Drive:', error);
       throw error;
@@ -108,14 +116,14 @@ class Municipality {
    */
   static async findByState(state) {
     try {
-      const query = `
-        SELECT * FROM municipalities 
-        WHERE state = $1 
-        ORDER BY name
-      `;
+      const { data, error } = await supabase
+        .from('municipalities')
+        .select('*')
+        .eq('state', state)
+        .order('name');
 
-      const result = await pool.query(query, [state]);
-      return result.rows;
+      if (error) throw error;
+      return data || [];
     } catch (error) {
       console.error('❌ Erro ao buscar municípios por estado:', error);
       throw error;

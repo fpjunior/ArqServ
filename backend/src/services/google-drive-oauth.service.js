@@ -148,13 +148,14 @@ class GoogleDriveOAuthService {
     }
   }
 
-  async uploadFile(filePath, fileName, municipalityName, serverName) {
+  async uploadFile(fileBufferOrPath, fileName, municipalityName, serverName, mimeType = 'application/octet-stream') {
     try {
       if (!this.initialized) {
         throw new Error('Google Drive OAuth service not initialized');
       }
 
       console.log(`📤 Starting Google Drive OAuth upload: ${fileName}`);
+      console.log(`📍 Município: ${municipalityName}, Servidor: ${serverName}`);
 
       // Obter ID da pasta do servidor
       const parentFolderId = await this.getServerFolderId(municipalityName, serverName);
@@ -165,11 +166,24 @@ class GoogleDriveOAuthService {
         parents: [parentFolderId],
       };
 
-      // Preparar stream do arquivo
-      const media = {
-        mimeType: 'application/octet-stream',
-        body: fs.createReadStream(filePath),
-      };
+      // Preparar stream do arquivo - aceita tanto buffer quanto caminho
+      let media;
+      if (Buffer.isBuffer(fileBufferOrPath)) {
+        const { Readable } = require('stream');
+        const bufferStream = new Readable();
+        bufferStream.push(fileBufferOrPath);
+        bufferStream.push(null);
+        
+        media = {
+          mimeType: mimeType,
+          body: bufferStream,
+        };
+      } else {
+        media = {
+          mimeType: mimeType,
+          body: fs.createReadStream(fileBufferOrPath),
+        };
+      }
 
       console.log(`☁️ Uploading to Google Drive folder: ${parentFolderId}`);
       

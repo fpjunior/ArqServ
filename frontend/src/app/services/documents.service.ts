@@ -67,7 +67,16 @@ export class DocumentsService {
     const token = this.authService.getToken();
     if (!token) return new HttpHeaders();
     return new HttpHeaders({
-      Authorization: `Bearer ${token}`
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getAuthHeadersForFormData(): HttpHeaders {
+    const token = this.authService.getToken();
+    if (!token) return new HttpHeaders();
+    // NÃO incluir Content-Type - o navegador define automaticamente com multipart/form-data boundary
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`
     });
   }
 
@@ -117,7 +126,7 @@ export class DocumentsService {
       {
         reportProgress: true,
         observe: 'events',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeadersForFormData()
       }
     ).pipe(
       map((event: HttpEvent<ApiResponse<Document>>) => {

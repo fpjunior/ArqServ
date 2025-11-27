@@ -1,12 +1,9 @@
 const Document = require('../models/document.model');
 const Municipality = require('../models/municipality.model');
 const Server = require('../models/server.model');
-const GoogleDriveService = require('../services/googleDrive.service');
+const googleDriveOAuthService = require('../services/google-drive-oauth.service');
 const multer = require('multer');
 const path = require('path');
-
-// Instanciar serviço do Google Drive
-const googleDriveService = new GoogleDriveService();
 
 // Configurar multer para upload de arquivos
 const storage = multer.memoryStorage();
@@ -37,9 +34,29 @@ class DocumentController {
   static uploadDocument = upload.single('file');
 
   static async uploadFile(req, res) {
+    console.log('\n🟢 ========================================');
+    console.log('🟢 [CONTROLLER] uploadFile CHAMADO!');
+    console.log('🟢 ========================================');
+    console.log('📋 req.body:', JSON.stringify(req.body, null, 2));
+    console.log('📎 req.file:', req.file ? {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      buffer: `${req.file.buffer ? req.file.buffer.length : 0} bytes`
+    } : '❌ NENHUM ARQUIVO');
+    console.log('🟢 ========================================\n');
+
     try {
-      // Verificar se Google Drive está disponível
-      await googleDriveService.ensureInitialized();
+      // Verificar se Google Drive OAuth está disponível
+      if (!googleDriveOAuthService.isInitialized()) {
+        console.error('❌ Google Drive OAuth NÃO está inicializado!');
+        return res.status(503).json({
+          success: false,
+          message: 'Google Drive OAuth não está configurado'
+        });
+      }
+      
+      console.log('✅ Google Drive OAuth está inicializado');
       
       const { 
         title, description, category, municipality_code, server_id, server_name, municipality_name,
@@ -48,16 +65,23 @@ class DocumentController {
       } = req.body;
       const file = req.file;
 
+      console.log('📝 Campos extraídos:', {title, description, category, municipality_code, server_id, server_name, municipality_name, document_type});
+
       if (!file) {
+        console.error('❌ Arquivo não encontrado em req.file');
         return res.status(400).json({
           success: false,
           message: 'Nenhum arquivo foi enviado'
         });
       }
 
+      console.log('✅ Arquivo presente, iniciando validações...');
+
       // Validações específicas por tipo de documento
       if (document_type === 'financeira') {
+        console.log('📊 Documento tipo: financeira');
         if (!title || !municipality_code || !financial_document_type || !financial_year) {
+          console.error('❌ Validação falhou para documento financeiro');
           return res.status(400).json({
             success: false,
             message: 'Campos obrigatórios para documento financeiro: title, municipality_code, financial_document_type, financial_year'
@@ -65,13 +89,31 @@ class DocumentController {
         }
       } else {
         // Validação para documentos de servidor (padrão)
-        if (!title || !category || !municipality_code || !server_id) {
+        console.log('👤 Documento tipo: servidor (padrão)');
+        // Category é opcional, usar 'documento' como padrão
+        const finalCategory = category || 'documento';
+        console.log('📂 Category:', finalCategory);
+        
+        if (!title || !municipality_code || !server_id) {
+          console.error('❌ Validação falhou:', {title: !!title, municipality_code: !!municipality_code, server_id: !!server_id});
           return res.status(400).json({
             success: false,
-            message: 'Campos obrigatórios para documento de servidor: title, category, municipality_code, server_id'
+            message: 'Campos obrigatórios para documento de servidor: title, municipality_code, server_id'
           });
         }
+        
+        console.log('✅ Validação OK, continuando...');
       }
+
+      // Buscar município
+      const municipality = await Municipality.findByCode(municipality_code);
+      if (!municipality) {
+        return res.status(404).json({
+          success: false,
+          message: 'Município não encontrado'
+        });
+      }
+      console.log(`📍 Município encontrado: ${municipality.name}`);
 
       // Verificar servidor apenas para documentos de servidor
       let server = null;
@@ -79,6 +121,7 @@ class DocumentController {
       
       if (document_type !== 'financeira' && server_id) {
         server = await Server.findById(server_id);
+        console.log(`👤 Servidor:`, server ? server.name : 'não encontrado');
         if (!server) {
           // Se servidor não existe, tentar criar
           if (!server_name) {
@@ -90,8 +133,8 @@ class DocumentController {
 
           try {
             // Criar estrutura de pastas no Google Drive
-            const folderStructure = await googleDriveService.createServerFolderStructure(
-              municipality_name || 'Município',
+            const folderStructure = await googleDriveOAuthService.createServerFolderStructure(
+              municipality.name,
               municipality_code,
               server_name
             );
@@ -117,48 +160,35 @@ class DocumentController {
 
       // Upload para o Google Drive
       const fileName = `${Date.now()}_${file.originalname}`;
-      const driveFile = await googleDriveService.uploadFile(
+      console.log(`🚀 Iniciando upload: ${fileName}`);
+      console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
+      
+      const driveFile = await googleDriveOAuthService.uploadFile(
         file.buffer,
         fileName,
-        file.mimetype,
-        uploadFolderId
+        municipality.name,
+        server.name,
+        file.mimetype
       );
 
-      // Construir caminho hierárquico
-      let hierarchical_path = '';
-      
-      if (document_type === 'financeira') {
-        // Para documentos financeiros, criar estrutura específica
-        hierarchical_path = DocumentController.buildFinancialHierarchicalPath({
-          municipality_name: municipality_name || 'Município',
-          financial_document_type,
-          financial_year,
-          financial_period
-        });
-      } else if (server) {
-        // Para documentos de servidor, usar estrutura existente
-        hierarchical_path = `${municipality_name || 'Município'} > Servidores ${server.name.charAt(0).toUpperCase()} > ${server.name}`;
-      }
+      console.log(`✅ Upload concluído no Google Drive: ${driveFile.googleDriveId}`);
 
       // Salvar no banco de dados
       const document = await Document.create({
         title,
         description: description || '',
-        category: category || 'geral',
+        category: category || 'documento',
         municipality_code,
-        server_id: document_type === 'servidor' ? server?.id : null,
+        server_id: server?.id || null,
         file_name: file.originalname,
-        file_path: `https://drive.google.com/file/d/${driveFile.id}/view`,
+        file_path: `https://drive.google.com/file/d/${driveFile.googleDriveId}/view`,
         file_size: file.size,
         mime_type: file.mimetype,
-        google_drive_id: driveFile.id,
-        uploaded_by: req.user?.id || null,
-        document_type: document_type || 'servidor',
-        financial_document_type,
-        financial_year,
-        financial_period,
-        hierarchical_path
+        google_drive_id: driveFile.googleDriveId,
+        uploaded_by: req.user?.id || null
       });
+
+      console.log(`💾 Documento salvo no banco: ID ${document.id}`);
 
       res.status(201).json({
         success: true,
@@ -166,7 +196,7 @@ class DocumentController {
         data: {
           document,
           server: server,
-          driveFileId: driveFile.id
+          driveFileId: driveFile.googleDriveId
         }
       });
 
@@ -256,7 +286,7 @@ class DocumentController {
       }
 
       // Baixar arquivo do Google Drive
-      const fileStream = await googleDriveService.downloadFile(document.google_drive_id);
+      const fileStream = await googleDriveOAuthService.downloadFile(document.google_drive_id);
       
       // Configurar headers para download
       res.set({
@@ -292,7 +322,7 @@ class DocumentController {
       }
 
       // Deletar do Google Drive
-      await googleDriveService.deleteFile(document.google_drive_id);
+      await googleDriveOAuthService.deleteFile(document.google_drive_id);
 
       // Deletar do banco (soft delete)
       await Document.delete(id);

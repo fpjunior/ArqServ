@@ -30,6 +30,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware para logar ANTES do multer
+app.use('/api/documents/upload', (req, res, next) => {
+  console.log('🔵 [PRE-MULTER] Requisição chegou na rota /api/documents/upload');
+  console.log('🔵 [PRE-MULTER] Method:', req.method);
+  console.log('🔵 [PRE-MULTER] Content-Type:', req.headers['content-type']);
+  console.log('🔵 [PRE-MULTER] Authorization:', req.headers.authorization ? 'PRESENTE' : 'AUSENTE');
+  next();
+});
+
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -85,197 +94,8 @@ const dbPool = new Pool({
   password: process.env.DB_PASSWORD || 'arqserv123',
 });
 
-app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
-  let client;
-  let uploadedToGoogleDrive = false;
-  let googleDriveData = null;
-  
-  try {
-    const { title, description, municipality_code, server_id, category } = req.body;
-    const file = req.file;
+// ROTA DE UPLOAD REMOVIDA - usando apenas document.routes.js + document.controller.js
 
-    console.log('📤 Upload COMPLETO recebido:', { 
-      title, 
-      municipality_code, 
-      server_id, 
-      category,
-      fileName: file?.originalname,
-      fileSize: file?.size,
-      filePath: file?.path
-    });
-
-    // Validações
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nenhum arquivo foi enviado'
-      });
-    }
-
-    if (!title || !municipality_code || !server_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Campos obrigatórios: title, municipality_code, server_id'
-      });
-    }
-
-    // Conectar ao banco para buscar informações
-    client = await dbPool.connect();
-
-    // Buscar informações do município e servidor
-    const municipalityQuery = 'SELECT name FROM municipalities WHERE code = $1';
-    const serverQuery = 'SELECT name FROM servers WHERE id = $1';
-    
-    const municipalityResult = await client.query(municipalityQuery, [municipality_code]);
-    const serverResult = await client.query(serverQuery, [server_id]);
-
-    if (municipalityResult.rows.length === 0) {
-      throw new Error('Município não encontrado');
-    }
-
-    if (serverResult.rows.length === 0) {
-      throw new Error('Servidor não encontrado');
-    }
-
-    const municipalityName = municipalityResult.rows[0].name;
-    const serverName = serverResult.rows[0].name;
-
-    console.log(`📁 Preparando upload para: ${municipalityName} > ${serverName}`);
-
-    // Inicializar Google Drive OAuth service se não foi inicializado
-    if (!googleDriveOAuthService.isInitialized()) {
-      await googleDriveOAuthService.initialize();
-    }
-
-    // Tentar upload para Google Drive OAuth primeiro
-    if (googleDriveOAuthService.isInitialized()) {
-      try {
-        console.log('☁️ Uploading to Google Drive via OAuth...');
-        googleDriveData = await googleDriveOAuthService.uploadFile(
-          file.path,
-          file.originalname,
-          municipalityName,
-          serverName
-        );
-        uploadedToGoogleDrive = true;
-        console.log('✅ Google Drive OAuth upload successful:', googleDriveData);
-      } catch (driveError) {
-        console.error('❌ Google Drive OAuth upload failed:', driveError.message);
-        console.log('📁 Falling back to local storage...');
-      }
-    } else {
-      console.log('📁 Google Drive OAuth not available, using local storage');
-    }
-
-    // Preparar dados para inserção no banco
-    const insertQuery = `
-      INSERT INTO documents (
-        title, 
-        description, 
-        category,
-        municipality_code, 
-        server_id, 
-        file_name, 
-        file_path, 
-        file_size, 
-        mime_type,
-        google_drive_id,
-        is_active,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-      RETURNING *
-    `;
-
-    const values = [
-      title,
-      description || '',
-      category || 'geral',
-      municipality_code,
-      parseInt(server_id),
-      file.originalname,
-      uploadedToGoogleDrive ? null : file.path, // Se foi pro Drive, não salva path local
-      file.size,
-      file.mimetype,
-      googleDriveData ? googleDriveData.googleDriveId : null,
-      true
-    ];
-
-    console.log('💾 Salvando metadados no PostgreSQL...');
-
-    const result = await client.query(insertQuery, values);
-    const savedDocument = result.rows[0];
-
-    console.log('✅ Documento salvo com sucesso:', savedDocument);
-
-    // Se uploadou para Google Drive, pode deletar arquivo local
-    if (uploadedToGoogleDrive && fs.existsSync(file.path)) {
-      try {
-        fs.unlinkSync(file.path);
-        console.log('🗑️ Arquivo local removido após upload para Google Drive');
-      } catch (deleteError) {
-        console.error('⚠️ Não foi possível deletar arquivo local:', deleteError.message);
-      }
-    }
-
-    // Preparar resposta
-    const responseData = {
-      success: true,
-      message: uploadedToGoogleDrive 
-        ? 'Documento salvo com sucesso no Google Drive!' 
-        : 'Documento salvo localmente (Google Drive indisponível)',
-      data: {
-        document: {
-          ...savedDocument,
-          municipality_name: municipalityName,
-          server_name: serverName
-        },
-        storage: {
-          type: uploadedToGoogleDrive ? 'google_drive' : 'local_file',
-          location: uploadedToGoogleDrive 
-            ? `Google Drive: ${googleDriveData.googleDriveLink}` 
-            : file.path,
-          google_drive_id: googleDriveData ? googleDriveData.googleDriveId : null,
-          google_drive_link: googleDriveData ? googleDriveData.googleDriveLink : null
-        }
-      }
-    };
-
-    res.status(201).json(responseData);
-
-  } catch (error) {
-    console.error('❌ Erro no upload completo:', error);
-    
-    // Cleanup em caso de erro
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-        console.log('🗑️ Arquivo local removido após erro');
-      } catch (deleteError) {
-        console.error('❌ Erro ao deletar arquivo local:', deleteError);
-      }
-    }
-
-    // Se uploadou para Google Drive mas houve erro depois, tentar deletar do Drive
-    if (uploadedToGoogleDrive && googleDriveData) {
-      try {
-        await googleDriveService.deleteFile(googleDriveData.googleDriveId);
-        console.log('🗑️ Arquivo removido do Google Drive após erro');
-      } catch (deleteError) {
-        console.error('❌ Erro ao deletar do Google Drive:', deleteError);
-      }
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao salvar documento',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Erro interno do servidor'
-    });
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-});
 app.get('/api/documents/simple/municipality/:code', 
   SimpleDocumentController.getDocumentsByMunicipalitySimple
 );
