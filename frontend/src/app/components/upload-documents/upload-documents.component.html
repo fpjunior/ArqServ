@@ -15,6 +15,65 @@
   </app-server-dialog>
 </div>
 
+<!-- Modal de Sucesso Personalizado -->
+<div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden transform transition-all">
+    <!-- Header compacto sem ícone -->
+    <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-2 text-center text-white">
+      <h2 class="text-lg font-bold">Upload Realizado!</h2>
+      <p class="text-green-100 text-sm">Arquivo enviado com sucesso</p>
+    </div>
+    
+    <!-- Conteúdo -->
+    <div class="px-6 py-4">
+      <!-- Informações em grid horizontal -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="text-center">
+          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <mat-icon class="text-blue-600 text-lg">description</mat-icon>
+          </div>
+          <p class="text-xs text-gray-500">Arquivo</p>
+          <p class="font-semibold text-sm text-gray-800 truncate">{{ successModalData.fileName }}</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <mat-icon class="text-purple-600 text-lg">location_city</mat-icon>
+          </div>
+          <p class="text-xs text-gray-500">Município</p>
+          <p class="font-semibold text-sm text-gray-800 truncate">{{ successModalData.municipalityName }}</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+            <mat-icon class="text-orange-600 text-lg">business</mat-icon>
+          </div>
+          <p class="text-xs text-gray-500">Servidor</p>
+          <p class="font-semibold text-sm text-gray-800 truncate">{{ successModalData.serverName }}</p>
+        </div>
+      </div>
+      
+      <!-- Pasta hierárquica compacta -->
+      <div class="p-3 bg-gray-50 rounded-lg">
+        <p class="text-xs text-gray-600 mb-1">📂 Localização:</p>
+        <p class="text-xs font-mono text-gray-800 truncate">
+          {{ successModalData.municipalityName }} > Servidores {{ successModalData.serverName.charAt(0).toUpperCase() }} > {{ successModalData.serverName }}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Ações -->
+    <div class="px-6 pb-4">
+      <button 
+        (click)="closeSuccessModal()"
+        class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+        <mat-icon class="text-lg">check</mat-icon>
+        Continuar
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-white p-6">
   <div class="max-w-2xl mx-auto">
     <!-- Header -->
@@ -58,7 +117,7 @@
           </label>
         </div>
       </div>
-      <form [formGroup]="uploadForm" (ngSubmit)="onSubmit()" class="space-y-6">
+      <form [formGroup]="uploadForm" class="space-y-6">
         
         <!-- SEÇÃO SERVIDORES -->
         <div *ngIf="uploadType === 'servidores'">

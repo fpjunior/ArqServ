@@ -83,6 +83,12 @@ export class UploadDocumentsComponent implements OnInit {
   // Controle do diálogo customizado
   showTailwindDialog = false;
   showServerDialog = false;
+  showSuccessModal = false;
+  successModalData = {
+    fileName: '',
+    municipalityName: '',
+    serverName: ''
+  };
 
   constructor(
     private fb: FormBuilder,
@@ -99,13 +105,9 @@ export class UploadDocumentsComponent implements OnInit {
       uploadForm: this.uploadForm,
       fb: this.fb,
       snackBar: this.snackBar,
-      documentsService: this.documentsService
+      documentsService: this.documentsService,
+      dialog: this.dialog
     });
-    
-    // Teste imediato ao carregar
-    setTimeout(() => {
-      console.log('⏰ Teste após 2 segundos - componente ainda ativo');
-    }, 2000);
     
     this.loadMunicipalities();
     this.loadRecentDocuments();
@@ -219,104 +221,6 @@ export class UploadDocumentsComponent implements OnInit {
     event.stopPropagation();
     this.selectedFile = null;
     this.uploadProgress = 0;
-  }
-
-  async onSubmit(): Promise<void> {
-    if (this.uploadForm.invalid || !this.selectedFile) {
-      this.showMessage('Preencha todos os campos obrigatórios!', 'error');
-      return;
-    }
-
-    this.isUploading = true;
-    this.uploadProgress = 0;
-
-    try {
-      const selectedMunicipality = this.municipalities.find(m => m.code === this.uploadForm.get('municipality_code')?.value);
-      const selectedServer = this.servers.find(s => s.id === this.uploadForm.get('server_id')?.value);
-
-      if (!selectedMunicipality) {
-        this.showMessage('Município selecionado não encontrado!', 'error');
-        this.isUploading = false;
-        return;
-      }
-
-      if (!selectedServer) {
-        this.showMessage('Servidor selecionado não encontrado!', 'error');
-        this.isUploading = false;
-        return;
-      }
-
-      // Preparar dados do documento com estrutura hierárquica completa
-      const documentData = {
-        title: this.uploadForm.get('title')?.value,
-        description: this.uploadForm.get('description')?.value || '',
-        category: 'documento', // Categoria padrão
-        municipality_code: this.uploadForm.get('municipality_code')?.value,
-        server_id: this.uploadForm.get('server_id')?.value,
-        server_name: selectedServer.name,
-        municipality_name: selectedMunicipality.name
-      };
-
-      console.log('📤 Iniciando upload com estrutura hierárquica:', {
-        municipality: selectedMunicipality.name,
-        server: selectedServer.name,
-        letterGroup: `Servidores ${selectedServer.name.charAt(0).toUpperCase()}`,
-        fileName: this.selectedFile.name
-      });
-
-      // Subscrever ao progresso de upload
-      this.documentsService.uploadProgress$.subscribe(progress => {
-        if (progress) {
-          this.uploadProgress = progress.percentage;
-        }
-      });
-
-      // Fazer upload real para API - arquivo será organizado na estrutura:
-      // Root > Municipality > Servidores [Letter] > Server Name > arquivo
-      console.log('🚀 ========= CHAMANDO API DE UPLOAD =========');
-      console.log('📤 Dados que serão enviados:', {
-        file: {
-          name: this.selectedFile.name,
-          size: this.selectedFile.size,
-          type: this.selectedFile.type
-        },
-        data: documentData,
-        serviceExists: !!this.documentsService
-      });
-      
-      console.log('📡 Executando documentsService.uploadDocument...');
-      this.documentsService.uploadDocument(this.selectedFile, documentData)
-        .subscribe({
-          next: (response) => {
-            if (response.success) {
-              this.uploadProgress = 100;
-              this.showMessage(
-                `Documento enviado com sucesso para: ${selectedMunicipality.name} > Servidores ${selectedServer.name.charAt(0).toUpperCase()} > ${selectedServer.name}`, 
-                'success'
-              );
-              this.resetForm();
-              this.loadRecentDocuments();
-            } else {
-              throw new Error(response.message || 'Erro no upload');
-            }
-          },
-          error: (error: any) => {
-            console.error('❌ Erro no upload:', error);
-            this.showMessage(`Erro no upload: ${error?.message || 'Erro desconhecido'}`, 'error');
-            this.uploadProgress = 0;
-          },
-          complete: () => {
-            this.isUploading = false;
-            this.documentsService.resetUploadProgress();
-          }
-        });
-
-    } catch (error: any) {
-      console.error('❌ Erro geral no upload:', error);
-      this.showMessage(`Erro no upload: ${error?.message || 'Erro desconhecido'}`, 'error');
-      this.uploadProgress = 0;
-      this.isUploading = false;
-    }
   }
 
   // Método para carregar servidores quando município for selecionado
@@ -451,6 +355,14 @@ export class UploadDocumentsComponent implements OnInit {
     this.showTailwindDialog = false;
   }
 
+  // Métodos do modal de sucesso
+  closeSuccessModal(): void {
+    console.log('📋 Fechando modal de sucesso');
+    this.showSuccessModal = false;
+    console.log('🧹 Chamando clearForm após fechar modal...');
+    this.clearForm();
+  }
+
 
   // Métodos do modal do servidor
   onServerDialogCancelled(): void {
@@ -569,17 +481,42 @@ export class UploadDocumentsComponent implements OnInit {
       description: this.uploadForm.get('description')?.value || ''
     };
 
+    // Obter dados dos objetos selecionados para o modal
+    const selectedMunicipality = this.municipalities.find(m => m.code === formData.municipality_code);
+    const selectedServer = this.servers.find(s => s.id === parseInt(formData.server_id));
+
     this.documentsService.uploadDocument(this.selectedFile, formData)
       .subscribe({
         next: (response) => {
+          console.log('📡 Resposta do upload:', response);
           this.isUploading = false;
-          this.showMessage('Upload realizado com sucesso!', 'success');
           this.loadRecentDocuments();
-          this.clearForm();
+          
+          // Exibir modal de sucesso
+          if (response.success) {
+            console.log('✅ Upload bem-sucedido! Abrindo modal personalizado...');
+            
+            // Configurar dados do modal
+            this.successModalData = {
+              fileName: this.selectedFile?.name || 'Arquivo',
+              municipalityName: selectedMunicipality?.name || 'N/A',
+              serverName: selectedServer?.name || 'N/A'
+            };
+            
+            // Mostrar modal personalizado
+            this.showSuccessModal = true;
+            console.log('📋 Modal personalizado aberto');
+            
+          } else {
+            console.log('❌ Upload falhou:', response.message);
+            this.showMessage('Erro no upload: ' + (response.message || 'Erro desconhecido'), 'error');
+            this.clearForm();
+          }
         },
         error: (error: any) => {
           this.isUploading = false;
           this.showMessage('Erro no upload: ' + (error?.message || 'Erro desconhecido'), 'error');
+          this.clearForm();
         }
       });
   }
@@ -644,11 +581,26 @@ export class UploadDocumentsComponent implements OnInit {
 
   private clearForm(): void {
     console.log('🧹 Limpando formulário...');
+    console.log('📋 Estado antes da limpeza:', {
+      selectedFile: this.selectedFile?.name,
+      uploadProgress: this.uploadProgress,
+      isUploading: this.isUploading,
+      formValue: this.uploadForm.value
+    });
+    
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadProgress = 0;
     this.isUploading = false;
+    this.isDragOver = false;
+    
     console.log('✅ Formulário limpo');
+    console.log('📋 Estado após limpeza:', {
+      selectedFile: this.selectedFile,
+      uploadProgress: this.uploadProgress,
+      isUploading: this.isUploading,
+      formValue: this.uploadForm.value
+    });
   }
 
   viewDocument(doc: Document): void {
