@@ -71,8 +71,12 @@ export class ServerDialogComponent {
         municipality_name: this.data.municipalityName
       };
 
+      console.log('🚀 Criando servidor com dados:', serverData);
+
       // Integrar com API para criar servidor
       const createdServer = await this.createServerAPI(serverData);
+
+      console.log('✅ Servidor criado com sucesso:', createdServer);
 
       this.snackBar.open(`Servidor ${createdServer.name} criado com sucesso!`, 'Fechar', {
         duration: 3000,
@@ -82,6 +86,7 @@ export class ServerDialogComponent {
       this.serverCreated.emit(createdServer);
 
     } catch (error: any) {
+      console.error('❌ Erro ao criar servidor:', error);
       this.snackBar.open(`Erro ao criar servidor: ${error.message}`, 'Fechar', {
         duration: 5000,
         panelClass: ['snackbar-error']

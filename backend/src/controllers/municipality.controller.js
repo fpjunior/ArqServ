@@ -11,13 +11,19 @@ class MunicipalityController {
    */
   static async createMunicipality(req, res) {
     try {
-      const { code, name, state } = req.body;
+      let { code, name, state } = req.body;
 
-      if (!code || !name || !state) {
+      if (!name || !state) {
         return res.status(400).json({
           success: false,
-          message: 'Código, nome e estado são obrigatórios'
+          message: 'Nome e estado são obrigatórios'
         });
+      }
+
+      // Gerar código automaticamente se não fornecido
+      if (!code) {
+        code = await Municipality.generateUniqueCode(name, state);
+        console.log(`🔢 Código gerado automaticamente: ${code}`);
       }
 
       // Verificar se município já existe

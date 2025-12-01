@@ -3,6 +3,14 @@
 
 :host {
   display: block;
+  position: relative;
+  z-index: 9999;
+}
+
+// Garantir que o dialog fique acima de tudo
+:host > div {
+  position: relative;
+  z-index: 9999;
 }
 
 // Override para Material Dialog se necessário

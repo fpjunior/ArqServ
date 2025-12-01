@@ -129,6 +129,50 @@ class Municipality {
       throw error;
     }
   }
+
+  /**
+   * Gerar código único para município
+   * Formato: primeiras letras do nome + timestamp
+   */
+  static async generateUniqueCode(name, state) {
+    try {
+      // Criar código base: primeiras 4 letras do nome (sem acentos) + 2 letras do estado
+      const nameClean = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z]/g, '')
+        .toUpperCase();
+      
+      const prefix = nameClean.substring(0, 4).padEnd(4, 'X');
+      const stateCode = state.toUpperCase();
+      
+      // Tentar encontrar um código único
+      let attempts = 0;
+      let code;
+      
+      while (attempts < 100) {
+        // Gerar sufixo baseado em timestamp + random
+        const timestamp = Date.now().toString().slice(-4);
+        const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+        code = `${prefix}${stateCode}${timestamp}${random}`;
+        
+        // Verificar se código já existe
+        const existing = await this.findByCode(code);
+        if (!existing) {
+          return code;
+        }
+        
+        attempts++;
+      }
+      
+      // Fallback: usar timestamp completo
+      return `${prefix}${stateCode}${Date.now()}`;
+    } catch (error) {
+      console.error('❌ Erro ao gerar código único:', error);
+      // Fallback simples
+      return `MUN${Date.now()}`;
+    }
+  }
 }
 
 module.exports = Municipality;

@@ -41,7 +41,7 @@ export class MunicipalityDialogComponent {
     private documentsService: DocumentsService
   ) {
     this.municipalityForm = this.fb.group({
-      code: ['', [Validators.required, Validators.pattern(/^\d{7}$/)]],
+      code: [''],
       name: ['', [Validators.required, Validators.minLength(2)]],
       state: ['', Validators.required]
     });
@@ -57,7 +57,7 @@ export class MunicipalityDialogComponent {
 
     try {
       const municipalityData: Municipality = {
-        code: this.municipalityForm.get('code')?.value,
+        code: this.municipalityForm.get('code')?.value || this.generateMunicipalityCode(),
         name: this.municipalityForm.get('name')?.value,
         state: this.municipalityForm.get('state')?.value
       };
@@ -90,6 +90,13 @@ export class MunicipalityDialogComponent {
     Object.keys(this.municipalityForm.controls).forEach(key => {
       this.municipalityForm.get(key)?.markAsTouched();
     });
+  }
+
+  private generateMunicipalityCode(): string {
+    // Gera um código único baseado em timestamp e random
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 10);
+    return timestamp + random;
   }
 
   private async createMunicipalityAPI(municipality: Municipality): Promise<void> {

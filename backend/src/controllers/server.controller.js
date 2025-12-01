@@ -35,46 +35,52 @@ class ServerController {
     try {
       const { name, municipality_code, municipality_name } = req.body;
 
-      if (!name || !municipality_code) {
+      if (!name) {
         return res.status(400).json({
           success: false,
-          message: 'Nome do servidor e código do município são obrigatórios'
+          message: 'Nome do servidor é obrigatório'
         });
       }
 
-      // Verificar se servidor já existe
-      const existingServer = await Server.findByNameAndMunicipality(name, municipality_code);
-      if (existingServer) {
-        return res.status(409).json({
-          success: false,
-          message: 'Servidor já existe neste município',
-          data: existingServer
-        });
+      // Verificar se servidor já existe (apenas se municipality_code fornecido)
+      if (municipality_code) {
+        const existingServer = await Server.findByNameAndMunicipality(name, municipality_code);
+        if (existingServer) {
+          return res.status(409).json({
+            success: false,
+            message: 'Servidor já existe neste município',
+            data: existingServer
+          });
+        }
       }
 
       let driveFolderId = null;
 
       try {
-        // Criar estrutura de pastas no Google Drive
-        await googleDriveService.ensureInitialized();
-        const folderStructure = await googleDriveService.createServerFolderStructure(
-          municipality_name || 'Município',
-          municipality_code,
-          name
-        );
-        driveFolderId = folderStructure.serverFolderId;
+        // Criar estrutura de pastas no Google Drive (se municipality_code fornecido)
+        if (municipality_code && municipality_name) {
+          await googleDriveService.ensureInitialized();
+          const folderStructure = await googleDriveService.createServerFolderStructure(
+            municipality_name,
+            municipality_code,
+            name
+          );
+          driveFolderId = folderStructure.serverFolderId;
 
-        console.log(`📁 Estrutura criada para servidor ${name}:`, folderStructure.structure);
+          console.log(`📁 Estrutura criada para servidor ${name}:`, folderStructure.structure);
+        } else {
+          console.log('⚠️ Município não fornecido, criando servidor sem pasta no Drive');
+        }
       } catch (error) {
         console.warn('⚠️ Erro ao criar pastas no Drive, continuando sem Drive:', error.message);
       }
 
       // Criar servidor no banco
-      const server = await Server.create({
-        name,
-        municipality_code,
-        drive_folder_id: driveFolderId
-      });
+      const serverData = { name };
+      if (municipality_code) serverData.municipality_code = municipality_code;
+      if (driveFolderId) serverData.drive_folder_id = driveFolderId;
+      
+      const server = await Server.create(serverData);
 
       res.status(201).json({
         success: true,

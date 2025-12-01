@@ -8,9 +8,16 @@ class ServerModel {
   static async create(serverData) {
     const { name, municipality_code, drive_folder_id } = serverData;
     
+    // Criar objeto de insert apenas com campos obrigatórios
+    const insertData = { name };
+    
+    // Adicionar campos opcionais apenas se fornecidos
+    if (municipality_code) insertData.municipality_code = municipality_code;
+    if (drive_folder_id) insertData.drive_folder_id = drive_folder_id;
+    
     const { data, error } = await supabase
       .from('servers')
-      .insert([{ name, municipality_code, drive_folder_id }])
+      .insert([insertData])
       .select()
       .single();
     

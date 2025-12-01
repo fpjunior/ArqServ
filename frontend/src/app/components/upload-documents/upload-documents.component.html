@@ -1,6 +1,6 @@
 
 <!-- Diálogo Novo Município usando MunicipalityDialogComponent -->
-<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center">
+<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
   <app-municipality-dialog 
     (municipalityCreated)="onMunicipalityCreated($event)"
     (cancelled)="onMunicipalityDialogCancelled()">
@@ -8,7 +8,7 @@
 </div>
 
 <!-- Diálogo Novo Servidor usando ServerDialogComponent -->
-<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center">
+<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
   <app-server-dialog 
     [data]="{ municipalityCode: selectedMunicipalityCode, municipalityName: selectedMunicipalityName }"
     (serverCreated)="onServerCreated($event)"

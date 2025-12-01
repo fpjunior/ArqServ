@@ -389,6 +389,8 @@ export class UploadDocumentsComponent implements OnInit {
 
   openServerDialog(): void {
     console.log('🔄 Abrindo diálogo de servidor...');
+    console.log('📍 Municipality Code:', this.selectedMunicipalityCode);
+    console.log('📍 Municipality Name:', this.selectedMunicipalityName);
     
     if (!this.selectedMunicipalityCode) {
       this.showMessage('Selecione um município primeiro!', 'error');
