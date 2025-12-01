@@ -1,6 +1,5 @@
-
 <!-- Diálogo Novo Município usando MunicipalityDialogComponent -->
-<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+<div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
   <app-municipality-dialog 
     (municipalityCreated)="onMunicipalityCreated($event)"
     (cancelled)="onMunicipalityDialogCancelled()">
@@ -8,7 +7,7 @@
 </div>
 
 <!-- Diálogo Novo Servidor usando ServerDialogComponent -->
-<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+<div *ngIf="showServerDialog" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
   <app-server-dialog 
     [data]="{ municipalityCode: selectedMunicipalityCode, municipalityName: selectedMunicipalityName }"
     (serverCreated)="onServerCreated($event)"
@@ -29,37 +28,36 @@
       </div>
     </div>
 
-    <!-- Toggle de Tipo de Upload -->
-    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-      <div class="flex items-center justify-center gap-8">
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="radio" 
-                 [(ngModel)]="uploadType" 
-                 value="servidores" 
-                 name="uploadType"
-                 class="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500">
-          <div class="flex items-center gap-2">
-            <mat-icon class="text-blue-600">people</mat-icon>
-            <span class="text-lg font-medium text-gray-700">Servidores</span>
-          </div>
-        </label>
-        
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="radio" 
-                 [(ngModel)]="uploadType" 
-                 value="financeiras" 
-                 name="uploadType"
-                 class="w-5 h-5 text-green-600 border-2 border-gray-300 focus:ring-green-500">
-          <div class="flex items-center gap-2">
-            <mat-icon class="text-green-600">account_balance</mat-icon>
-            <span class="text-lg font-medium text-gray-700">Documentações Financeiras</span>
-          </div>
-        </label>
+    <!-- Formulário com Toggle -->
+    <div class="bg-white rounded-xl shadow-lg p-8 relative z-10">
+      <!-- Toggle de Tipo de Upload -->
+      <div class="radio-toggle-section w-full mb-8 pb-8 border-b border-gray-200">
+        <div class="flex flex-row items-center justify-center gap-8">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" 
+                   [(ngModel)]="uploadType" 
+                   value="servidores" 
+                   name="uploadType"
+                   class="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500 relative z-0">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-blue-600">people</mat-icon>
+              <span class="text-lg font-medium text-gray-700">Servidores</span>
+            </div>
+          </label>
+          
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" 
+                   [(ngModel)]="uploadType" 
+                   value="financeiras" 
+                   name="uploadType"
+                   class="w-5 h-5 text-green-600 border-2 border-gray-300 focus:ring-green-500 relative z-0">
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-green-600">account_balance</mat-icon>
+              <span class="text-lg font-medium text-gray-700">Documentações Financeiras</span>
+            </div>
+          </label>
+        </div>
       </div>
-    </div>
-
-    <!-- Formulário -->
-    <div class="bg-white rounded-xl shadow-lg p-8">
       <form [formGroup]="uploadForm" (ngSubmit)="onSubmit()" class="space-y-6">
         
         <!-- SEÇÃO SERVIDORES -->
@@ -104,8 +102,10 @@
               </div>
             </div>
             <div class="pt-6">
-              <button type="button" (click)="openServerDialog()" 
-                      class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+              <button type="button" 
+                      (click)="openServerDialog()" 
+                      [disabled]="!selectedMunicipalityCode"
+                      class="h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors">
                 <mat-icon class="text-lg">person_add</mat-icon>
                 Novo Servidor
               </button>

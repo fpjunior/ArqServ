@@ -391,6 +391,7 @@ export class UploadDocumentsComponent implements OnInit {
     console.log('🔄 Abrindo diálogo de servidor...');
     console.log('📍 Municipality Code:', this.selectedMunicipalityCode);
     console.log('📍 Municipality Name:', this.selectedMunicipalityName);
+    console.log('📍 showServerDialog antes:', this.showServerDialog);
     
     if (!this.selectedMunicipalityCode) {
       this.showMessage('Selecione um município primeiro!', 'error');
@@ -399,6 +400,7 @@ export class UploadDocumentsComponent implements OnInit {
 
     // Usar modal customizado em vez do Angular Material
     this.showServerDialog = true;
+    console.log('📍 showServerDialog depois:', this.showServerDialog);
   }
 
   resetForm(): void {

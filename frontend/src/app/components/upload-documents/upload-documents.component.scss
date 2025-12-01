@@ -281,6 +281,25 @@
   }
 }
 
+// Prevenir sobreposições
+:host {
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+// Garantir fluxo normal dos elementos
+.radio-toggle-section {
+  position: relative;
+  z-index: auto;
+  display: flex;
+  flex-direction: column;
+  
+  &, * {
+    position: static !important;
+  }
+}
+
 // Loading states
 .loading-overlay {
   position: absolute;

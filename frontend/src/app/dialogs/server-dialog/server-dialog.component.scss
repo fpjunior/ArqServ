@@ -3,14 +3,27 @@
 
 :host {
   display: block;
-  position: relative;
-  z-index: 9999;
+  position: static;
+  z-index: 10000;
 }
 
 // Garantir que o dialog fique acima de tudo
-:host > div {
+.modal-content {
   position: relative;
-  z-index: 9999;
+  z-index: 10001;
+  
+  * {
+    position: relative;
+    z-index: auto;
+  }
+  
+  form {
+    position: static;
+  }
+  
+  .grid {
+    position: static;
+  }
 }
 
 // Override para Material Dialog se necessário

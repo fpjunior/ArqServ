@@ -3,6 +3,27 @@
 
 :host {
   display: block;
+  position: static;
+  z-index: 10000;
+}
+
+// Garantir que não haja sobreposições
+.modal-content {
+  position: relative;
+  z-index: 10001;
+  
+  * {
+    position: relative;
+    z-index: auto;
+  }
+  
+  form {
+    position: static;
+  }
+  
+  .grid {
+    position: static;
+  }
 }
 
 // Override para Material Dialog se necessário
