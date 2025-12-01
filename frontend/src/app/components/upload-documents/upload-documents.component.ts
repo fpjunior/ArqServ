@@ -474,16 +474,73 @@ export class UploadDocumentsComponent implements OnInit {
     this.isUploading = true;
     this.uploadProgress = 0;
 
-    const formData = {
-      title: this.uploadForm.get('title')?.value || 'Documento Principal',
-      municipality_code: this.uploadForm.get('municipality_code')?.value,
-      server_id: this.uploadForm.get('server_id')?.value,
-      description: this.uploadForm.get('description')?.value || ''
-    };
+    // Preparar dados baseado no tipo de upload
+    let formData: any;
+    let selectedMunicipality: any;
+    let selectedServer: any = null;
+    let documentTypeInfo = '';
 
-    // Obter dados dos objetos selecionados para o modal
-    const selectedMunicipality = this.municipalities.find(m => m.code === formData.municipality_code);
-    const selectedServer = this.servers.find(s => s.id === parseInt(formData.server_id));
+    if (this.uploadType === 'servidores') {
+      // Upload para servidores
+      formData = {
+        title: this.uploadForm.get('title')?.value || 'Documento Principal',
+        municipality_code: this.uploadForm.get('municipality_code')?.value,
+        server_id: this.uploadForm.get('server_id')?.value,
+        description: this.uploadForm.get('description')?.value || '',
+        upload_type: 'servidores'
+      };
+
+      selectedMunicipality = this.municipalities.find(m => m.code === formData.municipality_code);
+      selectedServer = this.servers.find(s => s.id === parseInt(formData.server_id));
+      documentTypeInfo = selectedServer?.name || 'Servidor';
+
+    } else if (this.uploadType === 'financeiras') {
+      // Upload para documentações financeiras
+      const documentType = this.uploadForm.get('financial_document_type')?.value;
+      const year = this.uploadForm.get('financial_year')?.value;
+      const period = this.uploadForm.get('financial_period')?.value;
+      const title = this.uploadForm.get('title')?.value;
+
+      console.log('💰 Dados do upload financeiro:', {
+        documentType,
+        year,
+        period,
+        title,
+        municipality_code: this.uploadForm.get('municipality_code')?.value
+      });
+
+      // Criar nome do arquivo: Título + Ano
+      const fileName = `${title} ${year}`;
+
+      formData = {
+        title: fileName,
+        municipality_code: this.uploadForm.get('municipality_code')?.value,
+        description: this.uploadForm.get('description')?.value || '',
+        upload_type: 'financeiras',
+        financial_document_type: documentType,
+        financial_year: year,
+        financial_period: period
+      };
+
+      selectedMunicipality = this.municipalities.find(m => m.code === formData.municipality_code);
+      
+      // Definir nome amigável do tipo de documento
+      const typeNames: {[key: string]: string} = {
+        'balanco': 'Balanço Patrimonial',
+        'orcamento': 'Orçamento Anual', 
+        'prestacao-contas': 'Prestação de Contas',
+        'receitas': 'Relatório de Receitas',
+        'despesas': 'Relatório de Despesas',
+        'licitacoes': 'Licitações e Contratos',
+        'folha-pagamento': 'Folha de Pagamento',
+        'outros': 'Outros'
+      };
+      
+      documentTypeInfo = typeNames[documentType] || documentType;
+      console.log('📋 Nome amigável do tipo:', documentTypeInfo);
+    }
+
+    console.log('📤 Dados do upload:', formData);
 
     this.documentsService.uploadDocument(this.selectedFile, formData)
       .subscribe({
@@ -496,12 +553,20 @@ export class UploadDocumentsComponent implements OnInit {
           if (response.success) {
             console.log('✅ Upload bem-sucedido! Abrindo modal personalizado...');
             
-            // Configurar dados do modal
-            this.successModalData = {
-              fileName: this.selectedFile?.name || 'Arquivo',
-              municipalityName: selectedMunicipality?.name || 'N/A',
-              serverName: selectedServer?.name || 'N/A'
-            };
+            // Configurar dados do modal baseado no tipo
+            if (this.uploadType === 'servidores') {
+              this.successModalData = {
+                fileName: this.selectedFile?.name || 'Arquivo',
+                municipalityName: selectedMunicipality?.name || 'N/A',
+                serverName: selectedServer?.name || 'N/A'
+              };
+            } else {
+              this.successModalData = {
+                fileName: formData.title || 'Arquivo',
+                municipalityName: selectedMunicipality?.name || 'N/A',
+                serverName: documentTypeInfo
+              };
+            }
             
             // Mostrar modal personalizado
             this.showSuccessModal = true;

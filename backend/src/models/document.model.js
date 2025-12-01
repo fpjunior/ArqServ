@@ -17,7 +17,11 @@ class Document {
         file_size,
         mime_type,
         google_drive_id,
-        uploaded_by
+        uploaded_by,
+        // Campos para documentos financeiros
+        financial_document_type,
+        financial_year,
+        financial_period
       } = documentData;
 
       const insertData = {
@@ -34,6 +38,11 @@ class Document {
         uploaded_by,
         created_at: new Date().toISOString()
       };
+
+      // Adicionar campos financeiros se presentes
+      if (financial_document_type) insertData.financial_document_type = financial_document_type;
+      if (financial_year) insertData.financial_year = financial_year;
+      if (financial_period) insertData.financial_period = financial_period;
 
       // Remover campos undefined
       Object.keys(insertData).forEach(key => {

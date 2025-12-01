@@ -213,6 +213,99 @@ class GoogleDriveOAuthService {
     }
   }
 
+  async uploadFinancialDocument(fileBuffer, fileName, municipalityName, documentType, year, period = null, mimeType = 'application/octet-stream') {
+    try {
+      if (!this.initialized) {
+        throw new Error('Google Drive OAuth service not initialized');
+      }
+
+      console.log(`📤 Starting financial document upload: ${fileName}`);
+      console.log(`📍 Município: ${municipalityName}, Tipo: ${documentType}, Ano: ${year}, Período: ${period || 'Anual'}`);
+
+      // Obter ID da pasta para documentos financeiros
+      const parentFolderId = await this.getFinancialDocumentFolderId(municipalityName, documentType, year, period);
+
+      // Preparar metadata do arquivo
+      const fileMetadata = {
+        name: fileName,
+        parents: [parentFolderId],
+      };
+
+      // Preparar stream do arquivo
+      const { Readable } = require('stream');
+      const bufferStream = new Readable();
+      bufferStream.push(fileBuffer);
+      bufferStream.push(null);
+      
+      const media = {
+        mimeType: mimeType,
+        body: bufferStream,
+      };
+
+      console.log(`☁️ Uploading financial document to Google Drive folder: ${parentFolderId}`);
+      
+      // Fazer upload
+      const response = await this.drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink',
+      });
+
+      const fileData = response.data;
+      
+      console.log(`✅ Financial document uploaded successfully: ${fileData.name} (${fileData.id})`);
+      
+      return {
+        googleDriveId: fileData.id,
+        googleDriveLink: fileData.webViewLink,
+        downloadLink: fileData.webContentLink,
+        size: fileData.size,
+        mimeType: fileData.mimeType,
+        createdTime: fileData.createdTime
+      };
+
+    } catch (error) {
+      console.error('❌ Error uploading financial document to Google Drive:', error.message);
+      throw error;
+    }
+  }
+
+  async getFinancialDocumentFolderId(municipalityName, documentType, year, period = null) {
+    try {
+      console.log(`🗂️ Getting financial document folder ID for ${municipalityName}/${documentType}/${year}/${period || 'Anual'}`);
+      
+      // 1. Obter ou criar pasta do município
+      const municipalityFolderId = await this.createFolderIfNotExists(municipalityName, this.rootFolderId);
+      console.log(`📍 Municipality folder: ${municipalityFolderId}`);
+      
+      // 2. Obter ou criar pasta "Documentações Financeiras"
+      const financialFolderId = await this.createFolderIfNotExists('Documentações Financeiras', municipalityFolderId);
+      console.log(`💰 Financial folder: ${financialFolderId}`);
+      
+      // 3. Obter ou criar pasta do tipo de documento
+      const typeNames = {
+        'balanco': 'Balanço Patrimonial',
+        'orcamento': 'Orçamento Anual',
+        'prestacao-contas': 'Prestação de Contas',
+        'receitas': 'Relatório de Receitas',
+        'despesas': 'Relatório de Despesas',
+        'licitacoes': 'Licitações e Contratos',
+        'folha-pagamento': 'Folha de Pagamento',
+        'outros': 'Outros'
+      };
+      
+      const typeFolderName = typeNames[documentType] || documentType;
+      const typeFolderId = await this.createFolderIfNotExists(typeFolderName, financialFolderId);
+      console.log(`📂 Document type folder: ${typeFolderId}`);
+      
+      return typeFolderId;
+
+    } catch (error) {
+      console.error('❌ Error getting financial document folder ID:', error.message);
+      throw error;
+    }
+  }
+
   async deleteFile(fileId) {
     try {
       if (!this.initialized) {

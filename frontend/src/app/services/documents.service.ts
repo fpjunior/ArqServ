@@ -91,6 +91,11 @@ export class DocumentsService {
     server_id?: string;
     server_name?: string;
     municipality_name?: string;
+    // Novos campos para documentos financeiros
+    upload_type?: string;
+    financial_document_type?: string;
+    financial_year?: string;
+    financial_period?: string;
   }): Observable<ApiResponse<Document>> {
     console.log('🚀 DocumentsService.uploadDocument CHAMADO!', {
       file: file.name,
@@ -110,6 +115,7 @@ export class DocumentsService {
     
     formData.append('municipality_code', documentData.municipality_code);
     
+    // Campos para upload de servidores
     if (documentData.server_id) {
       formData.append('server_id', documentData.server_id);
     }
@@ -119,6 +125,27 @@ export class DocumentsService {
     if (documentData.municipality_name) {
       formData.append('municipality_name', documentData.municipality_name);
     }
+
+    // Campos para upload financeiro
+    if (documentData.upload_type) {
+      formData.append('upload_type', documentData.upload_type);
+    }
+    if (documentData.financial_document_type) {
+      formData.append('financial_document_type', documentData.financial_document_type);
+    }
+    if (documentData.financial_year) {
+      formData.append('financial_year', documentData.financial_year);
+    }
+    if (documentData.financial_period) {
+      formData.append('financial_period', documentData.financial_period);
+    }
+
+    console.log('📋 FormData sendo enviado:', {
+      upload_type: documentData.upload_type,
+      financial_document_type: documentData.financial_document_type,
+      financial_year: documentData.financial_year,
+      financial_period: documentData.financial_period
+    });
 
     return this.http.post<ApiResponse<Document>>(
       `${this.apiUrl}/documents/upload`,

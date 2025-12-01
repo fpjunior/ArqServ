@@ -61,11 +61,11 @@ class DocumentController {
       const { 
         title, description, category, municipality_code, server_id, server_name, municipality_name,
         // Novos campos para documentos financeiros
-        document_type, financial_document_type, financial_year, financial_period
+        upload_type, financial_document_type, financial_year, financial_period
       } = req.body;
       const file = req.file;
 
-      console.log('📝 Campos extraídos:', {title, description, category, municipality_code, server_id, server_name, municipality_name, document_type});
+      console.log('📝 Campos extraídos:', {title, description, category, municipality_code, server_id, server_name, municipality_name, upload_type, financial_document_type, financial_year, financial_period});
 
       if (!file) {
         console.error('❌ Arquivo não encontrado em req.file');
@@ -76,10 +76,18 @@ class DocumentController {
       }
 
       console.log('✅ Arquivo presente, iniciando validações...');
+      console.log('🔍 Upload type detectado:', upload_type);
 
       // Validações específicas por tipo de documento
-      if (document_type === 'financeira') {
-        console.log('📊 Documento tipo: financeira');
+      if (upload_type === 'financeiras') {
+        console.log('📊 Documento tipo: financeiras - validando campos obrigatórios...');
+        console.log('📋 Campos financeiros:', {
+          title: !!title,
+          municipality_code: !!municipality_code,
+          financial_document_type: !!financial_document_type,
+          financial_year: !!financial_year
+        });
+        
         if (!title || !municipality_code || !financial_document_type || !financial_year) {
           console.error('❌ Validação falhou para documento financeiro');
           return res.status(400).json({
@@ -87,6 +95,7 @@ class DocumentController {
             message: 'Campos obrigatórios para documento financeiro: title, municipality_code, financial_document_type, financial_year'
           });
         }
+        console.log('✅ Validação financeira passou');
       } else {
         // Validação para documentos de servidor (padrão)
         console.log('👤 Documento tipo: servidor (padrão)');
@@ -119,7 +128,7 @@ class DocumentController {
       let server = null;
       let uploadFolderId = null;
       
-      if (document_type !== 'financeira' && server_id) {
+      if (upload_type !== 'financeiras' && server_id) {
         server = await Server.findById(server_id);
         console.log(`👤 Servidor:`, server ? server.name : 'não encontrado');
         if (!server) {
@@ -162,20 +171,43 @@ class DocumentController {
       const fileExtension = path.extname(file.originalname);
       const fileName = `${title}${fileExtension}`;
       console.log(`🚀 Iniciando upload: ${fileName} (título: ${title})`);
-      console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
       
-      const driveFile = await googleDriveOAuthService.uploadFile(
-        file.buffer,
-        fileName,
-        municipality.name,
-        server.name,
-        file.mimetype
-      );
+      let driveFile;
+      
+      if (upload_type === 'financeiras') {
+        console.log(`📂 Destino: ${municipality.name} > Documentações Financeiras > ${financial_document_type}`);
+        console.log('💰 Chamando uploadFinancialDocument...');
+        
+        // Upload para documentos financeiros - criar estrutura hierárquica
+        driveFile = await googleDriveOAuthService.uploadFinancialDocument(
+          file.buffer,
+          fileName,
+          municipality.name,
+          financial_document_type,
+          financial_year,
+          financial_period,
+          file.mimetype
+        );
+        console.log('✅ uploadFinancialDocument concluído:', driveFile.googleDriveId);
+      } else {
+        console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
+        console.log('👤 Chamando uploadFile para servidor...');
+        
+        // Upload para documentos de servidor (método existente)
+        driveFile = await googleDriveOAuthService.uploadFile(
+          file.buffer,
+          fileName,
+          municipality.name,
+          server.name,
+          file.mimetype
+        );
+        console.log('✅ uploadFile concluído:', driveFile.googleDriveId);
+      }
 
       console.log(`✅ Upload concluído no Google Drive: ${driveFile.googleDriveId}`);
 
       // Salvar no banco de dados
-      const document = await Document.create({
+      const documentData = {
         title,
         description: description || '',
         category: category || 'documento',
@@ -187,7 +219,27 @@ class DocumentController {
         mime_type: file.mimetype,
         google_drive_id: driveFile.googleDriveId,
         uploaded_by: req.user?.id || null
-      });
+      };
+
+      // Adicionar campos específicos para documentos financeiros
+      if (upload_type === 'financeiras') {
+        console.log('💰 Adicionando campos financeiros ao documento...');
+        documentData.financial_document_type = financial_document_type;
+        documentData.financial_year = parseInt(financial_year);
+        if (financial_period) {
+          documentData.financial_period = financial_period;
+        }
+        documentData.category = 'financeiro';
+        console.log('📋 Dados financeiros adicionados:', {
+          financial_document_type,
+          financial_year: parseInt(financial_year),
+          financial_period,
+          category: 'financeiro'
+        });
+      }
+
+      console.log('💾 Criando documento no banco com dados:', documentData);
+      const document = await Document.create(documentData);
 
       console.log(`💾 Documento salvo no banco: ID ${document.id}`);
 
