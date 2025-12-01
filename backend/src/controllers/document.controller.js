@@ -158,9 +158,10 @@ class DocumentController {
         uploadFolderId = server?.drive_folder_id;
       }
 
-      // Upload para o Google Drive
-      const fileName = `${Date.now()}_${file.originalname}`;
-      console.log(`🚀 Iniciando upload: ${fileName}`);
+      // Upload para o Google Drive - usar título do documento como nome do arquivo
+      const fileExtension = path.extname(file.originalname);
+      const fileName = `${title}${fileExtension}`;
+      console.log(`🚀 Iniciando upload: ${fileName} (título: ${title})`);
       console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
       
       const driveFile = await googleDriveOAuthService.uploadFile(
@@ -180,7 +181,7 @@ class DocumentController {
         category: category || 'documento',
         municipality_code,
         server_id: server?.id || null,
-        file_name: file.originalname,
+        file_name: fileName, // Nome com o título do documento
         file_path: `https://drive.google.com/file/d/${driveFile.googleDriveId}/view`,
         file_size: file.size,
         mime_type: file.mimetype,
