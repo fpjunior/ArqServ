@@ -204,3 +204,37 @@ exports.login = async (req, res) => {
     });
   }
 };
+
+// Função para obter dados do usuário atual (como /auth/me)
+exports.me = async (req, res) => {
+  try {
+    console.log('👤 [AUTH] Buscando dados do usuário atual:', req.user?.id);
+
+    // req.user já vem do middleware authenticate com role e permissions
+    const userData = {
+      id: req.user.id,
+      email: req.user.email,
+      name: req.user.name,
+      role: req.user.role,
+      active: req.user.active
+    };
+
+    console.log('✅ [AUTH] Dados do usuário atual:', userData);
+
+    res.json({
+      status: 'SUCCESS',
+      message: 'Dados do usuário recuperados com sucesso',
+      data: {
+        user: userData
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [AUTH] Erro ao buscar dados do usuário:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+};

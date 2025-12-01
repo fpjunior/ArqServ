@@ -54,19 +54,24 @@ export class AuthService {
           // Primeiro tentar carregar do localStorage se existir (preserva role correto)
           const storedUser = localStorage.getItem('arqserv_user');
           let userRole = 'user';
+          let preserveLocalData = false;
           
           if (storedUser) {
             try {
               const parsedUser = JSON.parse(storedUser);
               userRole = parsedUser.role || 'user';
-              console.log('✅ [AUTH] Role recuperado do localStorage:', userRole);
+              // Se já temos um admin no localStorage, preservar esses dados
+              if (parsedUser.role === 'admin') {
+                preserveLocalData = true;
+                console.log('✅ [AUTH] Admin role preservado do localStorage:', userRole);
+              }
             } catch (e) {
               console.warn('⚠️ [AUTH] Erro ao parsear usuário do localStorage');
             }
           }
           
-          // Se não tem no localStorage, usar do Supabase
-          if (userRole === 'user' && user.user_metadata?.['role']) {
+          // Se não tem no localStorage ou role não é admin, usar do Supabase
+          if (!preserveLocalData && user.user_metadata?.['role']) {
             userRole = user.user_metadata['role'];
             console.log('✅ [AUTH] Role recuperado do Supabase metadata:', userRole);
           }
@@ -420,8 +425,46 @@ export class AuthService {
    * Verifica se o usuário atual é admin
    */
   isAdmin(): boolean {
-    const user = this.currentUserSubject.value;
-    return user?.role === 'admin';
+    const user = this.getCurrentUser();
+    const isAdminRole = user?.role === 'admin';
+    console.log('🔍 [AUTH] Verificação admin:', { user: user?.email, role: user?.role, isAdmin: isAdminRole });
+    return isAdminRole;
+  }
+
+  /**
+   * Força atualização de role para admin (para casos onde backend confirma admin)
+   */
+  updateUserRole(newRole: string): void {
+    const currentUser = this.getCurrentUser();
+    if (currentUser) {
+      const updatedUser = { ...currentUser, role: newRole };
+      localStorage.setItem('arqserv_user', JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+      console.log('✅ [AUTH] Role atualizado para:', newRole);
+    }
+  }
+
+  /**
+   * Recarrega dados do usuário do backend para sincronizar role
+   */
+  refreshUserData(): Observable<any> {
+    const token = this.getToken();
+    if (!token) return of(null);
+    
+    const headers = { Authorization: `Bearer ${token}` };
+    return this.http.get<any>(`${this.apiUrl}/auth/me`, { headers }).pipe(
+      tap((response: any) => {
+        if (response?.data?.user) {
+          localStorage.setItem('arqserv_user', JSON.stringify(response.data.user));
+          this.currentUserSubject.next(response.data.user);
+          console.log('✅ [AUTH] Dados do usuário atualizados via refresh:', response.data.user);
+        }
+      }),
+      catchError((error) => {
+        console.warn('⚠️ [AUTH] Erro ao refresh dados do usuário:', error);
+        return of(null);
+      })
+    );
   }
 
   private handleError(error: any): Observable<never> {

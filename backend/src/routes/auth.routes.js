@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const AuthSupabaseController = require('../controllers/auth.supabase.controller');
+const { authenticate } = require('../middleware/auth.middleware');
 
 /**
  * @route POST /api/auth/login
@@ -9,6 +10,13 @@ const AuthSupabaseController = require('../controllers/auth.supabase.controller'
  * @access Public
  */
 router.post('/login', authController.login);
+
+/**
+ * @route GET /api/auth/me
+ * @desc Dados do usuário autenticado
+ * @access Private
+ */
+router.get('/me', authenticate, authController.me);
 
 /**
  * @route POST /api/auth/register

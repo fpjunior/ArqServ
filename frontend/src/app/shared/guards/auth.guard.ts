@@ -22,14 +22,18 @@ export class AuthGuard implements CanActivate {
     if (environment.useSupabaseAuth) {
       const supabase = getSupabaseClient();
       return from(supabase.auth.getSession()).pipe(
-        map(({ data: { session } }) => {
+        switchMap(({ data: { session } }) => {
           if (session && session.access_token) {
             console.log('🔐 [AUTH GUARD] Sessão Supabase válida encontrada');
-            return true;
+            
+            // Fazer refresh dos dados do usuário para garantir role atualizado
+            return this.authService.refreshUserData().pipe(
+              map(() => true)
+            );
           } else {
             console.log('🚫 [AUTH GUARD] Sem sessão - redirecionando para login');
             this.router.navigate(['/login']);
-            return false;
+            return [false];
           }
         })
       );
@@ -37,12 +41,15 @@ export class AuthGuard implements CanActivate {
     
     // Fallback para verificação normal se não usar Supabase
     return this.authService.currentUser$.pipe(
-      map(user => {
+      switchMap(user => {
         if (user) {
-          return true;
+          // Fazer refresh dos dados para garantir consistência
+          return this.authService.refreshUserData().pipe(
+            map(() => true)
+          );
         } else {
           this.router.navigate(['/login']);
-          return false;
+          return [false];
         }
       })
     );
