@@ -122,14 +122,38 @@ exports.syncSupabaseUser = async (req, res) => {
     if (user && user.role) {
       role = user.role;
       user_type = user.user_type || user_type;
+      
+      // Atualizar Supabase metadata se role for diferente
+      if (supabaseUser.user_metadata?.role !== role) {
+        console.log(`🔄 [AUTH/SUPABASE] Role inconsistente - Supabase: ${supabaseUser.user_metadata?.role}, DB: ${role}`);
+        // TODO: Atualizar metadata do Supabase se necessário
+      }
     }
 
     console.log(`[AUTH/SUPABASE] Syncing user '${email}'; final role: ${role}, user_type: ${user_type}`);
 
-    // Generate backend token
-    const token = generateToken(user);
+    // Retornar user com dados completos e consistentes
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: role, // Role autoritativo do banco
+      user_type: user.user_type,
+      municipality: user.municipality,
+      active: user.active
+    };
 
-    res.json({ success: true, message: 'User synced', data: { token, user } });
+    // Generate backend token
+    const token = generateToken(userResponse);
+
+    res.json({ 
+      success: true, 
+      message: 'User synced', 
+      data: { 
+        token, 
+        user: userResponse 
+      } 
+    });
   } catch (error) {
     console.error('❌ [AUTH/SUPABASE] Error syncing user:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });

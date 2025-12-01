@@ -103,24 +103,24 @@ export class AuthService {
       // OnInit: subscribe to auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
         console.log('🔄 [AUTH] Mudança de estado:', event, session ? 'com sessão' : 'sem sessão');
+        
         if (session && session.access_token) {
-          const user = session.user;
+          console.log('🔄 [AUTH] Atualizando token...');
           
-          console.log('📋 [AUTH] User metadata (onChange):', user.user_metadata);
-          
-          const currentUser = {
-            id: user.id as unknown as number,
-            email: user.email || '',
-            name: user.user_metadata?.['name'] || user.email || '',
-            role: user.user_metadata?.['role'] || 'user'
-          };
-          
+          // SEMPRE atualizar token
           this.tokenSubject.next(session.access_token);
-          this.currentUserSubject.next(currentUser);
           localStorage.setItem('arqserv_token', session.access_token);
-          localStorage.setItem('arqserv_user', JSON.stringify(currentUser));
           
-          console.log('✅ [AUTH] Usuário atualizado:', currentUser);
+          // Para login, sincronizar com backend para obter role correto
+          if (event === 'SIGNED_IN') {
+            console.log('🔐 [AUTH] LOGIN detectado - obtendo role AUTORITATIVO do backend...');
+            this.syncWithBackend().subscribe({
+              next: () => console.log('✅ [AUTH] Role autoritativo aplicado pós-login'),
+              error: (err) => console.warn('⚠️ [AUTH] Erro na sincronização pós-login:', err)
+            });
+          } else {
+            console.log('ℹ️ [AUTH] Evento não é SIGNED_IN - mantendo dados existentes');
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('🚪 [AUTH] Usuário fez logout');
           this.tokenSubject.next(null);
@@ -380,18 +380,21 @@ export class AuthService {
     const headers = { Authorization: `Bearer ${token}` };
     return this.http.post<any>(`${this.apiUrl}/auth/supabase/sync`, {}, { headers: headers }).pipe(
       tap((response: any) => {
-        if (response?.data?.token) {
-          // replace token with backend token and update local user if provided
+        if (response?.data?.token && response?.data?.user) {
+          const backendUser = response.data.user;
+          console.log('🎯 [AUTH] BACKEND SYNC - Role da tabela users:', backendUser.role);
+          
+          // SEMPRE usar dados do backend (tabela users) como autoritativo
           localStorage.setItem('arqserv_token', response.data.token);
+          localStorage.setItem('arqserv_user', JSON.stringify(backendUser));
           this.tokenSubject.next(response.data.token);
-          if (response.data.user) {
-            localStorage.setItem('arqserv_user', JSON.stringify(response.data.user));
-            this.currentUserSubject.next(response.data.user);
-          }
+          this.currentUserSubject.next(backendUser);
+          
+          console.log('✅ [AUTH] Role DEFINITIVO aplicado:', backendUser.role);
         }
       }),
       catchError(err => {
-        console.warn('Erro ao sincronizar com backend:', err);
+        console.warn('⚠️ [AUTH] Erro ao sincronizar com backend:', err);
         return of(null);
       })
     );
