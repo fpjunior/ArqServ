@@ -10,6 +10,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  municipality_code?: string;
 }
 
 export interface LoginResponse {
@@ -401,6 +402,7 @@ export class AuthService {
         if (response?.data?.token && response?.data?.user) {
           const backendUser = response.data.user;
           console.log('🎯 [AUTH] BACKEND SYNC - Role da tabela users:', backendUser.role);
+          console.log('🏛️ [AUTH] BACKEND SYNC - Municipality:', backendUser.municipality_code);
           
           // SEMPRE usar dados do backend (tabela users) como autoritativo
           localStorage.setItem('arqserv_token', response.data.token);
@@ -409,6 +411,7 @@ export class AuthService {
           this.currentUserSubject.next(backendUser);
           
           console.log('✅ [AUTH] Role DEFINITIVO aplicado:', backendUser.role);
+          console.log('✅ [AUTH] Municipality DEFINITIVO aplicado:', backendUser.municipality_code);
         }
       }),
       catchError(err => {
@@ -416,6 +419,15 @@ export class AuthService {
         return of(null);
       })
     );
+  }
+
+  /**
+   * Força sincronização com o backend para atualizar dados do usuário
+   * Útil quando dados do usuário são atualizados no banco
+   */
+  refreshUserData(): Observable<any> {
+    console.log('🔄 [AUTH] Forçando refresh dos dados do usuário...');
+    return this.syncWithBackend();
   }
 
   invite(email: string, redirectTo?: string): Observable<any> {
@@ -463,29 +475,6 @@ export class AuthService {
       this.currentUserSubject.next(updatedUser);
       console.log('✅ [AUTH] Role atualizado para:', newRole);
     }
-  }
-
-  /**
-   * Recarrega dados do usuário do backend para sincronizar role
-   */
-  refreshUserData(): Observable<any> {
-    const token = this.getToken();
-    if (!token) return of(null);
-    
-    const headers = { Authorization: `Bearer ${token}` };
-    return this.http.get<any>(`${this.apiUrl}/auth/me`, { headers }).pipe(
-      tap((response: any) => {
-        if (response?.data?.user) {
-          localStorage.setItem('arqserv_user', JSON.stringify(response.data.user));
-          this.currentUserSubject.next(response.data.user);
-          console.log('✅ [AUTH] Dados do usuário atualizados via refresh:', response.data.user);
-        }
-      }),
-      catchError((error) => {
-        console.warn('⚠️ [AUTH] Erro ao refresh dados do usuário:', error);
-        return of(null);
-      })
-    );
   }
 
   private handleError(error: any): Observable<never> {

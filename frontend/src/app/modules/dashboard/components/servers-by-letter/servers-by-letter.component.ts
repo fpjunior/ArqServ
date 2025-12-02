@@ -2,14 +2,27 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { AuthService, User } from '../../../../shared/services/auth.service';
+import { environment } from '../../../../../environments/environment';
 
 interface ServerInfo {
-  id: string;
+  id: number;
   name: string;
-  ip: string;
-  status: 'online' | 'offline';
-  filesCount: number;
-  lastAccess: Date;
+  municipality_code: string;
+  municipality_name?: string;
+  created_at?: string;
+  // Propriedades simuladas para compatibilidade com template
+  status?: 'online' | 'offline';
+  ip?: string;
+  filesCount?: number;
+  lastAccess?: Date;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data: ServerInfo[];
+  message?: string;
 }
 
 @Component({
@@ -24,65 +37,152 @@ export class ServersByLetterComponent implements OnInit {
   servers: ServerInfo[] = [];
   searchTerm: string = '';
   filteredServers: ServerInfo[] = [];
-
-  // Dados simulados de servidores por letra
-  private serversData: { [key: string]: ServerInfo[] } = {
-    'A': [
-      { id: '65', name: 'Ana Maria', ip: '192.168.1.65', status: 'online', filesCount: 24, lastAccess: new Date('2024-11-10') },
-      { id: '66', name: 'Antonio Silva', ip: '192.168.1.66', status: 'online', filesCount: 18, lastAccess: new Date('2024-11-09') },
-      { id: '67', name: 'Andrea Santos', ip: '192.168.1.67', status: 'offline', filesCount: 31, lastAccess: new Date('2024-11-08') },
-      { id: '68', name: 'Alberto Costa', ip: '192.168.1.68', status: 'online', filesCount: 12, lastAccess: new Date('2024-11-07') }
-    ],
-    'B': [
-      { id: '70', name: 'Bruno Costa', ip: '192.168.1.70', status: 'online', filesCount: 15, lastAccess: new Date('2024-11-10') },
-      { id: '71', name: 'Beatriz Silva', ip: '192.168.1.71', status: 'online', filesCount: 22, lastAccess: new Date('2024-11-09') }
-    ],
-    'C': [
-      { id: '72', name: 'Carlos Eduardo', ip: '192.168.1.72', status: 'offline', filesCount: 8, lastAccess: new Date('2024-11-06') },
-      { id: '73', name: 'Carla Pereira', ip: '192.168.1.73', status: 'online', filesCount: 28, lastAccess: new Date('2024-11-10') }
-    ],
-    'J': [
-      { id: '74', name: 'João Santos', ip: '192.168.1.74', status: 'online', filesCount: 18, lastAccess: new Date('2024-11-10') },
-      { id: '75', name: 'Julia Oliveira', ip: '192.168.1.75', status: 'online', filesCount: 26, lastAccess: new Date('2024-11-09') }
-    ],
-    'M': [
-      { id: '77', name: 'Maria Silva', ip: '192.168.1.77', status: 'online', filesCount: 31, lastAccess: new Date('2024-11-10') },
-      { id: '78', name: 'Marcos Lima', ip: '192.168.1.78', status: 'online', filesCount: 14, lastAccess: new Date('2024-11-08') }
-    ]
-  };
+  isLoading: boolean = false;
+  currentUser: User | null = null;
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router
+    private route: ActivatedRoute, 
+    private router: Router,
+    private http: HttpClient,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    this.letter = this.route.snapshot.params['letter'].toUpperCase();
-    this.loadServers();
+    console.log('🔧 ServersByLetter ngOnInit iniciado');
+    
+    // Carregar usuário primeiro
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      if (!this.currentUser) {
+        console.log('❌ Usuário não encontrado, redirecionando para login');
+        this.router.navigate(['/auth/login']);
+        return;
+      }
+      
+      console.log(`✅ Usuário: ${this.currentUser.email}, Município: ${this.currentUser.municipality_code}`);
+      
+      // Agora carregar servidores com usuário autenticado
+      this.route.params.subscribe(params => {
+        this.letter = params['letter'];
+        console.log(`📝 Carregando servidores para letra: ${this.letter}`);
+        this.loadServers();
+      });
+    });
   }
 
-  loadServers(): void {
-    this.servers = this.serversData[this.letter] || [];
-    this.filteredServers = [...this.servers];
+  private loadServers(): void {
+    this.isLoading = true;
+    
+    // Verificar se usuário está logado
+    if (!this.currentUser) {
+      console.error('❌ Usuário não encontrado');
+      this.isLoading = false;
+      return;
+    }
+    
+    // Obter token de autenticação do AuthService, não do localStorage
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('❌ Token não encontrado - solicitando refresh dos dados');
+      // Tentar refresh dos dados ao invés de redirecionar imediatamente
+      this.authService.refreshUserData().subscribe({
+        next: () => {
+          console.log('✅ Dados refreshados, tentando novamente...');
+          this.loadServers(); // Tentar novamente após refresh
+        },
+        error: () => {
+          console.error('❌ Falha no refresh, redirecionando para login');
+          this.router.navigate(['/auth/login']);
+        }
+      });
+      this.isLoading = false;
+      return;
+    }
+
+    console.log(`🔍 Carregando servidores para letra: ${this.letter}`);
+    console.log(`👤 Usuário: ${this.currentUser.email}`);
+    console.log(`🏛️ Município: ${this.currentUser.municipality_code}`);
+    console.log(`🎫 Token encontrado: ${token.substring(0, 20)}...`);
+
+    // Fazer requisição para obter servidores filtrados por letra
+    this.http.get<ApiResponse>(`${environment.apiUrl}/servers`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }).subscribe({
+      next: (response) => {
+        console.log('📡 Resposta da API recebida:', response);
+        
+        if (response.success) {
+          const allServers = response.data;
+          console.log(`📋 Total de servidores retornados: ${allServers.length}`);
+          
+          this.servers = allServers
+            .filter(server => {
+              const firstLetter = server.name.charAt(0).toUpperCase();
+              const matches = firstLetter === this.letter.toUpperCase();
+              console.log(`📝 Servidor "${server.name}" (${firstLetter}) -> ${matches ? 'INCLUÍDO' : 'excluído'}`);
+              return matches;
+            })
+            .map(server => ({
+              ...server,
+              // Adicionar propriedades simuladas para compatibilidade
+              status: Math.random() > 0.3 ? 'online' : 'offline' as 'online' | 'offline',
+              ip: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+              filesCount: Math.floor(Math.random() * 50) + 1,
+              lastAccess: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // últimos 7 dias
+            }));
+            
+          this.filteredServers = [...this.servers];
+          console.log(`✅ ${this.servers.length} servidores carregados para letra ${this.letter}`);
+          console.log('📄 Servidores filtrados:', this.servers.map(s => s.name));
+        } else {
+          console.error('❌ Erro na resposta da API:', response.message);
+          this.servers = [];
+          this.filteredServers = [];
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('❌ Erro ao carregar servidores:', error);
+        console.error('❌ Status do erro:', error.status);
+        console.error('❌ Mensagem:', error.message);
+        
+        // Se erro de autenticação, redirecionar para login
+        if (error.status === 401 || error.status === 403) {
+          console.warn('🚫 Erro de autenticação - redirecionando para login');
+          this.router.navigate(['/auth/login']);
+          return;
+        }
+        
+        this.servers = [];
+        this.filteredServers = [];
+        this.isLoading = false;
+      }
+    });
   }
 
   onSearch(): void {
-    if (this.searchTerm.trim() === '') {
+    if (!this.searchTerm.trim()) {
       this.filteredServers = [...this.servers];
     } else {
       this.filteredServers = this.servers.filter(server =>
-        server.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        server.ip.includes(this.searchTerm)
+        server.name.toLowerCase().includes(this.searchTerm.toLowerCase())
       );
     }
   }
 
-  navigateToServerDetails(serverId: string): void {
+  navigateToServerDetails(serverId: number): void {
     this.router.navigate(['/servers', this.letter, serverId]);
   }
 
   goBack(): void {
     this.router.navigate(['/servers']);
+  }
+
+  getInitials(name: string): string {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
   getStatusColor(status: string): string {
@@ -91,9 +191,5 @@ export class ServersByLetterComponent implements OnInit {
 
   getStatusBgColor(status: string): string {
     return status === 'online' ? 'bg-green-100' : 'bg-red-100';
-  }
-
-  getInitials(name: string): string {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 }

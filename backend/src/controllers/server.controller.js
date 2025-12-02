@@ -6,17 +6,32 @@ const googleDriveService = new GoogleDriveService();
 
 class ServerController {
   /**
-   * Listar todos os servidores
+   * Listar todos os servidores (com filtro de município para usuários normais)
    * @route GET /api/servers
    */
   static async getAllServers(req, res) {
     try {
-      const servers = await Server.findAll({});
+      console.log(`\n🔍 [GET ALL SERVERS]`);
+      console.log(`👤 User: ${req.user?.email}, Role: ${req.user?.role}`);
+      console.log(`📍 Municipality Filter: ${req.municipalityFilter || 'none (admin)'}`);
+
+      let servers;
+
+      // Se há filtro de município (usuário normal), buscar apenas daquele município
+      if (req.municipalityFilter) {
+        servers = await Server.findByMunicipality(req.municipalityFilter);
+        console.log(`✅ Retornando ${servers.length} servidores do município ${req.municipalityFilter}`);
+      } else {
+        // Admin pode ver todos
+        servers = await Server.findAll({});
+        console.log(`✅ Retornando ${servers.length} servidores (todos os municípios)`);
+      }
       
       res.json({
         success: true,
         data: servers,
-        message: 'Servidores listados com sucesso'
+        message: 'Servidores listados com sucesso',
+        municipality_filter: req.municipalityFilter
       });
     } catch (error) {
       console.error('❌ Erro ao listar servidores:', error);
@@ -201,7 +216,14 @@ class ServerController {
    */
   static async searchServers(req, res) {
     try {
-      const { q, municipality_code, letter } = req.query;
+      const { q, letter } = req.query;
+      
+      // Usar municipality_code do filtro se usuário normal, ou permitir override se admin
+      const municipality_code = req.municipalityFilter || req.query.municipality_code;
+
+      console.log(`\n🔍 [SEARCH SERVERS]`);
+      console.log(`📝 Query: ${q}, Letter: ${letter}, Municipality: ${municipality_code}`);
+      console.log(`👤 User: ${req.user?.email}, Filter: ${req.municipalityFilter || 'admin'}`);
 
       if (!q || q.length < 2) {
         return res.status(400).json({
@@ -217,9 +239,12 @@ class ServerController {
         limit: 20
       });
 
+      console.log(`✅ Encontrados ${servers.length} servidores na busca`);
+
       res.json({
         success: true,
-        data: servers
+        data: servers,
+        municipality_filter: req.municipalityFilter
       });
 
     } catch (error) {

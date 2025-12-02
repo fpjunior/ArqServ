@@ -22,7 +22,7 @@ exports.authenticate = async (req, res, next) => {
     // Buscar user atualizado com role e permissões
     const { data: user, error } = await pool.supabase
       .from('users')
-      .select('id, email, name, role, active')
+      .select('id, email, name, role, active, municipality_code')
       .eq('id', decoded.id)
       .single();
 
