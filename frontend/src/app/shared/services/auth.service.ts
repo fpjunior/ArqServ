@@ -314,12 +314,24 @@ export class AuthService {
       );
   }
 
-  register(name: string, email: string, password: string, user_type: string, municipality?: string, role?: string): Observable<any> {
+  register(name: string, email: string, password: string, user_type: string, municipality?: string, role?: string, municipality_code?: string): Observable<any> {
     const useSupabase = environment.useSupabaseAuth || (environment.supabaseUrl && environment.supabaseAnonKey) ? true : false;
     if (useSupabase) {
       const supabase = getSupabaseClient();
       // signUp via Supabase
-      return from(supabase.auth.signUp({ email, password, options: { data: { name, role, user_type, municipality } } })).pipe(
+      return from(supabase.auth.signUp({ 
+        email, 
+        password, 
+        options: { 
+          data: { 
+            name, 
+            role, 
+            user_type, 
+            municipality,
+            municipality_code 
+          } 
+        } 
+      })).pipe(
         switchMap((r: any) => {
           if (r.error) throw r.error;
           // If signUp created a session or user, sync with backend and then return response
@@ -329,7 +341,13 @@ export class AuthService {
     }
 
     // Legacy backend registration
-    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, password, user_type, municipality, role })
+    const registerData: any = { name, email, password, user_type, role };
+    if (municipality) registerData.municipality = municipality;
+    if (municipality_code) registerData.municipality_code = municipality_code;
+    
+    console.log('📤 [AUTH] Registrando usuário no backend:', { ...registerData, password: '[HIDDEN]' });
+    
+    return this.http.post<any>(`${this.apiUrl}/auth/register`, registerData)
       .pipe(catchError(this.handleError));
   }
 

@@ -21,6 +21,14 @@ interface CreateUserForm {
   password: string;
   confirmPassword: string;
   role: string;
+  municipality_code?: string;
+}
+
+interface Municipality {
+  id: number;
+  code: string;
+  name: string;
+  state: string;
 }
 
 @Component({
@@ -43,6 +51,10 @@ export class UsersListComponent implements OnInit {
   itemsPerPage = 10;
   totalPages = 0;
   totalItems = 0;
+  
+  // Municípios
+  municipalities: Municipality[] = [];
+  loadingMunicipalities = false;
   itemsPerPageOptions = [5, 10, 25, 50];
 
   currentUser: any | null = null;
@@ -50,12 +62,33 @@ export class UsersListComponent implements OnInit {
   // Modal de criação de usuário
   showCreateModal = false;
   isCreating = false;
+  
+  // Modal de sucesso
+  showSuccessModal = false;
+  successModalData: {
+    userName: string;
+    userEmail: string;
+    userRole: string;
+    userMunicipality?: string;
+  } = {
+    userName: '',
+    userEmail: '',
+    userRole: '',
+    userMunicipality: ''
+  };
+  
+  // Modal de erro
+  showErrorModal = false;
+  errorMessage = '';
+  errorTitle = 'Erro';
+  
   createUserForm: CreateUserForm = {
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user'
+    role: '',
+    municipality_code: ''
   };
 
   constructor(
@@ -81,7 +114,7 @@ export class UsersListComponent implements OnInit {
     if (!token) {
       console.error('❌ Token não encontrado');
       this.isLoading = false;
-      alert('Você precisa estar logado para acessar esta página.');
+      this.showError('Login Necessário', 'Você precisa estar logado para acessar esta página.');
       this.router.navigate(['/auth/login']);
       return;
     }
@@ -104,10 +137,10 @@ export class UsersListComponent implements OnInit {
         this.isLoading = false;
         
         if (error.status === 401 || error.status === 403) {
-          alert('Você não tem permissão para acessar esta página.');
+          this.showError('Sem Permissão', 'Você não tem permissão para acessar esta página.');
           this.router.navigate(['/dashboard']);
         } else {
-          alert('Erro ao carregar usuários. Verifique se o backend está rodando.');
+          this.showError('Erro de Conexão', 'Erro ao carregar usuários. Verifique se o backend está rodando.');
         }
       }
     });
@@ -154,11 +187,17 @@ export class UsersListComponent implements OnInit {
     if (!confirm(`Enviar convite para ${email}?`)) return;
     this.authService.invite(email).subscribe({
       next: (resp) => {
-        alert('Convite enviado com sucesso!');
+        // Mostrar sucesso no modal existente
+        this.successModalData = {
+          userName: 'Convite',
+          userEmail: email,
+          userRole: 'Enviado'
+        };
+        this.showSuccessModal = true;
       },
       error: (err) => {
         console.error('Erro ao enviar convite', err);
-        alert('Erro ao enviar convite. Veja o console para detalhes.');
+        this.showError('Erro no Convite', 'Erro ao enviar convite. Veja o console para detalhes.');
       }
     });
   }
@@ -289,11 +328,29 @@ export class UsersListComponent implements OnInit {
   openCreateModal(): void {
     this.showCreateModal = true;
     this.resetCreateForm();
+    this.loadMunicipalities();
   }
 
   closeCreateModal(): void {
     this.showCreateModal = false;
     this.resetCreateForm();
+  }
+
+  closeSuccessModal(): void {
+    this.showSuccessModal = false;
+  }
+
+  closeErrorModal(): void {
+    this.showErrorModal = false;
+    this.errorMessage = '';
+    this.errorTitle = 'Erro';
+  }
+
+  // Método utilitário para mostrar erros em modal
+  showError(title: string, message: string): void {
+    this.errorTitle = title;
+    this.errorMessage = message;
+    this.showErrorModal = true;
   }
 
   resetCreateForm(): void {
@@ -302,24 +359,31 @@ export class UsersListComponent implements OnInit {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'user'
+      role: '',
+      municipality_code: ''
     };
   }
 
   createUser(): void {
     // Validações
-    if (!this.createUserForm.name || !this.createUserForm.email || !this.createUserForm.password) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+    if (!this.createUserForm.name || !this.createUserForm.email || !this.createUserForm.password || !this.createUserForm.role) {
+      this.showError('Campos Obrigatórios', 'Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
     if (this.createUserForm.password !== this.createUserForm.confirmPassword) {
-      alert('As senhas não coincidem.');
+      this.showError('Senhas Diferentes', 'As senhas digitadas não coincidem. Verifique e tente novamente.');
       return;
     }
 
     if (this.createUserForm.password.length < 6) {
-      alert('A senha deve ter no mínimo 6 caracteres.');
+      this.showError('Senha Muito Curta', 'A senha deve ter no mínimo 6 caracteres para garantir a segurança.');
+      return;
+    }
+
+    // Validar município para usuários tipo 'user'
+    if (this.createUserForm.role === 'user' && !this.createUserForm.municipality_code) {
+      this.showError('Município Obrigatório', 'Por favor, selecione um município para usuários do tipo "Usuário".');
       return;
     }
 
@@ -328,18 +392,23 @@ export class UsersListComponent implements OnInit {
     const token = localStorage.getItem('arqserv_token');
     
     if (!token) {
-      alert('Você precisa estar logado.');
+      this.showError('Login Necessário', 'Você precisa estar logado para realizar esta ação.');
       this.router.navigate(['/auth/login']);
       return;
     }
 
     // Preparar dados para envio (sem confirmPassword)
-    const userData = {
+    const userData: any = {
       name: this.createUserForm.name,
       email: this.createUserForm.email,
       password: this.createUserForm.password,
       role: this.createUserForm.role
     };
+
+    // Incluir municipality_code apenas para usuários tipo 'user'
+    if (this.createUserForm.role === 'user' && this.createUserForm.municipality_code) {
+      userData.municipality_code = this.createUserForm.municipality_code;
+    }
 
     this.http.post<any>(`${environment.apiUrl}/admin/users`, userData, {
       headers: {
@@ -349,26 +418,94 @@ export class UsersListComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('✅ Usuário criado:', response);
-        alert('Usuário criado com sucesso!');
+        
+        // Preencher dados do modal de sucesso
+        this.successModalData = {
+          userName: this.createUserForm.name,
+          userEmail: this.createUserForm.email,
+          userRole: this.createUserForm.role === 'admin' ? 'Administrador' : 'Usuário',
+          userMunicipality: this.createUserForm.role === 'user' 
+            ? this.municipalities.find(m => m.code === this.createUserForm.municipality_code)?.name || 'N/A'
+            : undefined
+        };
+        
+        // Fechar modal de criação e mostrar modal de sucesso
         this.closeCreateModal();
-        this.loadUsers(); // Recarregar lista
+        this.showSuccessModal = true;
+        
+        // Recarregar lista
+        this.loadUsers();
         this.isCreating = false;
       },
       error: (error) => {
         console.error('❌ Erro ao criar usuário:', error);
         this.isCreating = false;
         
-        let errorMessage = 'Erro ao criar usuário.';
-        if (error.error?.message) {
-          errorMessage = error.error.message;
+        // Determinar título e mensagem do erro
+        if (error.error?.code === 'EMAIL_EXISTS') {
+          this.errorTitle = 'Email já Cadastrado';
+          this.errorMessage = 'Este email já está sendo usado por outro usuário. Tente com um email diferente.';
+        } else if (error.error?.message) {
+          this.errorTitle = 'Erro no Cadastro';
+          this.errorMessage = error.error.message;
         } else if (error.status === 400) {
-          errorMessage = 'Dados inválidos. Verifique os campos.';
+          this.errorTitle = 'Dados Inválidos';
+          this.errorMessage = 'Verifique se todos os campos foram preenchidos corretamente.';
         } else if (error.status === 401 || error.status === 403) {
-          errorMessage = 'Você não tem permissão para criar usuários.';
+          this.errorTitle = 'Sem Permissão';
+          this.errorMessage = 'Você não tem permissão para criar usuários.';
+        } else {
+          this.errorTitle = 'Erro Inesperado';
+          this.errorMessage = 'Ocorreu um erro ao tentar criar o usuário. Tente novamente.';
         }
         
-        alert(errorMessage);
+        // Mostrar modal de erro
+        this.showErrorModal = true;
       }
     });
+  }
+
+  loadMunicipalities(): void {
+    this.loadingMunicipalities = true;
+    console.log('🏛️ Carregando municípios da API...');
+    
+    this.http.get<any>(`${environment.apiUrl}/municipalities`).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.municipalities = response.data.map((municipality: any) => ({
+            id: municipality.id,
+            code: municipality.code,
+            name: municipality.name,
+            state: municipality.state
+          })).sort((a: any, b: any) => a.name.localeCompare(b.name));
+          
+          console.log(`✅ ${this.municipalities.length} municípios carregados da API`);
+        } else {
+          console.warn('⚠️ API retornou resposta sem dados, usando lista mockada');
+          this.loadMockMunicipalities();
+        }
+        this.loadingMunicipalities = false;
+      },
+      error: (error) => {
+        console.warn('⚠️ Erro ao carregar municípios da API, usando lista mockada:', error);
+        this.loadMockMunicipalities();
+        this.loadingMunicipalities = false;
+      }
+    });
+  }
+
+  private loadMockMunicipalities(): void {
+    this.municipalities = [
+      { id: 1, code: '3550308', name: 'São Paulo', state: 'SP' },
+      { id: 2, code: '3304557', name: 'Rio de Janeiro', state: 'RJ' },
+      { id: 3, code: '3106200', name: 'Belo Horizonte', state: 'MG' },
+      { id: 4, code: '5300108', name: 'Brasília', state: 'DF' },
+      { id: 5, code: '4106902', name: 'Curitiba', state: 'PR' },
+      { id: 6, code: '2304400', name: 'Fortaleza', state: 'CE' },
+      { id: 7, code: '2927408', name: 'Salvador', state: 'BA' },
+      { id: 8, code: '2611606', name: 'Recife', state: 'PE' },
+      { id: 9, code: '4314902', name: 'Porto Alegre', state: 'RS' },
+      { id: 10, code: '5208707', name: 'Goiânia', state: 'GO' }
+    ].sort((a, b) => a.name.localeCompare(b.name));
   }
 }

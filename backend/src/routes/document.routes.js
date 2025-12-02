@@ -1,5 +1,11 @@
 const express = require('express');
 const DocumentController = require('../controllers/document.controller');
+const { authenticate } = require('../middleware/auth.middleware');
+const { 
+  checkMunicipalityAccess, 
+  filterDocumentsByUserMunicipality,
+  checkUploadMunicipalityAccess 
+} = require('../middleware/municipality-access.middleware');
 
 const router = express.Router();
 
@@ -9,6 +15,8 @@ const router = express.Router();
  * @access Private (requer autenticação)
  */
 router.post('/upload', 
+  authenticate,
+  checkUploadMunicipalityAccess,
   DocumentController.uploadDocument,
   DocumentController.uploadFile
 );
@@ -16,14 +24,18 @@ router.post('/upload',
 /**
  * @route GET /api/documents/financial/:municipality_code
  * @desc Listar documentos financeiros por município
- * @access Public
+ * @access Public (com controle de acesso)
  * @params municipality_code - Código do município
  * @query financial_document_type - Tipo de documento financeiro (opcional)
  * @query financial_year - Ano do documento (opcional)
  * @query financial_period - Período do documento (opcional)
  * @query limit - Limite de resultados (opcional)
  */
-router.get('/financial/:municipality_code', DocumentController.getFinancialDocuments);
+router.get('/financial/:municipality_code', 
+  authenticate,
+  checkMunicipalityAccess,
+  DocumentController.getFinancialDocuments
+);
 
 /**
  * @route GET /api/documents/financial/:municipality_code/years
@@ -45,13 +57,17 @@ router.get('/financial/:municipality_code/types', DocumentController.getFinancia
 /**
  * @route GET /api/documents/municipality/:code
  * @desc Listar documentos por município
- * @access Public
+ * @access Public (com controle de acesso por município)
  * @params code - Código do município
  * @query category - Filtro por categoria (opcional)
  * @query dateFrom - Data inicial (opcional)
  * @query dateTo - Data final (opcional)
  */
-router.get('/municipality/:code', DocumentController.getDocumentsByMunicipality);
+router.get('/municipality/:code', 
+  authenticate,
+  checkMunicipalityAccess,
+  DocumentController.getDocumentsByMunicipality
+);
 
 /**
  * @route GET /api/documents/:id
@@ -82,7 +98,11 @@ router.delete('/:id', DocumentController.deleteDocument);
  * @query municipality_code - Filtro por município (opcional)  
  * @query limit - Limite de resultados (opcional)
  */
-router.get('/admin/all', DocumentController.getAllDocuments);
+router.get('/admin/all', 
+  authenticate,
+  filterDocumentsByUserMunicipality,
+  DocumentController.getAllDocuments
+);
 
 /**
  * @route GET /api/documents/financial/test  

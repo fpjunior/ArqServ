@@ -8,6 +8,7 @@ import { environment } from '../../../../../environments/environment';
 
 interface Municipality {
   id: number;
+  code: string;
   name: string;
   state: string;
 }
@@ -39,10 +40,27 @@ export class UserRegistrationComponent implements OnInit {
       confirmPassword: ['', [Validators.required]],
       user_type: ['prefeitura', [Validators.required]],
       municipality: [''],
-      role: ['user', [Validators.required]]
+      role: ['user', [Validators.required]],
+      municipality_code: [''] // Novo campo para armazenar o código do município
     }, { validators: this.passwordMatchValidator });
 
-    // Quando o tipo de usuário mudar, ajustar validações
+    // Quando o role mudar, ajustar validações do município
+    this.userForm.get('role')?.valueChanges.subscribe(role => {
+      const municipalityCodeControl = this.userForm.get('municipality_code');
+      
+      if (role === 'user') {
+        // Se é usuário, município é obrigatório
+        municipalityCodeControl?.setValidators([Validators.required]);
+      } else {
+        // Se é admin, município não é necessário
+        municipalityCodeControl?.clearValidators();
+        municipalityCodeControl?.setValue('');
+      }
+      
+      municipalityCodeControl?.updateValueAndValidity();
+    });
+
+    // Quando o tipo de usuário mudar, ajustar validações (manter compatibilidade)
     this.userForm.get('user_type')?.valueChanges.subscribe(type => {
       const municipalityControl = this.userForm.get('municipality');
       
@@ -81,23 +99,50 @@ export class UserRegistrationComponent implements OnInit {
   }
 
   loadMunicipalities(): void {
-    // Lista de municípios do Brasil (exemplo com alguns principais)
+    console.log('🏛️ Carregando municípios da API...');
+    
+    // Buscar municípios da API real
+    this.http.get<any>(`${environment.apiUrl}/municipalities`).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.municipalities = response.data.map((municipality: any) => ({
+            id: municipality.id,
+            code: municipality.code,
+            name: municipality.name,
+            state: municipality.state
+          })).sort((a: any, b: any) => a.name.localeCompare(b.name));
+          
+          console.log(`✅ ${this.municipalities.length} municípios carregados da API`);
+        } else {
+          console.warn('⚠️ API retornou resposta sem dados, usando lista mockada');
+          this.loadMockMunicipalities();
+        }
+      },
+      error: (error) => {
+        console.warn('⚠️ Erro ao carregar municípios da API, usando lista mockada:', error);
+        this.loadMockMunicipalities();
+      }
+    });
+  }
+
+  private loadMockMunicipalities(): void {
+    // Lista mockada como fallback
     this.municipalities = [
-      { id: 1, name: 'São Paulo', state: 'SP' },
-      { id: 2, name: 'Rio de Janeiro', state: 'RJ' },
-      { id: 3, name: 'Belo Horizonte', state: 'MG' },
-      { id: 4, name: 'Brasília', state: 'DF' },
-      { id: 5, name: 'Salvador', state: 'BA' },
-      { id: 6, name: 'Fortaleza', state: 'CE' },
-      { id: 7, name: 'Curitiba', state: 'PR' },
-      { id: 8, name: 'Recife', state: 'PE' },
-      { id: 9, name: 'Porto Alegre', state: 'RS' },
-      { id: 10, name: 'Goiânia', state: 'GO' },
-      { id: 11, name: 'Belém', state: 'PA' },
-      { id: 12, name: 'Guarulhos', state: 'SP' },
-      { id: 13, name: 'Campinas', state: 'SP' },
-      { id: 14, name: 'São Luís', state: 'MA' },
-      { id: 15, name: 'Maceió', state: 'AL' }
+      { id: 1, code: '3550308', name: 'São Paulo', state: 'SP' },
+      { id: 2, code: '3304557', name: 'Rio de Janeiro', state: 'RJ' },
+      { id: 3, code: '3106200', name: 'Belo Horizonte', state: 'MG' },
+      { id: 4, code: '5300108', name: 'Brasília', state: 'DF' },
+      { id: 5, code: '4106902', name: 'Curitiba', state: 'PR' },
+      { id: 6, code: '2304400', name: 'Fortaleza', state: 'CE' },
+      { id: 7, code: '2927408', name: 'Salvador', state: 'BA' },
+      { id: 8, code: '2611606', name: 'Recife', state: 'PE' },
+      { id: 9, code: '4314902', name: 'Porto Alegre', state: 'RS' },
+      { id: 10, code: '5208707', name: 'Goiânia', state: 'GO' },
+      { id: 11, code: '1501402', name: 'Belém', state: 'PA' },
+      { id: 12, code: '3518800', name: 'Guarulhos', state: 'SP' },
+      { id: 13, code: '3509502', name: 'Campinas', state: 'SP' },
+      { id: 14, code: '2111300', name: 'São Luís', state: 'MA' },
+      { id: 15, code: '2704302', name: 'Maceió', state: 'AL' }
     ].sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -116,12 +161,30 @@ export class UserRegistrationComponent implements OnInit {
       const formData = { ...this.userForm.value };
       delete formData.confirmPassword; // Remove confirmPassword antes de enviar
       
+      // Se é admin (role), remover municipality e municipality_code
+      if (formData.role === 'admin') {
+        delete formData.municipality;
+        delete formData.municipality_code;
+      }
+
       // Se é admin (tipo), remover municipality
       if (formData.user_type === 'admin') {
         delete formData.municipality;
       }
 
-      this.authService.register(formData.name, formData.email, formData.password, formData.user_type, formData.municipality, formData.role)
+      console.log('📤 Enviando dados do usuário:', {
+        ...formData,
+        password: '[HIDDEN]' // Não logar a senha
+      });
+
+      this.authService.register(
+        formData.name, 
+        formData.email, 
+        formData.password, 
+        formData.user_type, 
+        formData.municipality, 
+        formData.role
+      )
         .subscribe({
           next: (response: any) => {
             console.log('✅ Usuário cadastrado com sucesso:', response);
@@ -171,6 +234,7 @@ export class UserRegistrationComponent implements OnInit {
       confirmPassword: 'Confirmação de senha',
       user_type: 'Tipo de usuário',
       municipality: 'Município',
+      municipality_code: 'Município',
       role: 'Nível de acesso'
     };
     return labels[fieldName] || fieldName;

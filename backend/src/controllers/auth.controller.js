@@ -13,6 +13,7 @@ const generateToken = async (user) => {
       email: user.email, 
       name: user.name,
       role: user.role || 'user',
+      municipality_code: user.municipality_code,
       permissions: permissions
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
@@ -26,9 +27,14 @@ const generateToken = async (user) => {
 // Considera-se desabilitar este endpoint em produção
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, municipality_code } = req.body;
 
-    console.log('⚠️ [REGISTER] DEPRECATED - Use /api/admin/users. Tentativa de cadastro:', { name, email, role });
+    console.log('⚠️ [REGISTER] DEPRECATED - Use /api/admin/users. Tentativa de cadastro:', { 
+      name, 
+      email, 
+      role, 
+      municipality_code 
+    });
 
     // Validações básicas
     if (!name || !email || !password) {
@@ -37,6 +43,16 @@ exports.register = async (req, res) => {
         status: 'ERROR',
         message: 'Nome, email e senha são obrigatórios',
         code: 'MISSING_REQUIRED_FIELDS'
+      });
+    }
+
+    // Se role é 'user', municipality_code é obrigatório
+    if (role === 'user' && !municipality_code) {
+      console.log('❌ [REGISTER] Município obrigatório para usuários tipo "user"');
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Município é obrigatório para usuários do tipo "user"',
+        code: 'MISSING_MUNICIPALITY'
       });
     }
 
@@ -63,10 +79,15 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || 'user' // Usar o role enviado ou 'user' como padrão
+      role: role || 'user', // Usar o role enviado ou 'user' como padrão
+      municipality_code: role === 'user' ? municipality_code : null
     });
 
-    console.log('⚠️ [REGISTER] Usuário criado APENAS na tabela (sem Supabase Auth):', { id: newUser.id, email: newUser.email });
+    console.log('⚠️ [REGISTER] Usuário criado APENAS na tabela (sem Supabase Auth):', { 
+      id: newUser.id, 
+      email: newUser.email, 
+      municipality_code: newUser.municipality_code 
+    });
 
     // Resposta de sucesso
     res.status(201).json({
@@ -190,7 +211,8 @@ exports.login = async (req, res) => {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
+          role: user.role,
+          municipality_code: user.municipality_code
         }
       }
     });

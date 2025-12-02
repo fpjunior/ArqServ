@@ -36,6 +36,7 @@ class User {
           email, 
           name, 
           role, 
+          municipality_code,
           active, 
           created_at,
           updated_at
@@ -85,7 +86,7 @@ class User {
    */
   static async create(userData) {
     try {
-      const { name, email, password, role = 'user' } = userData;
+      const { name, email, password, role = 'user', municipality_code = null } = userData;
       
       // Hash da senha
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -97,6 +98,7 @@ class User {
           email,
           password: hashedPassword,
           role: role,
+          municipality_code,
           active: true,
           created_at: new Date(),
           updated_at: new Date()
@@ -121,7 +123,7 @@ class User {
    */
   static async createWithAuth(userInput) {
     try {
-      const { name, email, password, role = 'user' } = userInput;
+      const { name, email, password, role = 'user', municipality_code = null } = userInput;
       
       console.log(`📝 Criando usuário: ${email} com role: ${role}`);
       
@@ -132,7 +134,8 @@ class User {
         email_confirm: true, // Auto-confirmar email
         user_metadata: {
           name,
-          role
+          role,
+          municipality_code
         }
       });
 
@@ -154,6 +157,7 @@ class User {
           email,
           password: hashedPassword,
           role,
+          municipality_code,
           active: true,
           created_at: new Date(),
           updated_at: new Date()
@@ -196,7 +200,8 @@ class User {
           id, 
           name, 
           email, 
-          role, 
+          role,
+          municipality_code,
           active, 
           created_at, 
           updated_at
@@ -257,6 +262,85 @@ class User {
     } catch (error) {
       console.error('❌ Erro ao ativar/desativar usuário:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Atualiza municipality_code do usuário
+   */
+  static async updateMunicipality(userId, municipalityCode) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('users')
+        .update({ municipality_code: municipalityCode, updated_at: new Date() })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar município do usuário:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca usuários por município
+   */
+  static async findByMunicipality(municipalityCode) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('users')
+        .select(`
+          id, 
+          name, 
+          email, 
+          role,
+          municipality_code,
+          active, 
+          created_at, 
+          updated_at
+        `)
+        .eq('municipality_code', municipalityCode)
+        .eq('active', true)
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar usuários por município:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica se usuário tem acesso ao município
+   */
+  static async hasAccessToMunicipality(userId, municipalityCode) {
+    try {
+      const user = await this.findById(userId);
+      
+      if (!user) {
+        return false;
+      }
+
+      // Admin tem acesso a todos os municípios
+      if (user.role === 'admin') {
+        return true;
+      }
+
+      // Usuário comum só tem acesso ao seu município
+      return user.municipality_code === municipalityCode;
+    } catch (error) {
+      console.error('❌ Erro ao verificar acesso ao município:', error.message);
+      return false;
     }
   }
 }

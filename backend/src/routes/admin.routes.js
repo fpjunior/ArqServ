@@ -46,7 +46,7 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
  */
 router.post('/users', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, municipality_code } = req.body;
 
     // Validação
     if (!name || !email || !password) {
@@ -65,6 +65,15 @@ router.post('/users', authenticate, requireAdmin, async (req, res) => {
       });
     }
 
+    // Validar municipality_code para usuários tipo 'user'
+    if (role === 'user' && !municipality_code) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Código do município é obrigatório para usuários tipo "user"',
+        code: 'MISSING_MUNICIPALITY'
+      });
+    }
+
     // Verificar se email já existe
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
@@ -80,7 +89,8 @@ router.post('/users', authenticate, requireAdmin, async (req, res) => {
       name,
       email,
       password,
-      role
+      role,
+      municipality_code: role === 'user' ? municipality_code : null
     });
 
     // Remover senha da resposta
