@@ -66,18 +66,6 @@
       </div>
     </div>
 
-    <!-- Debug Information -->
-    <div *ngIf="!loading && debugInfo" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-      <h4 class="font-semibold text-yellow-800 mb-2">Informações de Debug:</h4>
-      <div class="text-sm text-yellow-700 space-y-1">
-        <p><strong>Total de servidores:</strong> {{ totalServers }}</p>
-        <p><strong>Município atual:</strong> {{ debugInfo.municipality || 'Não definido' }}</p>
-        <p><strong>Usuário:</strong> {{ debugInfo.userName || 'Não definido' }}</p>
-        <p><strong>Resposta da API:</strong> {{ debugInfo.apiResponse || 'Nenhuma' }}</p>
-        <p><strong>Erro:</strong> {{ debugInfo.error || 'Nenhum' }}</p>
-      </div>
-    </div>
-
     <!-- Grid de Grupos de Servidores -->
     <div *ngIf="!loading && totalServers > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
       <div 
