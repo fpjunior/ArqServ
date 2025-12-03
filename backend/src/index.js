@@ -395,6 +395,10 @@ app.listen(PORT, async () => {
   const driveOAuthInitialized = await googleDriveOAuthService.initialize();
   const driveServiceInitialized = await googleDriveService.initialize();
   
+  // Armazenar serviços no app Express
+  app.set('googleDriveOAuthService', googleDriveOAuthService);
+  app.set('googleDriveService', googleDriveService);
+  
   if (driveOAuthInitialized) {
     console.log('✅ Google Drive OAuth service pronto!');
   } else if (driveServiceInitialized) {

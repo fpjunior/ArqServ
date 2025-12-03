@@ -1,5 +1,4 @@
 <div class="min-h-screen bg-gray-100">
-  <!-- Main Content -->
   <div class="flex-1 flex flex-col">
     <!-- Header -->
     <div class="bg-white shadow-sm px-8 py-6">
@@ -10,14 +9,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
           </button>
-          <h1 class="text-3xl font-bold text-gray-900">{{ server?.name || 'Servidor' }}</h1>
-        </div>
-        
-        <div class="flex items-center space-x-3">
-          <div class="bg-gray-100 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center font-medium">
-            JC
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">{{ server?.name || 'Carregando...' }}</h1>
+            <p *ngIf="server?.municipality_name" class="text-gray-600 mt-1">🏛️ {{ server?.municipality_name }}</p>
           </div>
-          <span class="text-gray-700 font-medium">João Carlos</span>
         </div>
       </div>
     </div>
@@ -30,91 +25,169 @@
           <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
-          <input
-            type="text"
+          <input 
+            type="text" 
+            placeholder="Buscar documentos..." 
+            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             [(ngModel)]="searchTerm"
-            (input)="onSearch()"
-            placeholder="Buscar arquivos"
-            class="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            (input)="onSearch()">
         </div>
       </div>
 
-      <!-- Files List -->
-      <div class="space-y-3">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Carregando documentos...</p>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="errorMessage && !isLoading" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <div class="text-red-600 text-6xl mb-4">❌</div>
+        <h3 class="text-lg font-medium text-red-800 mb-2">Erro ao carregar documentos</h3>
+        <p class="text-red-700">{{ errorMessage }}</p>
+        <button 
+          (click)="loadServerFiles(server?.id?.toString() || '')"
+          class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+          Tentar Novamente
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && !errorMessage && filteredFiles.length === 0 && files.length === 0" class="text-center py-12">
+        <div class="text-gray-400 text-6xl mb-4">📁</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum documento encontrado</h3>
+        <p class="text-gray-600">Este servidor ainda não possui documentos cadastrados.</p>
+      </div>
+
+      <!-- No Search Results -->
+      <div *ngIf="!isLoading && searchTerm && filteredFiles.length === 0 && files.length > 0" class="text-center py-12">
+        <div class="text-gray-400 text-6xl mb-4">🔍</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum resultado encontrado</h3>
+        <p class="text-gray-600">Tente ajustar sua pesquisa para encontrar documentos.</p>
+      </div>
+
+      <!-- Files Grid -->
+      <div *ngIf="!isLoading && filteredFiles.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <div *ngFor="let file of filteredFiles" 
-             class="group bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer"
-             (click)="openFile(file)">
-          <div class="flex items-center space-x-4">
-            <!-- File Type Icon -->
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 rounded-lg flex items-center justify-center"
-                   [ngClass]="{
-                     'bg-red-100': file.type === 'pdf',
-                     'bg-blue-100': file.type === 'img', 
-                     'bg-green-100': file.type === 'doc',
-                     'bg-gray-100': file.type === 'other'
-                   }">
-                <svg class="w-6 h-6" 
-                     [ngClass]="{
-                       'text-red-600': file.type === 'pdf',
-                       'text-blue-600': file.type === 'img',
-                       'text-green-600': file.type === 'doc', 
-                       'text-gray-600': file.type === 'other'
-                     }"
-                     fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                </svg>
+             class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
+          
+          <!-- File Header -->
+          <div class="p-4 border-b border-gray-100">
+            <div class="flex items-start space-x-3">
+              <div class="text-2xl">{{ getFileIcon(file) }}</div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-medium text-gray-900 truncate">{{ file.title }}</h3>
+                <p class="text-xs text-gray-500 truncate">{{ file.file_name }}</p>
               </div>
             </div>
+          </div>
 
-            <!-- File Info -->
-            <div class="flex-1">
-              <h3 class="text-lg font-medium text-gray-900">{{ file.name }}</h3>
-              <div class="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                <span>{{ file.size }}</span>
-                <span>{{ file.lastModified | date:'dd/MM/yyyy' }}</span>
-                <span class="capitalize bg-gray-100 px-2 py-1 rounded-full text-xs">
-                  {{ file.type.toUpperCase() }}
-                </span>
-              </div>
+          <!-- File Details -->
+          <div class="p-4 space-y-2">
+            <div *ngIf="file.description" class="text-xs text-gray-600 line-clamp-2">
+              {{ file.description }}
             </div>
+            
+            <div class="flex justify-between items-center text-xs text-gray-500">
+              <span>{{ formatFileSize(file.file_size) }}</span>
+              <span>{{ formatDate(file.created_at) }}</span>
+            </div>
+            
+            <div *ngIf="file.category" class="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+              {{ file.category }}
+            </div>
+          </div>
 
-            <!-- Actions -->
-            <div class="flex items-center space-x-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              <button
-                (click)="viewFile(file); $event.stopPropagation()"
-                class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50 group-hover:bg-green-50"
-                title="Visualizar">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                </svg>
+          <!-- Action Buttons -->
+          <div class="px-4 pb-4">
+            <div class="flex space-x-2">
+              <button 
+                (click)="viewDocument(file)"
+                class="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1">
+                <span>👁️</span>
+                <span>Visualizar</span>
               </button>
-
-              <button
-                (click)="downloadFile(file); $event.stopPropagation()"
-                class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50 group-hover:bg-blue-50"
-                title="Baixar">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
+              <button 
+                (click)="downloadDocument(file)"
+                class="flex-1 px-3 py-2 bg-gray-50 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center space-x-1">
+                <span>⬇️</span>
+                <span>Baixar</span>
               </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Empty State -->
-        <div *ngIf="filteredFiles.length === 0" class="text-center py-12">
-          <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      <!-- Summary -->
+      <div *ngIf="!isLoading && files.length > 0" class="mt-8 text-center text-gray-600">
+        <p>{{ filteredFiles.length }} de {{ files.length }} documentos</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div *ngIf="isModalVisible" 
+     class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 modal-overlay"
+     (click)="closeModal()">
+  <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl overflow-hidden z-[9999] modal-content" 
+       (click)="$event.stopPropagation()">
+    
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between p-4 border-b bg-gray-50">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">{{ getFileIcon(selectedFile!) }}</span>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">{{ selectedFile?.title }}</h3>
+          <p class="text-sm text-gray-600">{{ selectedFile?.file_name }}</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button 
+          (click)="downloadDocument(selectedFile!)"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+          <span>⬇️</span>
+          <span>Baixar</span>
+        </button>
+        <button 
+          (click)="closeModal()"
+          class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum arquivo encontrado</h3>
-          <p class="text-gray-500">
-            {{ searchTerm ? 'Tente ajustar os termos da busca' : 'Este servidor não possui arquivos cadastrados' }}
-          </p>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="flex-1 relative h-full">
+      <!-- Loading Spinner -->
+      <div *ngIf="modalIsLoading" 
+           class="absolute inset-0 flex items-center justify-center bg-gray-100">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Carregando documento...</p>
+        </div>
+      </div>
+
+      <!-- Document Iframe -->
+      <iframe *ngIf="!modalIsLoading && modalViewerUrl"
+              [src]="modalViewerUrl"
+              class="w-full h-full border-0 relative"
+              style="z-index: 1 !important; pointer-events: auto;"
+              (load)="modalIsLoading = false">
+      </iframe>
+
+      <!-- Error State -->
+      <div *ngIf="!modalIsLoading && !modalViewerUrl" 
+           class="absolute inset-0 flex items-center justify-center bg-gray-100">
+        <div class="text-center">
+          <div class="text-red-500 text-6xl mb-4">❌</div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Erro ao carregar documento</h3>
+          <p class="text-gray-600">Não foi possível carregar o documento para visualização.</p>
         </div>
       </div>
     </div>

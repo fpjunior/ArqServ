@@ -69,6 +69,8 @@ router.get('/municipality/:code',
   DocumentController.getDocumentsByMunicipality
 );
 
+
+
 /**
  * @route GET /api/documents/:id
  * @desc Buscar documento específico por ID
@@ -82,6 +84,16 @@ router.get('/:id', DocumentController.getDocumentById);
  * @access Public
  */
 router.get('/:id/download', DocumentController.downloadDocument);
+
+/**
+ * @route GET /api/documents/drive/:drive_file_id/download
+ * @desc Download de arquivo diretamente do Google Drive
+ * @access Private (requer autenticação)
+ */
+router.get('/drive/:drive_file_id/download', 
+  authenticate,
+  DocumentController.downloadDriveFile
+);
 
 /**
  * @route DELETE /api/documents/:id
@@ -129,5 +141,26 @@ router.get('/financial/:municipality_code/types', DocumentController.getFinancia
  * @desc Listar documentos financeiros por município
  */
 router.get('/financial/:municipality_code', DocumentController.getFinancialDocuments);
+
+/**
+ * @route GET /api/documents/server/:serverId  
+ * @desc Buscar documentos de um servidor específico
+ * @access Private
+ */
+router.get('/server/:serverId', 
+  authenticate,
+  filterDocumentsByUserMunicipality,
+  DocumentController.getDocumentsByServer
+);
+
+/**
+ * @route GET /api/documents/drive/:fileId/download
+ * @desc Download de arquivo do Google Drive
+ * @access Private
+ */
+router.get('/drive/:fileId/download',
+  authenticate,
+  DocumentController.downloadDriveFile
+);
 
 module.exports = router;

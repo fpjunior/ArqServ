@@ -106,3 +106,24 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* Modal com z-index máximo para sobrepor elementos do Google Drive */
+.modal-overlay {
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+.modal-content {
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+/* Forçar que iframe do Google Drive respeite o modal */
+iframe {
+  z-index: 1 !important;
+  position: relative !important;
+}

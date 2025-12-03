@@ -199,22 +199,25 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     this.filterDocuments();
   }
 
-  downloadDocument(document: FinancialDocument): void {
-    if (document.googleDriveUrl) {
-      window.open(document.googleDriveUrl, '_blank');
+  downloadDocument(doc: FinancialDocument): void {
+    console.log(`⬇️ Fazendo download do documento: ${doc.name}`);
+    if (doc.googleDriveUrl) {
+      // Implementar download direto em vez de abrir nova guia
+      const link = window.document.createElement('a');
+      link.href = doc.googleDriveUrl;
+      link.download = doc.name;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
     } else {
-      console.log(`Fazendo download do documento: ${document.name}`);
-      // TODO: Implementar lógica de download
+      alert('URL do documento não encontrada');
     }
   }
 
-  viewDocument(document: FinancialDocument): void {
-    if (document.googleDriveUrl) {
-      window.open(document.googleDriveUrl, '_blank');
-    } else {
-      console.log(`Visualizando documento: ${document.name}`);
-      // TODO: Implementar visualizador de documentos
-    }
+  viewDocument(doc: FinancialDocument): void {
+    console.log(`👁️ Visualizando documento: ${doc.name}`);
+    // Modal não implementado para documentos financeiros ainda
+    alert('Visualização em modal não implementada para documentos financeiros');
   }
 
   deleteDocument(document: FinancialDocument): void {

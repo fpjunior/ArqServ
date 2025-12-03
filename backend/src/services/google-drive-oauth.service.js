@@ -341,6 +341,91 @@ class GoogleDriveOAuthService {
     }
   }
 
+  /**
+   * Download de arquivo do Google Drive
+   */
+  async downloadFile(fileId) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Google Drive OAuth service not initialized');
+      }
+
+      console.log(`⬇️ Baixando arquivo do Google Drive: ${fileId}`);
+
+      // Primeiro, obter informações do arquivo
+      const fileInfo = await this.drive.files.get({
+        fileId: fileId,
+        fields: 'name,mimeType,size'
+      });
+
+      // Fazer download do arquivo
+      const fileData = await this.drive.files.get({
+        fileId: fileId,
+        alt: 'media'
+      }, {
+        responseType: 'stream'
+      });
+
+      return {
+        success: true,
+        stream: fileData.data,
+        fileName: fileInfo.data.name,
+        mimeType: fileInfo.data.mimeType,
+        size: fileInfo.data.size
+      };
+
+    } catch (error) {
+      console.error('❌ Erro no download do arquivo:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Listar arquivos em uma pasta específica do Google Drive
+   */
+  async listFilesInFolder(folderId) {
+    try {
+      if (!this.initialized) {
+        throw new Error('Google Drive OAuth service not initialized');
+      }
+
+      console.log(`📁 Listando arquivos na pasta: ${folderId}`);
+      
+      const response = await this.drive.files.list({
+        q: `'${folderId}' in parents and trashed=false`,
+        fields: 'files(id, name, mimeType, size, modifiedTime, webViewLink, webContentLink)',
+        orderBy: 'name'
+      });
+
+      const files = response.data.files || [];
+      console.log(`📄 Encontrados ${files.length} arquivos na pasta`);
+      
+      return {
+        success: true,
+        files: files.map(file => ({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          size: file.size ? parseInt(file.size) : null,
+          modifiedTime: file.modifiedTime,
+          webViewLink: file.webViewLink,
+          webContentLink: file.webContentLink
+        }))
+      };
+      
+    } catch (error) {
+      console.error('❌ Erro ao listar arquivos na pasta:', error);
+      return {
+        success: false,
+        error: error.message,
+        files: []
+      };
+    }
+  }
+
   isInitialized() {
     return this.initialized;
   }

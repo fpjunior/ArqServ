@@ -133,6 +133,28 @@ class Document {
   }
 
   /**
+   * Buscar documentos por servidor
+   */
+  static async findByServer(serverId) {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select(`
+          *
+        `)
+        .eq('server_id', serverId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar documentos por servidor:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Atualizar documento
    */
   static async update(id, updateData) {
