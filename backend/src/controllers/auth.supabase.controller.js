@@ -15,7 +15,8 @@ const generateToken = (user) => {
       name: user.name,
       role: user.role,
       user_type: user.user_type,
-      municipality: user.municipality
+      municipality: user.municipality_code || user.municipality,
+      municipality_code: user.municipality_code
     },
     process.env.JWT_SECRET || 'arqserv_secret_key',
     { expiresIn: '24h' }
@@ -101,7 +102,7 @@ exports.syncSupabaseUser = async (req, res) => {
     // Use let so we can prefer DB-stored role if user already exists
     let role = supabaseUser.user_metadata?.role || 'user';
     let user_type = supabaseUser.user_metadata?.user_type || 'prefeitura';
-    const municipality = supabaseUser.user_metadata?.municipality || null;
+    const municipality_code = supabaseUser.user_metadata?.municipality_code || supabaseUser.user_metadata?.municipality || null;
 
     // Find or create local user
     let user = await User.findByEmail(email);
@@ -111,7 +112,7 @@ exports.syncSupabaseUser = async (req, res) => {
       const placeholderPassword = Math.random().toString(36).substring(2, 12);
       const hashedPassword = await bcrypt.hash(placeholderPassword, 10);
       try {
-        user = await User.create({ name, email, password: hashedPassword, user_type, municipality, role });
+        user = await User.create({ name, email, password: hashedPassword, user_type, municipality_code, role });
       } catch (dbErr) {
         console.error('[AUTH/SUPABASE] Error creating user in DB:', dbErr.message, dbErr);
         return res.status(500).json({ success: false, message: 'Error creating user in DB' });
@@ -130,7 +131,7 @@ exports.syncSupabaseUser = async (req, res) => {
       }
     }
 
-    console.log(`[AUTH/SUPABASE] Syncing user '${email}'; final role: ${role}, user_type: ${user_type}`);
+    console.log(`[AUTH/SUPABASE] Syncing user '${email}'; final role: ${role}, user_type: ${user_type}, municipality_code: ${user.municipality_code}`);
 
     // Retornar user com dados completos e consistentes
     const userResponse = {
@@ -139,7 +140,8 @@ exports.syncSupabaseUser = async (req, res) => {
       name: user.name,
       role: role, // Role autoritativo do banco
       user_type: user.user_type,
-      municipality: user.municipality,
+      municipality: user.municipality_code, // Frontend espera 'municipality' mas banco usa 'municipality_code'
+      municipality_code: user.municipality_code,
       active: user.active
     };
 

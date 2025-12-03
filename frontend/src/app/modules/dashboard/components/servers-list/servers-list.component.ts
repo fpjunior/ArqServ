@@ -86,11 +86,10 @@ export class ServersListComponent implements OnInit {
     });
 
     // Obter token de autenticação
-    const token = localStorage.getItem('authToken');
-    console.log('🔑 Token encontrado:', token ? 'SIM' : 'NÃO');
+    const token = localStorage.getItem('arqserv_token');
     
     if (!token) {
-      console.error('❌ Token não encontrado');
+      console.error('❌ Token de autenticação não encontrado');
       this.debugInfo.error = 'Token não encontrado';
       this.isLoading = false;
       this.loading = false;

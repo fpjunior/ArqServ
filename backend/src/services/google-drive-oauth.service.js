@@ -429,6 +429,14 @@ class GoogleDriveOAuthService {
   isInitialized() {
     return this.initialized;
   }
+
+  getStorageInfo() {
+    return {
+      isInitialized: this.initialized,
+      storageType: this.initialized ? 'Google Drive (OAuth)' : 'Local Storage',
+      rootFolder: this.rootFolderId || 'N/A'
+    };
+  }
 }
 
 // Singleton instance

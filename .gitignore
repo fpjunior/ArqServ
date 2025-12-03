@@ -12,6 +12,7 @@ yarn-error.log*
 .env.development
 backend/.env
 frontend/.env
+docker-compose.yml
 
 # Google Drive credentials (NEVER commit these!)
 **/google-drive-credentials.json
@@ -77,3 +78,15 @@ logs/
 package-lock.json
 frontend/package-lock.json
 backend/package-lock.json
+
+# Development scripts (local only)
+start-*.ps1
+test-*.js
+debug-*.js
+**/test-google-drive.js
+**/create-admin-test.sql
+**/clear-cache.html
+
+# Docker
+.docker/
+docker-compose.override.yml

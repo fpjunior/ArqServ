@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3005/api'
+  apiUrl: 'http://localhost:3001/api'
   ,
   // Supabase configuration (local dev)
   useSupabaseAuth: true,

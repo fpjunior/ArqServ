@@ -22,7 +22,7 @@ RUN npm install
 COPY . .
 
 # Expor porta
-EXPOSE 3005
+EXPOSE 3001
 
 # Comando padrão (desenvolvimento com nodemon)
 CMD ["npm", "run", "dev"]
