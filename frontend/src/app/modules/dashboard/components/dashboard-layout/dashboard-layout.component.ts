@@ -106,6 +106,16 @@ export class DashboardLayoutComponent implements OnInit {
     }
   }
 
+  navigateToFinancialDocuments(): void {
+    if (this.isAdmin()) {
+      this.router.navigate(['/admin/municipalities'], {
+        queryParams: { redirectTo: '/documentacoes-financeiras' }
+      });
+    } else {
+      this.navigateTo('/documentacoes-financeiras');
+    }
+  }
+
   getPageTitle(): string {
     if (this.currentRoute.startsWith('/documentacoes-financeiras/')) {
       const category = this.currentRoute.split('/')[2];

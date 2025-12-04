@@ -66,6 +66,17 @@ export const routes: Routes = [
           .then(m => m.FinancialCategoryDetailsComponent)
       },
       {
+        path: 'documentacoes-financeiras/municipality',
+        loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component')
+          .then(m => m.MunicipalitySelectorComponent),
+        canActivate: [AdminGuard]
+      },
+      {
+        path: 'documentacoes-financeiras/municipality/:municipalityCode',
+        loadComponent: () => import('./modules/dashboard/components/financial-documents/financial-documents.component')
+          .then(m => m.FinancialDocumentsComponent)
+      },
+      {
         path: 'users',
         loadComponent: () => import('./modules/dashboard/components/users-list/users-list.component')
           .then(m => m.UsersListComponent)

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 interface FinancialFolder {
   id: string;
@@ -55,11 +56,13 @@ export class FinancialDocumentsComponent implements OnInit {
   ];
 
   selectedFolder: FinancialFolder | null = null;
+  municipalityCode: string | null = null;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
-    // Inicialização do componente
+    this.municipalityCode = this.route.snapshot.paramMap.get('municipalityCode');
+    console.log('Selected Municipality Code:', this.municipalityCode);
   }
 
   selectFolder(folder: FinancialFolder): void {

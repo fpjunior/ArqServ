@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../../../environments/environment';
+import { ActivatedRoute } from '@angular/router';
 
 interface Municipality {
   code: string;
@@ -24,7 +25,7 @@ export class MunicipalitySelectorComponent implements OnInit {
   isLoading: boolean = false;
   searchQuery: string = '';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.loadMunicipalities();
@@ -57,6 +58,7 @@ export class MunicipalitySelectorComponent implements OnInit {
   }
 
   selectMunicipality(municipalityCode: string): void {
-    this.router.navigate(['/servers/municipality', municipalityCode]);
+    const redirectTo = this.route.snapshot.queryParams['redirectTo'] || '/servers/municipality';
+    this.router.navigate([redirectTo, municipalityCode]);
   }
 }
