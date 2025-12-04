@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Location } from '@angular/common';
 
 interface ServerFile {
   id: number;
@@ -63,7 +64,8 @@ export class ServerDetailsComponent implements OnInit {
     private router: Router,
     private http: HttpClient,
     private authService: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -254,11 +256,7 @@ export class ServerDetailsComponent implements OnInit {
   }
 
   goBack(): void {
-    if (this.letter) {
-      this.router.navigate(['/dashboard/servers', this.letter]);
-    } else {
-      this.router.navigate(['/dashboard/servers']);
-    }
+    this.location.back();
   }
 
   closeModal(): void {

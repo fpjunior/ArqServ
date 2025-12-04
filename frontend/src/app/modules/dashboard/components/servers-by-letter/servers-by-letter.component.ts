@@ -234,7 +234,12 @@ export class ServersByLetterComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/servers']);
+    const municipalityCode = this.route.snapshot.queryParams['municipality'];
+    if (municipalityCode) {
+      this.router.navigate(['/servers/municipality', municipalityCode]);
+    } else {
+      this.router.navigate(['/servers']);
+    }
   }
 
   getInitials(name: string): string {
