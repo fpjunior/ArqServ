@@ -909,6 +909,129 @@ class DocumentController {
       });
     }
   }
+
+  /**
+   * Buscar quantidade de arquivos de um servidor específico
+   * @route GET /api/documents/server/:serverId/count
+   */
+  static async getFilesCountByServer(req, res) {
+    try {
+      const { serverId } = req.params;
+      console.log(`🔍 Buscando quantidade de arquivos para servidor ID: ${serverId}`);
+
+      // Buscar informações do servidor
+      const { data: server, error: serverError } = await supabase
+        .from('servers')
+        .select('*')
+        .eq('id', serverId)
+        .single();
+
+      if (serverError || !server) {
+        console.error('❌ Servidor não encontrado:', serverError);
+        return res.status(404).json({
+          success: false,
+          message: 'Servidor não encontrado'
+        });
+      }
+
+      console.log(`📁 Servidor encontrado: ${server.name}, Drive Folder ID: ${server.drive_folder_id}`);
+
+      // Se não tem pasta do Google Drive, tentar criar
+      if (!server.drive_folder_id) {
+        console.log(`🔧 Servidor sem drive_folder_id, tentando criar pasta no Google Drive...`);
+        
+        try {
+          // Buscar município do servidor
+          const { data: municipality } = await supabase
+            .from('municipalities')
+            .select('*')
+            .eq('code', server.municipality_code)
+            .single();
+
+          if (municipality) {
+            console.log(`📍 Município encontrado: ${municipality.name}`);
+            
+            // Inicializar Google Drive se necessário
+            if (!googleDriveOAuthService.isInitialized()) {
+              await googleDriveOAuthService.initialize();
+            }
+            
+            // Criar estrutura de pastas no Google Drive
+            const serverFolderId = await googleDriveOAuthService.getServerFolderId(
+              municipality.name,
+              server.name
+            );
+            
+            console.log(`✅ Pasta criada no Google Drive: ${serverFolderId}`);
+            
+            // Atualizar servidor no banco com o drive_folder_id
+            const { error: updateError } = await supabase
+              .from('servers')
+              .update({ drive_folder_id: serverFolderId })
+              .eq('id', serverId);
+            
+            if (!updateError) {
+              server.drive_folder_id = serverFolderId;
+              console.log(`✅ Drive folder ID atualizado no banco`);
+            } else {
+              console.error('❌ Erro ao atualizar drive_folder_id:', updateError);
+            }
+          }
+        } catch (createError) {
+          console.error('❌ Erro ao criar pasta no Google Drive:', createError);
+          return res.json({
+            success: true,
+            data: 0,
+            message: 'Pasta ainda não criada no Google Drive.'
+          });
+        }
+      }
+      
+      // Se ainda não tem drive_folder_id após tentativa de criação, retornar 0
+      if (!server.drive_folder_id) {
+        return res.json({
+          success: true,
+          data: 0,
+          message: 'Servidor sem pasta no Google Drive configurada'
+        });
+      }
+
+      // Inicializar Google Drive se necessário
+      if (!googleDriveOAuthService.isInitialized()) {
+        console.log('🔄 Inicializando Google Drive OAuth...');
+        await googleDriveOAuthService.initialize();
+      }
+
+      try {
+        const driveResponse = await googleDriveOAuthService.listFilesInFolder(server.drive_folder_id);
+        console.log('📁 Resposta do Google Drive:', driveResponse);
+
+        const filesCount = driveResponse.files ? driveResponse.files.length : 0;
+        console.log(`📊 Total de arquivos encontrados: ${filesCount}`);
+
+        res.json({
+          success: true,
+          data: filesCount
+        });
+
+      } catch (driveError) {
+        console.error('❌ Erro ao buscar arquivos no Google Drive:', driveError);
+        return res.status(503).json({
+          success: false,
+          message: 'Erro ao acessar Google Drive',
+          error: driveError.message
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar quantidade de arquivos do servidor:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = DocumentController;

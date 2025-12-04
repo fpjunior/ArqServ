@@ -154,6 +154,17 @@ router.get('/server/:serverId',
 );
 
 /**
+ * @route GET /api/documents/server/:serverId/files-count
+ * @desc Buscar quantidade de arquivos de um servidor específico
+ * @access Private
+ */
+router.get('/server/:serverId/files-count', 
+  authenticate,
+  filterDocumentsByUserMunicipality,
+  DocumentController.getFilesCountByServer
+);
+
+/**
  * @route GET /api/documents/drive/:fileId/download
  * @desc Download de arquivo do Google Drive
  * @access Private

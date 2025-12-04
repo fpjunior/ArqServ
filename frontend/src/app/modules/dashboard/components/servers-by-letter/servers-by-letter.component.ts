@@ -128,11 +128,16 @@ export class ServersByLetterComponent implements OnInit {
             .map(server => ({
               ...server,
               // Adicionar propriedades simuladas para compatibilidade
-              status: Math.random() > 0.3 ? 'online' : 'offline' as 'online' | 'offline',
-              ip: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
-              filesCount: Math.floor(Math.random() * 50) + 1,
-              lastAccess: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // últimos 7 dias
+              status: 'online' as 'online' | 'offline',
+              ip: '192.168.1.1',
+              filesCount: 0,
+              lastAccess: new Date()
             }));
+            
+          // Carregar contagem real de arquivos de cada servidor
+          this.servers.forEach(server => {
+            this.loadFilesCount(server.id);
+          });
             
           this.filteredServers = [...this.servers];
           console.log(`✅ ${this.servers.length} servidores carregados para letra ${this.letter}`);
@@ -161,6 +166,56 @@ export class ServersByLetterComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  private updateFilesCount(): void {
+    this.servers.forEach(server => {
+      const url = `${environment.apiUrl}/documents/server/${server.id}/files-count`;
+      this.http.get<{ success: boolean; data: number }>(url).subscribe(
+        response => {
+          if (response.success) {
+            server.filesCount = response.data;
+            console.log(`📊 Atualizado filesCount para servidor ${server.name}: ${response.data}`);
+          } else {
+            console.error('❌ Erro ao buscar filesCount:', response);
+          }
+        },
+        error => {
+          console.error('❌ Erro na requisição filesCount:', error);
+        }
+      );
+    });
+  }
+
+  private loadFilesCount(serverId: number): void {
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('❌ Token não encontrado para requisição de contagem de arquivos');
+      return;
+    }
+
+    const url = `${environment.apiUrl}/documents/server/${serverId}/files-count`;
+    this.http.get<{ success: boolean; data: number }>(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }).subscribe(
+      response => {
+        if (response.success) {
+          const server = this.servers.find(s => s.id === serverId);
+          if (server) {
+            server.filesCount = response.data;
+            console.log(`📊 Atualizado filesCount para servidor ${server.name}: ${response.data}`);
+          }
+        } else {
+          console.error('❌ Erro ao buscar filesCount:', response);
+        }
+      },
+      error => {
+        console.error('❌ Erro na requisição filesCount:', error);
+      }
+    );
   }
 
   onSearch(): void {
