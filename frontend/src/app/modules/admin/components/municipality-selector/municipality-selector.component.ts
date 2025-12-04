@@ -2,23 +2,27 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { environment } from '../../../../../environments/environment';
 
 interface Municipality {
   code: string;
   name: string;
+  state?: string; // Added optional state property
 }
 
 @Component({
   selector: 'app-municipality-selector',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './municipality-selector.component.html',
   styleUrls: ['./municipality-selector.component.scss']
 })
 export class MunicipalitySelectorComponent implements OnInit {
   municipalities: Municipality[] = [];
+  filteredMunicipalities: Municipality[] = [];
   isLoading: boolean = false;
+  searchQuery: string = '';
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -32,6 +36,7 @@ export class MunicipalitySelectorComponent implements OnInit {
       response => {
         if (response.success) {
           this.municipalities = response.data;
+          this.filteredMunicipalities = [...this.municipalities];
         } else {
           console.error('Erro ao carregar municípios:', response);
         }
@@ -41,6 +46,13 @@ export class MunicipalitySelectorComponent implements OnInit {
         console.error('Erro na requisição de municípios:', error);
         this.isLoading = false;
       }
+    );
+  }
+
+  filterMunicipalities(): void {
+    const query = this.searchQuery.toLowerCase();
+    this.filteredMunicipalities = this.municipalities.filter(municipality =>
+      municipality.name.toLowerCase().includes(query)
     );
   }
 
