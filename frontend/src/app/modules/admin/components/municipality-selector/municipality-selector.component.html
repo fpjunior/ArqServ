@@ -1,0 +1,9 @@
+<div class="municipality-selector">
+  <h1>Selecione um Município</h1>
+  <div *ngIf="isLoading" class="loading">Carregando municípios...</div>
+  <ul *ngIf="!isLoading">
+    <li *ngFor="let municipality of municipalities" (click)="selectMunicipality(municipality.code)">
+      {{ municipality.name }}
+    </li>
+  </ul>
+</div>

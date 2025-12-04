@@ -98,6 +98,14 @@ export class DashboardLayoutComponent implements OnInit {
     this.router.navigate(['/upload']);
   }
 
+  navigateToServers(): void {
+    if (this.isAdmin()) {
+      this.navigateTo('/admin/municipalities');
+    } else {
+      this.navigateTo('/servers');
+    }
+  }
+
   getPageTitle(): string {
     if (this.currentRoute.startsWith('/documentacoes-financeiras/')) {
       const category = this.currentRoute.split('/')[2];

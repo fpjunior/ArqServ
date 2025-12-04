@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
@@ -51,16 +51,35 @@ export class ServersListComponent implements OnInit {
   
   serverGroups: ServerGroups = {};
 
+  // Adicionando a propriedade 'servers' como um array vazio
+  servers: any[] = [];
+
   constructor(
     private authService: AuthService,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     console.log('🔧 ngOnInit iniciado');
     this.loadUserData();
-    // loadServerGroups será chamado automaticamente quando o usuário for carregado
+
+    // Aguardar dados do usuário antes de carregar servidores
+    this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        this.route.params.subscribe(params => {
+          const municipalityCode = params['municipalityCode'];
+          if (municipalityCode) {
+            console.log(`🔍 Carregando servidores para município: ${municipalityCode}`);
+            this.loadServersByMunicipality(municipalityCode);
+          } else {
+            console.log('🔍 Carregando todos os servidores');
+            this.loadServerGroups();
+          }
+        });
+      }
+    });
   }
 
   private loadServerGroups(): void {
@@ -202,14 +221,12 @@ export class ServersListComponent implements OnInit {
         console.log('🔄 Sincronizando dados do usuário...');
         this.authService.refreshUserData().subscribe({
           next: () => {
-            console.log('✅ Dados sincronizados, carregando servidores...');
-            // Após sincronizar, carregar servidores
-            this.loadServerGroups();
+            console.log('✅ Dados sincronizados');
+            // NÃO carregar servidores aqui - deixar o ngOnInit controlar baseado na rota
           },
           error: (error) => {
             console.error('❌ Erro ao sincronizar dados:', error);
-            // Mesmo com erro, tentar carregar servidores
-            this.loadServerGroups();
+            // NÃO carregar servidores aqui - deixar o ngOnInit controlar baseado na rota
           }
         });
       }
@@ -221,7 +238,13 @@ export class ServersListComponent implements OnInit {
     this.authService.refreshUserData().subscribe({
       next: () => {
         console.log('✅ Refresh manual concluído');
-        this.loadServerGroups(); // Recarregar servidores
+        // Verificar se há municipalityCode na rota antes de decidir qual método chamar
+        const municipalityCode = this.route.snapshot.params['municipalityCode'];
+        if (municipalityCode) {
+          this.loadServersByMunicipality(municipalityCode);
+        } else {
+          this.loadServerGroups();
+        }
       },
       error: (error) => {
         console.error('❌ Erro no refresh manual:', error);
@@ -237,12 +260,90 @@ export class ServersListComponent implements OnInit {
 
   navigateToGroup(letter: string): void {
     console.log(`Navegando para servidores com letra ${letter}`);
-    // Navegar para a página de servidores por letra
-    this.router.navigate(['/servers', letter]);
+    
+    // Verificar se estamos em uma visualização por município
+    const municipalityCode = this.route.snapshot.params['municipalityCode'];
+    if (municipalityCode) {
+      // Navegar com contexto de município
+      console.log(`🏛️ Navegando com filtro de município: ${municipalityCode}`);
+      this.router.navigate(['/servers', letter], {
+        queryParams: { municipality: municipalityCode }
+      });
+    } else {
+      // Navegação normal
+      this.router.navigate(['/servers', letter]);
+    }
   }
 
   onSearch(): void {
     console.log('Buscando por:', this.searchTerm);
     // TODO: Implementar funcionalidade de busca
+  }
+
+  private loadServersByMunicipality(municipalityCode: string): void {
+    console.log(`🔍 Carregando servidores para município: ${municipalityCode}`);
+    this.isLoading = true;
+    this.loading = true;
+    this.totalServers = 0;
+    
+    const token = localStorage.getItem('arqserv_token');
+    if (!token) {
+      console.error('❌ Token não encontrado');
+      this.isLoading = false;
+      this.loading = false;
+      return;
+    }
+
+    this.http.get<ApiResponse>(`${environment.apiUrl}/servers/municipality/${municipalityCode}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }).subscribe({
+      next: (response) => {
+        console.log('📡 Resposta recebida:', response);
+        
+        if (response && response.success && Array.isArray(response.data)) {
+          console.log(`✅ ${response.data.length} servidores carregados para município ${municipalityCode}`);
+          
+          this.servers = response.data;
+          this.totalServers = response.data.length;
+          
+          // Obter nome do município do primeiro servidor se disponível
+          if (response.data.length > 0 && response.data[0].municipality_name) {
+            this.municipalityName = response.data[0].municipality_name;
+          } else {
+            this.municipalityName = `Município ${municipalityCode}`;
+          }
+          
+          // Atualizar serverGroups para agrupamento por letra
+          this.alphabet.forEach(letter => {
+            this.serverGroups[letter] = 0;
+          });
+          
+          response.data.forEach(server => {
+            const firstLetter = server.name.charAt(0).toUpperCase();
+            if (this.alphabet.includes(firstLetter)) {
+              this.serverGroups[firstLetter] = (this.serverGroups[firstLetter] || 0) + 1;
+            }
+          });
+          
+          console.log('📊 Grupos de servidores por letra:', this.serverGroups);
+        } else {
+          console.error('❌ Resposta inválida:', response);
+          this.servers = [];
+          this.totalServers = 0;
+        }
+        this.isLoading = false;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('❌ Erro ao carregar servidores:', error);
+        this.servers = [];
+        this.totalServers = 0;
+        this.isLoading = false;
+        this.loading = false;
+      }
+    });
   }
 }

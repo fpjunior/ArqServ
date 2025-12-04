@@ -711,160 +711,6 @@ class DocumentController {
   }
 
   /**
-   * Buscar documentos de um servidor específico
-   * @route GET /api/documents/server/:serverId
-   */
-  static async getDocumentsByServer(req, res) {
-    try {
-      const { serverId } = req.params;
-      console.log(`🔍 Buscando documentos para servidor ID: ${serverId}`);
-      
-      // Buscar informações do servidor
-      const { data: servers, error: serverError } = await supabase
-        .from('servers')
-        .select('*')
-        .eq('id', serverId)
-        .single();
-
-      if (serverError || !servers) {
-        console.log('❌ Servidor não encontrado:', serverError);
-        return res.status(404).json({
-          success: false,
-          message: 'Servidor não encontrado'
-        });
-      }
-
-      console.log(`📁 Servidor encontrado: ${servers.name}, Drive Folder ID: ${servers.drive_folder_id}`);
-
-      // Se não tem pasta do Google Drive, tentar criar
-      if (!servers.drive_folder_id) {
-        console.log(`🔧 Servidor sem drive_folder_id, tentando criar pasta no Google Drive...`);
-        
-        try {
-          // Buscar município do servidor
-          const { data: municipality } = await supabase
-            .from('municipalities')
-            .select('*')
-            .eq('code', servers.municipality_code)
-            .single();
-
-          if (municipality) {
-            console.log(`📍 Município encontrado: ${municipality.name}`);
-            
-            // Inicializar Google Drive se necessário
-            if (!googleDriveOAuthService.isInitialized()) {
-              await googleDriveOAuthService.initialize();
-            }
-            
-            // Criar estrutura de pastas no Google Drive
-            const serverFolderId = await googleDriveOAuthService.getServerFolderId(
-              municipality.name,
-              servers.name
-            );
-            
-            console.log(`✅ Pasta criada no Google Drive: ${serverFolderId}`);
-            
-            // Atualizar servidor no banco com o drive_folder_id
-            const { error: updateError } = await supabase
-              .from('servers')
-              .update({ drive_folder_id: serverFolderId })
-              .eq('id', serverId);
-            
-            if (!updateError) {
-              servers.drive_folder_id = serverFolderId;
-              console.log(`✅ Drive folder ID atualizado no banco`);
-            } else {
-              console.error('❌ Erro ao atualizar drive_folder_id:', updateError);
-            }
-          }
-        } catch (createError) {
-          console.error('❌ Erro ao criar pasta no Google Drive:', createError);
-          return res.json({
-            success: true,
-            data: [],
-            server: servers,
-            message: 'Pasta ainda não criada no Google Drive. Tente novamente em breve.'
-          });
-        }
-      }
-      
-      // Se ainda não tem drive_folder_id após tentativa de criação, retornar vazio
-      if (!servers.drive_folder_id) {
-        return res.json({
-          success: true,
-          data: [],
-          server: servers,
-          message: 'Servidor sem pasta no Google Drive configurada'
-        });
-      }
-
-      // Buscar arquivos na pasta do Google Drive
-      console.log(`🔍 Buscando arquivos no Google Drive, pasta: ${servers.drive_folder_id}`);
-      
-      // Inicializar Google Drive se necessário
-      if (!googleDriveOAuthService.isInitialized()) {
-        console.log('🔄 Inicializando Google Drive OAuth...');
-        await googleDriveOAuthService.initialize();
-      }
-
-      try {
-        const driveResponse = await googleDriveOAuthService.listFilesInFolder(servers.drive_folder_id);
-        console.log('📁 Resposta do Google Drive:', driveResponse);
-
-        if (!driveResponse || !driveResponse.files) {
-          console.log('⚠️ Nenhum arquivo encontrado na pasta do Google Drive');
-          return res.json({
-            success: true,
-            data: [],
-            server: servers,
-            message: 'Pasta sem arquivos'
-          });
-        }
-
-        // Transformar arquivos do Google Drive no formato esperado
-        const documents = driveResponse.files.map((file, index) => ({
-          id: index + 1,
-          title: file.name,
-          file_name: file.name,
-          description: '',
-          category: 'Documento do Servidor',
-          file_size: file.size ? parseInt(file.size) : null,
-          mime_type: file.mimeType,
-          created_at: file.createdTime,
-          google_drive_id: file.id,
-          drive_file_id: file.id,
-          drive_url: file.webViewLink
-        }));
-
-        console.log(`📊 Total de arquivos encontrados: ${documents.length}`);
-        console.log(`✅ Encontrados ${documents.length} arquivos no Google Drive para servidor ${servers.name}`);
-
-        res.json({
-          success: true,
-          data: documents,
-          server: servers
-        });
-
-      } catch (driveError) {
-        console.error('❌ Erro ao buscar arquivos no Google Drive:', driveError);
-        return res.status(503).json({
-          success: false,
-          message: 'Erro ao acessar Google Drive',
-          error: driveError.message
-        });
-      }
-
-    } catch (error) {
-      console.error('❌ Erro ao buscar documentos do servidor:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro interno do servidor',
-        error: error.message
-      });
-    }
-  }
-
-  /**
    * Download de arquivo do Google Drive
    * @route GET /api/documents/drive/:fileId/download
    */
@@ -912,18 +758,18 @@ class DocumentController {
 
   /**
    * Buscar quantidade de arquivos de um servidor específico
-   * @route GET /api/documents/server/:serverId/count
+   * @route GET /api/documents/server/:server_id/files-count
    */
   static async getFilesCountByServer(req, res) {
     try {
-      const { serverId } = req.params;
-      console.log(`🔍 Buscando quantidade de arquivos para servidor ID: ${serverId}`);
+      const { server_id } = req.params;
+      console.log(`🔍 Buscando quantidade de arquivos para servidor ID: ${server_id}`);
 
       // Buscar informações do servidor
       const { data: server, error: serverError } = await supabase
         .from('servers')
         .select('*')
-        .eq('id', serverId)
+        .eq('id', server_id)
         .single();
 
       if (serverError || !server) {
@@ -951,12 +797,10 @@ class DocumentController {
           if (municipality) {
             console.log(`📍 Município encontrado: ${municipality.name}`);
             
-            // Inicializar Google Drive se necessário
             if (!googleDriveOAuthService.isInitialized()) {
               await googleDriveOAuthService.initialize();
             }
             
-            // Criar estrutura de pastas no Google Drive
             const serverFolderId = await googleDriveOAuthService.getServerFolderId(
               municipality.name,
               server.name
@@ -964,11 +808,10 @@ class DocumentController {
             
             console.log(`✅ Pasta criada no Google Drive: ${serverFolderId}`);
             
-            // Atualizar servidor no banco com o drive_folder_id
             const { error: updateError } = await supabase
               .from('servers')
               .update({ drive_folder_id: serverFolderId })
-              .eq('id', serverId);
+              .eq('id', server_id);
             
             if (!updateError) {
               server.drive_folder_id = serverFolderId;
@@ -981,22 +824,20 @@ class DocumentController {
           console.error('❌ Erro ao criar pasta no Google Drive:', createError);
           return res.json({
             success: true,
-            data: 0,
-            message: 'Pasta ainda não criada no Google Drive.'
+            data: await Document.findByServer(server_id).then(docs => docs.length),
+            message: 'Pasta ainda não criada no Google Drive. Contagem do banco utilizada.'
           });
         }
       }
       
-      // Se ainda não tem drive_folder_id após tentativa de criação, retornar 0
       if (!server.drive_folder_id) {
         return res.json({
           success: true,
-          data: 0,
-          message: 'Servidor sem pasta no Google Drive configurada'
+          data: await Document.findByServer(server_id).then(docs => docs.length),
+          message: 'Servidor sem pasta no Google Drive configurada. Contagem do banco utilizada.'
         });
       }
 
-      // Inicializar Google Drive se necessário
       if (!googleDriveOAuthService.isInitialized()) {
         console.log('🔄 Inicializando Google Drive OAuth...');
         await googleDriveOAuthService.initialize();
@@ -1016,10 +857,12 @@ class DocumentController {
 
       } catch (driveError) {
         console.error('❌ Erro ao buscar arquivos no Google Drive:', driveError);
-        return res.status(503).json({
-          success: false,
-          message: 'Erro ao acessar Google Drive',
-          error: driveError.message
+        const fallbackCount = await Document.findByServer(server_id).then(docs => docs.length);
+        console.log(`📋 Fallback: ${fallbackCount} documentos encontrados na tabela para servidor ${server.name}`);
+        res.json({
+          success: true,
+          data: fallbackCount,
+          message: 'Erro ao acessar Google Drive. Contagem do banco utilizada.'
         });
       }
 

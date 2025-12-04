@@ -151,10 +151,8 @@ class ServerController {
 
         const response = {
           success: true,
-          data: {
-            servers,
-            groupedByLetter
-          }
+          data: servers,
+          groupedByLetter
         };
         
         console.log(`✅ Resposta com ${servers.length} servidores agrupados por ${Object.keys(groupedByLetter).length} letras`);

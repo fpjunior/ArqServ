@@ -69,6 +69,21 @@ export class ServerDetailsComponent implements OnInit {
   ngOnInit(): void {
     const serverId = this.route.snapshot.params['id'];
     this.letter = this.route.snapshot.params['letter'] || '';
+    
+    // Validação: se o ID é um código de município (7 dígitos) ou não numérico, redirecionar
+    if (!serverId || isNaN(Number(serverId)) || serverId.length === 7) {
+      console.warn(`⚠️ ID inválido para servidor: ${serverId}. Redirecionando para listagem.`);
+      this.router.navigate(['/servers']);
+      return;
+    }
+    
+    // Validação adicional: se letter é "municipality", também redirecionar
+    if (this.letter === 'municipality') {
+      console.warn(`⚠️ Rota incorreta detectada: /servers/municipality/${serverId}. Redirecionando.`);
+      this.router.navigate(['/servers']);
+      return;
+    }
+    
     this.loadServerFiles(serverId);
   }
 

@@ -385,7 +385,7 @@ export class AuthService {
   }
 
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    return this.currentUserSubject.getValue();
   }
 
   getToken(): string | null {

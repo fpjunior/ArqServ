@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './shared/guards/auth.guard';
+import { AdminGuard } from './shared/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -37,6 +38,13 @@ export const routes: Routes = [
         loadComponent: () => import('./modules/dashboard/components/servers-list/servers-list.component')
           .then(m => m.ServersListComponent)
       },
+      // Rota específica para listar servidores por município deve vir antes
+      // das rotas genéricas que usam ':letter' e ':id', para evitar conflitos
+      {
+        path: 'servers/municipality/:municipalityCode',
+        loadComponent: () => import('./modules/dashboard/components/servers-list/servers-list.component')
+          .then(m => m.ServersListComponent)
+      },
       {
         path: 'servers/:letter',
         loadComponent: () => import('./modules/dashboard/components/servers-by-letter/servers-by-letter.component')
@@ -66,6 +74,11 @@ export const routes: Routes = [
         path: 'users/new',
         loadComponent: () => import('./modules/dashboard/components/user-registration/user-registration.component')
           .then(m => m.UserRegistrationComponent)
+      },
+      {
+        path: 'admin/municipalities',
+        loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component').then(m => m.MunicipalitySelectorComponent),
+        canActivate: [AdminGuard]
       }
     ]
   },

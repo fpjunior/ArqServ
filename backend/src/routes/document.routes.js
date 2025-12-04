@@ -143,22 +143,22 @@ router.get('/financial/:municipality_code/types', DocumentController.getFinancia
 router.get('/financial/:municipality_code', DocumentController.getFinancialDocuments);
 
 /**
- * @route GET /api/documents/server/:serverId  
+ * @route GET /api/documents/server/:server_id  
  * @desc Buscar documentos de um servidor específico
  * @access Private
  */
-router.get('/server/:serverId', 
+router.get('/server/:server_id', 
   authenticate,
   filterDocumentsByUserMunicipality,
   DocumentController.getDocumentsByServer
 );
 
 /**
- * @route GET /api/documents/server/:serverId/files-count
+ * @route GET /api/documents/server/:server_id/files-count
  * @desc Buscar quantidade de arquivos de um servidor específico
  * @access Private
  */
-router.get('/server/:serverId/files-count', 
+router.get('/server/:server_id/files-count', 
   authenticate,
   filterDocumentsByUserMunicipality,
   DocumentController.getFilesCountByServer

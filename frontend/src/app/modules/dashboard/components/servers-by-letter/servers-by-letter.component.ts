@@ -99,40 +99,60 @@ export class ServersByLetterComponent implements OnInit {
       return;
     }
 
+    // Verificar se há filtro por município na query string
+    const municipalityCode = this.route.snapshot.queryParams['municipality'];
+    
     console.log(`🔍 Carregando servidores para letra: ${this.letter}`);
     console.log(`👤 Usuário: ${this.currentUser.email}`);
-    console.log(`🏛️ Município: ${this.currentUser.municipality_code}`);
+    console.log(`🏛️ Município do usuário: ${this.currentUser.municipality_code}`);
+    console.log(`🏛️ Município do filtro: ${municipalityCode || 'nenhum'}`);
     console.log(`🎫 Token encontrado: ${token.substring(0, 20)}...`);
 
-    // Fazer requisição para obter servidores filtrados por letra
-    this.http.get<ApiResponse>(`${environment.apiUrl}/servers`, {
+    // Decidir qual endpoint usar baseado no contexto
+    let apiUrl: string;
+    if (municipalityCode) {
+      // Se há filtro de município na query, usar endpoint específico
+      apiUrl = `${environment.apiUrl}/servers/municipality/${municipalityCode}`;
+      console.log(`🎯 Usando endpoint filtrado: ${apiUrl}`);
+    } else {
+      // Senão, usar endpoint padrão (que já filtra baseado no usuário)
+      apiUrl = `${environment.apiUrl}/servers`;
+      console.log(`🎯 Usando endpoint padrão: ${apiUrl}`);
+    }
+
+    // Fazer requisição para obter servidores
+    this.http.get<ApiResponse>(apiUrl, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      params: municipalityCode ? { letter: this.letter } : {}
     }).subscribe({
       next: (response) => {
         console.log('📡 Resposta da API recebida:', response);
         
         if (response.success) {
-          const allServers = response.data;
+          let allServers = response.data;
           console.log(`📋 Total de servidores retornados: ${allServers.length}`);
           
-          this.servers = allServers
-            .filter(server => {
+          // Filtrar por letra apenas se não foi enviado como parâmetro para o backend
+          if (!municipalityCode) {
+            allServers = allServers.filter(server => {
               const firstLetter = server.name.charAt(0).toUpperCase();
               const matches = firstLetter === this.letter.toUpperCase();
               console.log(`📝 Servidor "${server.name}" (${firstLetter}) -> ${matches ? 'INCLUÍDO' : 'excluído'}`);
               return matches;
-            })
-            .map(server => ({
-              ...server,
-              // Adicionar propriedades simuladas para compatibilidade
-              status: 'online' as 'online' | 'offline',
-              ip: '192.168.1.1',
-              filesCount: 0,
-              lastAccess: new Date()
-            }));
+            });
+          }
+          
+          this.servers = allServers.map(server => ({
+            ...server,
+            // Adicionar propriedades simuladas para compatibilidade
+            status: 'online' as 'online' | 'offline',
+            ip: '192.168.1.1',
+            filesCount: 0,
+            lastAccess: new Date()
+          }));
             
           // Carregar contagem real de arquivos de cada servidor
           this.servers.forEach(server => {
@@ -165,25 +185,6 @@ export class ServersByLetterComponent implements OnInit {
         this.filteredServers = [];
         this.isLoading = false;
       }
-    });
-  }
-
-  private updateFilesCount(): void {
-    this.servers.forEach(server => {
-      const url = `${environment.apiUrl}/documents/server/${server.id}/files-count`;
-      this.http.get<{ success: boolean; data: number }>(url).subscribe(
-        response => {
-          if (response.success) {
-            server.filesCount = response.data;
-            console.log(`📊 Atualizado filesCount para servidor ${server.name}: ${response.data}`);
-          } else {
-            console.error('❌ Erro ao buscar filesCount:', response);
-          }
-        },
-        error => {
-          console.error('❌ Erro na requisição filesCount:', error);
-        }
-      );
     });
   }
 
