@@ -736,7 +736,59 @@ class DocumentController {
 
       console.log(`📁 Servidor encontrado: ${servers.name}, Drive Folder ID: ${servers.drive_folder_id}`);
 
-      // Se não tem pasta do Google Drive, retorna vazio
+      // Se não tem pasta do Google Drive, tentar criar
+      if (!servers.drive_folder_id) {
+        console.log(`🔧 Servidor sem drive_folder_id, tentando criar pasta no Google Drive...`);
+        
+        try {
+          // Buscar município do servidor
+          const { data: municipality } = await supabase
+            .from('municipalities')
+            .select('*')
+            .eq('code', servers.municipality_code)
+            .single();
+
+          if (municipality) {
+            console.log(`📍 Município encontrado: ${municipality.name}`);
+            
+            // Inicializar Google Drive se necessário
+            if (!googleDriveOAuthService.isInitialized()) {
+              await googleDriveOAuthService.initialize();
+            }
+            
+            // Criar estrutura de pastas no Google Drive
+            const serverFolderId = await googleDriveOAuthService.getServerFolderId(
+              municipality.name,
+              servers.name
+            );
+            
+            console.log(`✅ Pasta criada no Google Drive: ${serverFolderId}`);
+            
+            // Atualizar servidor no banco com o drive_folder_id
+            const { error: updateError } = await supabase
+              .from('servers')
+              .update({ drive_folder_id: serverFolderId })
+              .eq('id', serverId);
+            
+            if (!updateError) {
+              servers.drive_folder_id = serverFolderId;
+              console.log(`✅ Drive folder ID atualizado no banco`);
+            } else {
+              console.error('❌ Erro ao atualizar drive_folder_id:', updateError);
+            }
+          }
+        } catch (createError) {
+          console.error('❌ Erro ao criar pasta no Google Drive:', createError);
+          return res.json({
+            success: true,
+            data: [],
+            server: servers,
+            message: 'Pasta ainda não criada no Google Drive. Tente novamente em breve.'
+          });
+        }
+      }
+      
+      // Se ainda não tem drive_folder_id após tentativa de criação, retornar vazio
       if (!servers.drive_folder_id) {
         return res.json({
           success: true,
@@ -749,13 +801,10 @@ class DocumentController {
       // Buscar arquivos na pasta do Google Drive
       console.log(`🔍 Buscando arquivos no Google Drive, pasta: ${servers.drive_folder_id}`);
       
-      const googleDriveOAuthService = req.app.get('googleDriveOAuthService');
-      if (!googleDriveOAuthService || !googleDriveOAuthService.isInitialized()) {
-        console.log('❌ Google Drive OAuth não inicializado');
-        return res.status(503).json({
-          success: false,
-          message: 'Serviço do Google Drive não disponível'
-        });
+      // Inicializar Google Drive se necessário
+      if (!googleDriveOAuthService.isInitialized()) {
+        console.log('🔄 Inicializando Google Drive OAuth...');
+        await googleDriveOAuthService.initialize();
       }
 
       try {
@@ -824,12 +873,9 @@ class DocumentController {
       const fileId = req.params.fileId || req.params.drive_file_id;
       console.log(`⬇️ Iniciando download do arquivo: ${fileId}`);
 
-      const googleDriveOAuthService = req.app.get('googleDriveOAuthService');
       if (!googleDriveOAuthService || !googleDriveOAuthService.isInitialized()) {
-        return res.status(503).json({
-          success: false,
-          message: 'Serviço do Google Drive não disponível'
-        });
+        console.log('🔄 Inicializando Google Drive OAuth...');
+        await googleDriveOAuthService.initialize();
       }
 
       // Download do arquivo

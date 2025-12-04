@@ -107,14 +107,24 @@ export class ServersListComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('📡 Resposta da API recebida:', response);
+        console.log('📡 Tipo de response:', typeof response);
+        console.log('📡 response.success:', response.success);
+        console.log('📡 response.data:', response.data);
+        console.log('📡 response.data.length:', response.data?.length);
+        
         this.debugInfo.apiResponse = JSON.stringify(response, null, 2);
         
-        if (response.success) {
+        if (response && response.success && Array.isArray(response.data)) {
           console.log(`✅ ${response.data.length} servidores carregados`);
           console.log('🏛️ Filtro de município:', response.municipality_filter || 'Todos (admin)');
           console.log('📋 Lista de servidores:', response.data);
           
           this.totalServers = response.data.length;
+          
+          // Limpar grupos antes de contar
+          this.alphabet.forEach(letter => {
+            this.serverGroups[letter] = 0;
+          });
           
           // Obter nome do município do primeiro servidor se disponível
           if (response.data.length > 0 && response.data[0].municipality_name) {
@@ -128,15 +138,18 @@ export class ServersListComponent implements OnInit {
             const firstLetter = server.name.charAt(0).toUpperCase();
             console.log(`📝 Servidor "${server.name}" -> Letra: ${firstLetter}`);
             if (this.alphabet.includes(firstLetter)) {
-              this.serverGroups[firstLetter]++;
+              this.serverGroups[firstLetter] = (this.serverGroups[firstLetter] || 0) + 1;
+              console.log(`  ✅ Contagem atualizada para "${firstLetter}": ${this.serverGroups[firstLetter]}`);
+            } else {
+              console.warn(`  ⚠️ Letra "${firstLetter}" não está no alfabeto`);
             }
           });
           
           console.log('📊 Grupos de servidores finais:', this.serverGroups);
           console.log('📊 Total de servidores:', this.totalServers);
         } else {
-          console.error('❌ Erro na resposta da API:', response.message);
-          this.debugInfo.error = response.message || 'Erro na resposta da API';
+          console.error('❌ Resposta inválida da API:', response);
+          this.debugInfo.error = 'Resposta inválida da API';
         }
         this.isLoading = false;
         this.loading = false;
