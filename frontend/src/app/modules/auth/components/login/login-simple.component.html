@@ -1,6 +1,6 @@
-<div class="min-h-screen bg-gradient-to-br from-gray-100 via-blue-50 to-purple-100 flex flex-col">
-  <!-- Header específico da tela de login -->
-  <div class="header-login shadow-lg text-white py-4 relative z-10">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-100 to-purple-200 flex flex-col">
+  <!-- Header com logo e título -->
+  <div class="header-login shadow-lg text-white py-6 relative z-10 bg-gradient-to-r from-blue-500 to-purple-600">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-center h-16">
         <div class="flex items-center space-x-6">
@@ -9,7 +9,7 @@
           </div>
           <div class="text-left">
             <div class="text-3xl font-bold text-white drop-shadow-md leading-tight">ArqServ</div>
-            <div class="text-sm text-white text-opacity-80 font-light -mt-1">Sistema de Gestão de Arquivos de Servidores</div>
+            <div class="text-sm text-white text-opacity-80 font-light -mt-1">Sistema de Gestão de Arquivos</div>
           </div>
         </div>
       </div>
@@ -17,9 +17,9 @@
   </div>
 
   <!-- Container principal de login -->
-  <div class="flex-1 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="w-full max-w-md">
-      <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl p-10 border border-white/20">
+      <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl p-10 border border-gray-200">
         <div class="text-center mb-8">
           <h2 class="text-2xl font-semibold text-gray-800 mb-2">Acesso ao Sistema</h2>
           <p class="text-gray-600 text-sm">Entre com suas credenciais para continuar</p>
@@ -78,12 +78,8 @@
                 class="password-toggle-btn inset-y-0 right-0 pr-3 flex items-center hover:text-blue-600 transition-colors"
                 (click)="togglePassword()"
                 tabindex="-1">
-                <svg *ngIf="hidePassword" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <svg *ngIf="!hidePassword" class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.5 6.5m3.378 3.378a3 3 0 004.243-4.242M6.5 6.5L4.222 4.222m2.278 2.278L9.878 9.878m-3.378-3.378L3.172 3.172m3.328 3.328L9.878 9.878" />
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12h.01M19.07 4.93a10 10 0 11-14.14 0m14.14 0a10 10 0 01-14.14 0M9.88 9.88a3 3 0 104.24 4.24 3 3 0 00-4.24-4.24z"/>
                 </svg>
               </button>
             </div>
@@ -93,67 +89,15 @@
             </div>
           </div>
 
-          <!-- Mensagem de Erro Geral -->
-          <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center space-x-2">
-            <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <span class="text-red-700 text-sm">{{ errorMessage }}</span>
-          </div>
-
           <!-- Botão de Login -->
-          <button
-            type="submit"
-            class="w-full flex justify-center items-center px-4 py-3 text-sm font-semibold rounded-lg text-white btn-login-gradient focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
-            [disabled]="loading || loginForm.invalid">
-
-            <svg *ngIf="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-
-            <svg *ngIf="!loading" class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            </svg>
-
-            {{ loading ? 'Entrando...' : 'Entrar' }}
-          </button>
+          <div>
+            <button
+              type="submit"
+              class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+              Entrar
+            </button>
+          </div>
         </form>
-
-        <!-- Seção de Contas de Demonstração -->
-        <div class="mt-8 pt-6 border-t border-gray-200">
-          <div class="text-center mb-4">
-            <span class="text-sm font-medium text-gray-600">Contas de Demonstração</span>
-          </div>
-          
-          <div class="space-y-3">
-            <button
-              type="button"
-              (click)="fillTestAccount('empresa')"
-              class="w-full group p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all duration-200 flex items-center justify-between">
-              <div class="text-left">
-                <div class="text-sm font-medium text-blue-700">🏢 Acesso Empresa</div>
-                <div class="text-xs text-blue-600">empresa&#64;test.com</div>
-              </div>
-              <svg class="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
-            
-            <button
-              type="button"
-              (click)="fillTestAccount('prefeitura')"
-              class="w-full group p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-all duration-200 flex items-center justify-between">
-              <div class="text-left">
-                <div class="text-sm font-medium text-green-700">🏛️ Acesso Prefeitura</div>
-                <div class="text-xs text-green-600">prefeitura&#64;test.com</div>
-              </div>
-              <svg class="w-4 h-4 text-green-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
