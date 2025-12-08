@@ -1,5 +1,6 @@
 const express = require('express');
 const DashboardController = require('../controllers/dashboard.controller');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -19,9 +20,9 @@ router.get('/test', (req, res) => {
 
 /**
  * @route GET /api/dashboard/stats
- * @desc Obter estatísticas do dashboard
- * @access Public
+ * @desc Obter estatísticas do dashboard (filtradas por município se for user)
+ * @access Private (Requer autenticação)
  */
-router.get('/stats', DashboardController.getDashboardStats);
+router.get('/stats', authenticate, DashboardController.getDashboardStats);
 
 module.exports = router;

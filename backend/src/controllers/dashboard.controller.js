@@ -3,14 +3,26 @@ const pool = require('../config/database');
 class DashboardController {
   static async getDashboardStats(req, res) {
     try {
+      const userRole = req.user?.role;
+      const userMunicipality = req.user?.municipality_code;
+      
       console.log('🔵 [DASHBOARD] Endpoint getDashboardStats chamado');
+      console.log(`👤 [DASHBOARD] Usuário: role=${userRole}, municipality=${userMunicipality}`);
       
       // Contar total de servidores (usuários com role 'user')
       console.log('🔄 [DASHBOARD] Buscando servidores...');
-      const { data: servers, error: serverError, count: serverCount } = await pool.supabase
+      let serversQuery = pool.supabase
         .from('users')
-        .select('id, created_at', { count: 'exact' })
+        .select('id, created_at, municipality_code', { count: 'exact' })
         .eq('role', 'user');
+
+      // Filtrar por município se for user (não admin)
+      if (userRole !== 'admin' && userMunicipality) {
+        console.log(`🔒 [DASHBOARD] Filtrando por município: ${userMunicipality}`);
+        serversQuery = serversQuery.eq('municipality_code', userMunicipality);
+      }
+
+      const { data: servers, error: serverError, count: serverCount } = await serversQuery;
 
       if (serverError) {
         console.error('❌ [DASHBOARD] Erro ao contar servidores:', serverError);
@@ -24,11 +36,18 @@ class DashboardController {
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       console.log('🔄 [DASHBOARD] Primeiro dia do mês:', firstDayOfMonth.toISOString());
       
-      const { count: serversThisMonth, error: serversMonthError } = await pool.supabase
+      let serversMonthQuery = pool.supabase
         .from('users')
         .select('id', { count: 'exact' })
         .eq('role', 'user')
         .gte('created_at', firstDayOfMonth.toISOString());
+
+      // Filtrar por município se for user (não admin)
+      if (userRole !== 'admin' && userMunicipality) {
+        serversMonthQuery = serversMonthQuery.eq('municipality_code', userMunicipality);
+      }
+
+      const { count: serversThisMonth, error: serversMonthError } = await serversMonthQuery;
 
       if (serversMonthError) {
         console.error('❌ [DASHBOARD] Erro ao contar servidores deste mês:', serversMonthError);
@@ -39,9 +58,16 @@ class DashboardController {
 
       // Contar total de documentos
       console.log('🔄 [DASHBOARD] Buscando documentos...');
-      const { data: documents, error: docError, count: docCount } = await pool.supabase
+      let docsQuery = pool.supabase
         .from('documents')
         .select('id, file_size', { count: 'exact' });
+
+      // Filtrar por município se for user (não admin)
+      if (userRole !== 'admin' && userMunicipality) {
+        docsQuery = docsQuery.eq('municipality_code', userMunicipality);
+      }
+
+      const { data: documents, error: docError, count: docCount } = await docsQuery;
 
       if (docError) {
         console.error('❌ [DASHBOARD] Erro ao contar documentos:', docError);
@@ -59,10 +85,17 @@ class DashboardController {
       today.setHours(0, 0, 0, 0);
       console.log('🔄 [DASHBOARD] Buscando documentos de hoje a partir de:', today.toISOString());
 
-      const { count: docsToday, error: todayError } = await pool.supabase
+      let docsTodayQuery = pool.supabase
         .from('documents')
         .select('id', { count: 'exact' })
         .gte('created_at', today.toISOString());
+
+      // Filtrar por município se for user (não admin)
+      if (userRole !== 'admin' && userMunicipality) {
+        docsTodayQuery = docsTodayQuery.eq('municipality_code', userMunicipality);
+      }
+
+      const { count: docsToday, error: todayError } = await docsTodayQuery;
 
       if (todayError) {
         console.error('❌ [DASHBOARD] Erro ao contar documentos de hoje:', todayError);
