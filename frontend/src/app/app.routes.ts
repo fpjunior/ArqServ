@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './shared/guards/auth.guard';
 import { AdminGuard } from './shared/guards/admin.guard';
+import { FinancialDocumentsGuard } from './shared/guards/financial-documents.guard';
 
 export const routes: Routes = [
   {
@@ -57,24 +58,19 @@ export const routes: Routes = [
       },
       {
         path: 'documentacoes-financeiras',
-        loadComponent: () => import('./modules/dashboard/components/financial-documents/financial-documents.component')
-          .then(m => m.FinancialDocumentsComponent)
-      },
-      {
-        path: 'documentacoes-financeiras/:category',
-        loadComponent: () => import('./modules/dashboard/components/financial-category-details/financial-category-details.component')
-          .then(m => m.FinancialCategoryDetailsComponent)
-      },
-      {
-        path: 'documentacoes-financeiras/municipality',
         loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component')
           .then(m => m.MunicipalitySelectorComponent),
-        canActivate: [AdminGuard]
+        canActivate: [FinancialDocumentsGuard]
       },
       {
         path: 'documentacoes-financeiras/municipality/:municipalityCode',
         loadComponent: () => import('./modules/dashboard/components/financial-documents/financial-documents.component')
           .then(m => m.FinancialDocumentsComponent)
+      },
+      {
+        path: 'documentacoes-financeiras/municipality/:municipalityCode/:category',
+        loadComponent: () => import('./modules/dashboard/components/financial-category-details/financial-category-details.component')
+          .then(m => m.FinancialCategoryDetailsComponent)
       },
       {
         path: 'users',

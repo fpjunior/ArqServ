@@ -100,7 +100,7 @@ export class DashboardLayoutComponent implements OnInit {
 
   navigateToServers(): void {
     if (this.isAdmin()) {
-      this.navigateTo('/admin/municipalities');
+      this.router.navigate(['/admin/municipalities']);
     } else {
       this.navigateTo('/servers');
     }
@@ -108,9 +108,7 @@ export class DashboardLayoutComponent implements OnInit {
 
   navigateToFinancialDocuments(): void {
     if (this.isAdmin()) {
-      this.router.navigate(['/admin/municipalities'], {
-        queryParams: { redirectTo: '/documentacoes-financeiras' }
-      });
+      this.router.navigate(['/documentacoes-financeiras']);
     } else {
       this.navigateTo('/documentacoes-financeiras');
     }

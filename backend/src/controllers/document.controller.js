@@ -605,8 +605,17 @@ class DocumentController {
     try {
       const { municipality_code } = req.params;
       const { year } = req.query;
-      
-      const types = await Document.getAvailableFinancialTypes(municipality_code, year);
+
+      // Normalizar year: aceitar string/number, enviar null se inválido
+      let yearParam = null;
+      if (year !== undefined && year !== null && year !== '') {
+        const parsed = parseInt(year, 10);
+        if (!Number.isNaN(parsed)) yearParam = parsed;
+      }
+
+      console.log(`🔍 getFinancialTypes called for municipality='${municipality_code}', year=${yearParam}`);
+
+      let types = await Document.getAvailableFinancialTypes(municipality_code, yearParam);
 
       res.json({
         success: true,
@@ -615,6 +624,32 @@ class DocumentController {
 
     } catch (error) {
       console.error('❌ Erro ao buscar tipos financeiros:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Buscar documentos financeiros por tipo
+   */
+  static async getFinancialDocumentsByType(req, res) {
+    try {
+      const { municipality_code, type } = req.params;
+      const { year } = req.query;
+
+      console.log(`🔍 getFinancialDocumentsByType - municipality: ${municipality_code}, type: ${type}, year: ${year || 'all'}`);
+
+      const documents = await Document.getFinancialDocumentsByType(municipality_code, type, year);
+
+      res.json({
+        success: true,
+        data: documents
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar documentos financeiros por tipo:', error);
       res.status(500).json({
         success: false,
         message: 'Erro interno do servidor'
@@ -872,6 +907,40 @@ class DocumentController {
         success: false,
         message: 'Erro interno do servidor',
         error: error.message
+      });
+    }
+  }
+
+  /**
+   * Listar documentos financeiros do município do usuário logado
+   * @route GET /api/documents/financial
+   */
+  static async getFinancialDocumentsByUser(req, res) {
+    try {
+      const { municipality_code } = req.user; // Obter município do usuário logado
+      
+      if (!municipality_code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Usuário não possui município vinculado'
+        });
+      }
+
+      console.log(`🏢 [getFinancialDocumentsByUser] Buscando tipos financeiros para município: ${municipality_code}`);
+
+      // Buscar tipos de documentos financeiros disponíveis para o município do usuário
+      const financialTypes = await Document.getAvailableFinancialTypes(municipality_code, null);
+
+      res.json({
+        success: true,
+        data: financialTypes
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar documentos financeiros do usuário logado:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
       });
     }
   }

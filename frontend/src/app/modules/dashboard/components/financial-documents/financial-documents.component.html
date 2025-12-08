@@ -23,8 +23,31 @@
     </div>
   </div>
 
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="px-6 py-12 text-center">
+    <div class="inline-block">
+      <div class="animate-spin">
+        <div class="h-12 w-12 border-4 border-gray-300 border-t-blue-600 rounded-full"></div>
+      </div>
+      <p class="mt-4 text-gray-600 font-medium">Carregando documentações financeiras...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading && errorMessage" class="px-6 py-12">
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+      <span class="text-4xl">⚠️</span>
+      <p class="mt-2 text-red-700 font-medium">{{ errorMessage }}</p>
+      <button 
+        (click)="navigateBack()"
+        class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+        Voltar
+      </button>
+    </div>
+  </div>
+
   <!-- Financial Folders Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6">
+  <div *ngIf="!isLoading && !errorMessage" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6">
     <div 
       *ngFor="let folder of financialFolders"
       (click)="selectFolder(folder)"
@@ -126,6 +149,14 @@
           <div class="text-sm text-gray-600">Localizar documento</div>
         </div>
       </button>
+    </div>
+  </div>
+
+  <!-- Financial Document Types -->
+  <div class="financial-cards px-6">
+    <div *ngFor="let folder of financialFolders" class="card bg-white rounded-2xl p-4 shadow-md border border-gray-200 mb-4">
+      <h3 class="text-xl font-semibold text-gray-900">{{ folder.financial_document_type }}</h3>
+      <p class="text-gray-700 text-sm">Total: {{ folder.count }}</p>
     </div>
   </div>
 </div>

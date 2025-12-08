@@ -45,6 +45,21 @@ const pool = {
 };
 
 // Test connection at startup
+// Função para testar a conexão com Supabase
+async function testConnection() {
+  try {
+    const { data, error } = await supabase.from('documents').select('id').limit(1);
+    if (error) {
+      throw new Error('Erro ao conectar ao Supabase: ' + error.message);
+    }
+    console.log('✅ Teste de conexão com Supabase bem-sucedido');
+  } catch (err) {
+    console.error('❌ Erro no teste de conexão com Supabase:', err.message);
+    throw err;
+  }
+}
+
+// Inicializar conexão
 pool.connect()
   .then(client => {
     console.log('🔗 Conexão com o banco de dados estabelecida via API REST');
@@ -54,4 +69,4 @@ pool.connect()
     console.error('❌ Erro ao conectar no banco de dados:', err.message);
   });
 
-module.exports = pool;
+module.exports = { supabase, pool, testConnection };

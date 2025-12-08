@@ -58,7 +58,16 @@ export class MunicipalitySelectorComponent implements OnInit {
   }
 
   selectMunicipality(municipalityCode: string): void {
-    const redirectTo = this.route.snapshot.queryParams['redirectTo'] || '/servers/municipality';
-    this.router.navigate([redirectTo, municipalityCode]);
+    sessionStorage.setItem('selectedMunicipalityCode', municipalityCode);
+    
+    // Verificar a URL atual para decidir para onde redirecionar
+    const currentUrl = this.router.url;
+    console.log(`🔀 [MUNICIPALITY-SELECTOR] URL atual: ${currentUrl}, Município: ${municipalityCode}`);
+    
+    if (currentUrl.includes('documentacoes-financeiras')) {
+      this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode]);
+    } else {
+      this.router.navigate(['/servers/municipality', municipalityCode]);
+    }
   }
 }

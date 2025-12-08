@@ -38,6 +38,16 @@ router.get('/financial/:municipality_code',
 );
 
 /**
+ * @route GET /api/documents/financial
+ * @desc Listar documentos financeiros do município vinculado ao usuário logado
+ * @access Private (requer autenticação)
+ */
+router.get('/financial', 
+  authenticate,
+  DocumentController.getFinancialDocumentsByUser
+);
+
+/**
  * @route GET /api/documents/financial/:municipality_code/years
  * @desc Buscar anos disponíveis para documentos financeiros de um município
  * @access Public
@@ -53,6 +63,15 @@ router.get('/financial/:municipality_code/years', DocumentController.getFinancia
  * @query year - Ano para filtrar tipos (opcional)
  */
 router.get('/financial/:municipality_code/types', DocumentController.getFinancialTypes);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/type/:type
+ * @desc Buscar documentos financeiros de um tipo específico
+ * @access Public
+ * @params municipality_code - Código do município
+ * @params type - Tipo de documento financeiro
+ */
+router.get('/financial/:municipality_code/type/:type', DocumentController.getFinancialDocumentsByType);
 
 /**
  * @route GET /api/documents/municipality/:code

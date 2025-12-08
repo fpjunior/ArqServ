@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse, HttpEvent, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpEvent, HttpEventType, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { catchError, map, filter } from 'rxjs/operators';
+import { catchError, map, filter, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../shared/services/auth.service';
 
@@ -304,6 +304,45 @@ export class DocumentsService {
       catchError((error) => {
         console.error('❌ [DocumentsService] Erro na requisição:', error);
         return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Buscar tipos de documentos financeiros disponíveis
+   */
+  getFinancialDocumentTypes(municipalityCode: string, year?: number): Observable<any> {
+    const url = `${environment.apiUrl}/documents/financial/${municipalityCode}/types`;
+    const params = year ? new HttpParams().set('year', year.toString()) : undefined;
+
+    console.log(`📡 [DocumentsService] Fetching financial types from: ${url}`, { year });
+
+    return this.http.get<any>(url, { params }).pipe(
+      tap((response) => {
+        console.log('✅ [DocumentsService] Resposta de tipos financeiros:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar tipos financeiros:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Buscar documentos financeiros do município do usuário logado
+   */
+  getFinancialDocumentsByUser(): Observable<any> {
+    const url = `${environment.apiUrl}/documents/financial`;
+
+    console.log(`📡 [DocumentsService] Fetching financial documents for user from: ${url}`);
+
+    return this.http.get<any>(url, { headers: this.getAuthHeaders() }).pipe(
+      tap((response) => {
+        console.log('✅ [DocumentsService] Resposta de documentos financeiros:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar documentos financeiros:', error);
+        return throwError(() => error);
       })
     );
   }

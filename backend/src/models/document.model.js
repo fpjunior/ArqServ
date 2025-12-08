@@ -39,10 +39,19 @@ class Document {
         created_at: new Date().toISOString()
       };
 
-      // Adicionar campos financeiros se presentes
-      if (financial_document_type) insertData.financial_document_type = financial_document_type;
-      if (financial_year) insertData.financial_year = financial_year;
-      if (financial_period) insertData.financial_period = financial_period;
+      // Garantir que os campos financeiros sejam tratados corretamente
+      // Adicionar campos financeiros se presentes. Validar apenas quando for um documento financeiro
+      const isFinancial = (documentData.category && documentData.category.toString().toLowerCase() === 'financeiro')
+        || financial_document_type;
+
+      if (isFinancial) {
+        if (!financial_document_type || !financial_year) {
+          throw new Error('Campos obrigatórios para documentos financeiros estão ausentes.');
+        }
+        insertData.financial_document_type = financial_document_type;
+        insertData.financial_year = financial_year;
+        insertData.financial_period = financial_period || null;
+      }
 
       // Remover campos undefined
       Object.keys(insertData).forEach(key => {
@@ -240,23 +249,101 @@ class Document {
     }
   }
 
-  // /**
-  //  * Buscar documentos financeiros por município e filtros
-  //  * DESABILITADO: Colunas document_type, financial_document_type, etc não existem na tabela
-  //  */
-  // static async findFinancialDocuments(municipalityCode, filters = {}) {
+  /**
+   * Buscar tipos de documentos financeiros disponíveis para um município
+   */
+  static async getAvailableFinancialTypes(municipalityCode, year = null) {
+    try {
+      console.log(`🔍 [getAvailableFinancialTypes] Municipality: ${municipalityCode}, Year: ${year}`);
+      
+      // SEMPRE buscar TODOS os tipos financeiros para o município (ignorar filtro de ano)
+      const allTypesQuery = supabase
+        .from('documents')
+        .select('financial_document_type')
+        .eq('municipality_code', municipalityCode)
+        .eq('category', 'financeiro')
+        .neq('financial_document_type', null)
+        .eq('is_active', true);
 
-  // /**
-  //  * Buscar anos disponíveis para documentos financeiros de um município
-  //  * DESABILITADO: Colunas document_type, financial_document_type, etc não existem na tabela
-  //  */
-  // static async getAvailableFinancialYears(municipalityCode) {
+      const { data: allTypes, error: allTypesError } = await allTypesQuery;
 
-  // /**
-  //  * Buscar tipos de documentos financeiros disponíveis para um município
-  //  * DESABILITADO: Colunas document_type, financial_document_type, etc não existem na tabela
-  //  */
-  // static async getAvailableFinancialTypes(municipalityCode, year = null) {
+      if (allTypesError) {
+        console.error('❌ Erro na consulta ao Supabase:', allTypesError);
+        throw new Error('Erro ao buscar tipos financeiros no banco de dados.');
+      }
+
+      if (!allTypes || allTypes.length === 0) {
+        console.warn('⚠️ Nenhum tipo financeiro encontrado.');
+        return [];
+      }
+
+      // Agregar contagens por tipo no servidor (Node)
+      const counts = allTypes.reduce((acc, row) => {
+        const t = (row.financial_document_type || '').toString();
+        if (!t) return acc;
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {});
+
+      console.log(`✅ [getAvailableFinancialTypes] Tipos encontrados:`, counts);
+
+      // Mapear os nomes para padronizar com o Google Drive
+      const typeMapping = {
+        'folha-pagamento': 'Folha de Pagamento',
+        'despesas': 'Relatório de Despesas',
+        'receitas': 'Relatório de Receitas',
+        'contratos': 'Contratos',
+        'licitações': 'Licitações',
+        'orçamento anual': 'Orçamento Anual',
+        'planejamento': 'Planejamento',
+        'conformidade': 'Conformidade',
+        'prestação de contas': 'Prestação de Contas'
+      };
+
+      const result = Object.keys(counts).map(key => ({
+        financial_document_type: key,
+        display_name: typeMapping[key] || key,
+        count: counts[key]
+      }));
+
+      return result;
+    } catch (error) {
+      console.error('❌ Erro em getAvailableFinancialTypes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar documentos financeiros por tipo específico
+   */
+  static async getFinancialDocumentsByType(municipalityCode, type, year = null) {
+    try {
+      let query = supabase
+        .from('documents')
+        .select('*')
+        .eq('municipality_code', municipalityCode)
+        .eq('category', 'financeiro')
+        .eq('financial_document_type', type)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (year) {
+        query = query.eq('financial_year', parseInt(year, 10));
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Erro ao buscar documentos financeiros por tipo:', error);
+        throw new Error('Erro ao buscar documentos no banco de dados.');
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('❌ Erro em getFinancialDocumentsByType:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Document;

@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { DocumentsService } from '../../../../services/documents.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
 interface FinancialDocument {
   id: number;
@@ -32,6 +35,7 @@ interface FinancialCategory {
 })
 export class FinancialCategoryDetailsComponent implements OnInit {
   categoryId: string = '';
+  municipalityCode: string = '';
   category: FinancialCategory | null = null;
   documents: FinancialDocument[] = [];
   filteredDocuments: FinancialDocument[] = [];
@@ -39,21 +43,35 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   selectedStatus: string = 'all';
   isLoading: boolean = true;
 
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private http: HttpClient,
+    private documentsService: DocumentsService
+  ) {}
+
   // Definição das categorias
   categories: { [key: string]: FinancialCategory } = {
+    'folha-pagamento': {
+      id: 'folha-pagamento',
+      name: 'Folha de Pagamento',
+      icon: '💰',
+      description: 'Documentos de folha de pagamento',
+      color: 'from-blue-500 to-blue-600'
+    },
+    'despesas': {
+      id: 'despesas',
+      name: 'Relatório de Despesas',
+      icon: '💸',
+      description: 'Relatórios de despesas',
+      color: 'from-red-500 to-red-600'
+    },
     'licitacoes': {
       id: 'licitacoes',
       name: 'Licitações',
       icon: '📋',
       description: 'Documentos de processos licitatórios',
       color: 'from-blue-500 to-blue-600'
-    },
-    'despesas': {
-      id: 'despesas',
-      name: 'Despesas',
-      icon: '💸',
-      description: 'Registros de gastos e despesas',
-      color: 'from-red-500 to-red-600'
     },
     'receitas': {
       id: 'receitas',
@@ -130,14 +148,23 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     }
   ];
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
-
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       this.categoryId = params['category'];
+      this.municipalityCode = params['municipalityCode'] || sessionStorage.getItem('selectedMunicipalityCode') || '';
+      console.log('🎯 [FINANCIAL-CATEGORY] Category:', this.categoryId, 'Municipality:', this.municipalityCode);
+      
+      if (!this.municipalityCode) {
+        console.error('❌ [FINANCIAL-CATEGORY] Código do município não encontrado');
+        const storedCode = sessionStorage.getItem('selectedMunicipalityCode');
+        if (storedCode) {
+          this.router.navigate(['/documentacoes-financeiras/municipality', storedCode]);
+        } else {
+          this.router.navigate(['/documentacoes-financeiras']);
+        }
+        return;
+      }
+      
       this.loadCategoryData();
     });
   }
@@ -149,18 +176,45 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     this.category = this.categories[this.categoryId];
     
     if (!this.category) {
-      this.router.navigate(['/documentacoes-financeiras']);
+      const storedCode = sessionStorage.getItem('selectedMunicipalityCode');
+      if (storedCode) {
+        this.router.navigate(['/documentacoes-financeiras/municipality', storedCode]);
+      } else {
+        this.router.navigate(['/documentacoes-financeiras']);
+      }
       return;
     }
 
-    // Simular carregamento de documentos
-    setTimeout(() => {
-      this.documents = this.mockDocuments.filter(doc => 
-        this.getDocumentCategory(doc.name) === this.categoryId
-      );
-      this.filteredDocuments = [...this.documents];
-      this.isLoading = false;
-    }, 500);
+    // Buscar documentos reais da API
+    const url = `${environment.apiUrl}/documents/financial/${this.municipalityCode}/type/${this.categoryId}`;
+    console.log('📡 [FINANCIAL-CATEGORY] Buscando documentos de:', url);
+    
+    this.http.get<any>(url).subscribe(
+      (response) => {
+        console.log('✅ [FINANCIAL-CATEGORY] Documentos recebidos:', response);
+        if (response && response.success && response.data) {
+          this.documents = response.data.map((doc: any) => ({
+            id: doc.id,
+            name: doc.title || doc.file_name,
+            type: doc.file_type || 'PDF',
+            uploadDate: new Date(doc.created_at),
+            size: doc.file_size || 'N/A',
+            status: doc.is_active ? 'active' : 'archived',
+            description: doc.description,
+            googleDriveId: doc.google_drive_id,
+            googleDriveUrl: doc.google_drive_url
+          }));
+          this.filteredDocuments = [...this.documents];
+        }
+        this.isLoading = false;
+      },
+      (error) => {
+        console.error('❌ [FINANCIAL-CATEGORY] Erro ao buscar documentos:', error);
+        this.documents = [];
+        this.filteredDocuments = [];
+        this.isLoading = false;
+      }
+    );
   }
 
   private getDocumentCategory(documentName: string): string {
@@ -230,7 +284,12 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['/documentacoes-financeiras']);
+    const municipalityCode = this.municipalityCode || sessionStorage.getItem('selectedMunicipalityCode');
+    if (municipalityCode) {
+      this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode]);
+    } else {
+      this.router.navigate(['/documentacoes-financeiras']);
+    }
   }
 
   getStatusColor(status: string): string {
