@@ -9,6 +9,7 @@ const adminRoutes = require('./routes/admin.routes');
 const documentRoutes = require('./routes/document.routes');
 const serverRoutes = require('./routes/server.routes');
 const municipalityRoutes = require('./routes/municipality.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 // Controller simples para testar
 const SimpleDocumentController = require('./controllers/document.simple.controller');
@@ -45,6 +46,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/municipalities', municipalityRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Rotas de teste (sem Google Drive)
 app.post('/api/documents/upload-simple', 
