@@ -46,12 +46,12 @@ export class DashboardHomeComponent implements OnInit {
   searchTerm = '';
   
   stats: LocalDashboardStats = {
-    totalServers: 1547,
-    totalDocuments: 23456,
-    recentUploads: 47,
-    pendingReviews: 12,
-    storageUsed: 75.5,
-    storageLimit: 100
+    totalServers: 0,
+    totalDocuments: 0,
+    recentUploads: 0,
+    pendingReviews: 0,
+    storageUsed: 0,
+    storageLimit: 0
   };
 
   quickActions: QuickAction[] = [
