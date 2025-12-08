@@ -3,15 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../../../shared/services/auth.service';
-
-interface DashboardStats {
-  totalServers: number;
-  totalDocuments: number;
-  recentUploads: number;
-  pendingReviews: number;
-  storageUsed: number;
-  storageLimit: number;
-}
+import { DocumentsService } from '../../../../services/documents.service';
 
 interface QuickAction {
   id: string;
@@ -33,6 +25,15 @@ interface RecentActivity {
   icon: string;
 }
 
+interface LocalDashboardStats {
+  totalServers: number;
+  totalDocuments: number;
+  recentUploads: number;
+  pendingReviews: number;
+  storageUsed: number;
+  storageLimit: number;
+}
+
 @Component({
   selector: 'app-dashboard-home',
   standalone: true,
@@ -44,7 +45,7 @@ export class DashboardHomeComponent implements OnInit {
   currentUser: User | null = null;
   searchTerm = '';
   
-  stats: DashboardStats = {
+  stats: LocalDashboardStats = {
     totalServers: 1547,
     totalDocuments: 23456,
     recentUploads: 47,
@@ -144,21 +145,49 @@ export class DashboardHomeComponent implements OnInit {
   ];
 
   constructor(
+    private documentsService: DocumentsService,
     private authService: AuthService,
     public router: Router
   ) {}
 
   ngOnInit() {
+    console.log('🔵 [DASHBOARD-HOME] ngOnInit chamado');
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
     });
 
-    this.loadDashboardData();
+    this.loadDashboardStats();
   }
 
-  loadDashboardData() {
-    // Simula carregamento de dados do dashboard
-    // Aqui você faria chamadas para APIs reais
+  loadDashboardStats() {
+    console.log('🟢 [DASHBOARD] Iniciando carregamento de estatísticas...');
+    console.log('🟢 [DASHBOARD] URL da API:', 'http://localhost:3005/api/dashboard/stats');
+    
+    this.documentsService.getDashboardStats().subscribe(
+      (response: any) => {
+        console.log('🟢 [DASHBOARD] Resposta recebida:', response);
+        
+        if (response && response.success && response.data) {
+          const data = response.data;
+          console.log('🟢 [DASHBOARD] Dados extraídos:', data);
+          
+          this.stats = {
+            totalServers: data.servers.total,
+            totalDocuments: data.documents.total,
+            recentUploads: data.activities.uploads_today,
+            pendingReviews: data.servers.this_month,
+            storageUsed: Math.round((data.storage.used / (1024 * 1024 * 1024)) * 10) / 10,
+            storageLimit: Math.round((data.storage.total / (1024 * 1024 * 1024)) * 10) / 10
+          };
+          console.log('✅ Dashboard Stats Carregado:', this.stats);
+        } else {
+          console.warn('⚠️ [DASHBOARD] Resposta inválida:', response);
+        }
+      },
+      error => {
+        console.error('❌ [DASHBOARD] Erro ao carregar estatísticas:', error);
+      }
+    );
   }
 
   onSearch() {
@@ -207,6 +236,7 @@ export class DashboardHomeComponent implements OnInit {
   }
 
   getStoragePercentage(): number {
+    if (this.stats.storageLimit === 0) return 0;
     return (this.stats.storageUsed / this.stats.storageLimit) * 100;
   }
 
@@ -216,7 +246,7 @@ export class DashboardHomeComponent implements OnInit {
   }
 
   refreshData() {
-    this.loadDashboardData();
+    this.loadDashboardStats();
     // Mostrar feedback de atualização
   }
 

@@ -51,6 +51,13 @@ export interface DocumentFilters {
   limit?: number;
 }
 
+export interface DashboardStats {
+  servers: { total: number; this_month: number };
+  documents: { total: number; today: number };
+  storage: { used: number; total: number };
+  activities: { uploads_today: number; views_today: number; downloads_today: number };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -284,5 +291,20 @@ export class DocumentsService {
    */
   resetUploadProgress(): void {
     this.uploadProgressSubject.next(null);
+  }
+
+  /**
+   * Obter estatísticas do dashboard
+   */
+  getDashboardStats(): Observable<any> {
+    const url = `${environment.apiUrl}/dashboard/stats`;
+    console.log('🔵 [DocumentsService] Chamando endpoint:', url);
+    
+    return this.http.get<any>(url, { headers: this.getAuthHeaders() }).pipe(
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro na requisição:', error);
+        return this.handleError(error);
+      })
+    );
   }
 }
