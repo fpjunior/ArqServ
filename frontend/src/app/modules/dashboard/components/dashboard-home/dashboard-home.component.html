@@ -37,7 +37,7 @@
   <!-- Conteúdo Principal -->
   <div class="px-6 space-y-8">
     <!-- Cards de Estatísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div [class.grid-cols-1]="true" [class.sm:grid-cols-2]="!isAdmin()" [class.md:grid-cols-3]="!isAdmin()" [class.md:grid-cols-2]="isAdmin()" [class.lg:grid-cols-4]="isAdmin()" class="grid gap-6">
       <!-- Total de Servidores -->
       <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
@@ -73,11 +73,13 @@
       </div>
 
       <!-- Armazenamento -->
-      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
+      <div *ngIf="isAdmin()" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-3xl font-bold text-gray-900">{{ stats.storageUsed }}GB</div>
-            <div class="text-sm font-medium text-gray-600">Armazenamento</div>
+            <div class="text-3xl font-bold text-gray-900">
+              {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) | number:'1.2-2') }} GB
+            </div>
+            <div class="text-sm font-medium text-gray-600">Armazenamento Google Drive</div>
           </div>
           <div class="bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-xl">
             <span class="text-purple-600 text-2xl">💾</span>
@@ -86,9 +88,11 @@
         <div class="mt-4">
           <div class="bg-gray-200 rounded-full h-2">
             <div class="bg-gradient-to-r from-purple-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
-                 [style.width.%]="getStoragePercentage()"></div>
+                 [style.width.%]="storageTotal > 0 ? (storageUsed / storageTotal) * 100 : 0"></div>
           </div>
-          <span class="text-gray-500 text-xs mt-2 block">{{ stats.storageUsed }}/{{ stats.storageLimit }}GB</span>
+          <div class="text-xs text-gray-500 mt-2">
+            {{ storageUsed > 0 ? (((storageUsed / storageTotal) * 100) | number:'1.1-1') : '0' }}% utilizado
+          </div>
         </div>
       </div>
 

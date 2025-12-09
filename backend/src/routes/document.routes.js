@@ -184,6 +184,16 @@ router.get('/server/:server_id/files-count',
 );
 
 /**
+ * @route GET /api/documents/drive/storage-info
+ * @desc Obter informações de armazenamento do Google Drive
+ * @access Private (requer autenticação)
+ */
+router.get('/drive/storage-info', 
+  authenticate,
+  DocumentController.getDriveStorageInfo
+);
+
+/**
  * @route GET /api/documents/drive/:fileId/download
  * @desc Download de arquivo do Google Drive
  * @access Private

@@ -45,6 +45,9 @@ export class DashboardHomeComponent implements OnInit {
   currentUser: User | null = null;
   searchTerm = '';
   
+  storageUsed: number = 0;
+  storageTotal: number = 0;
+  
   stats: LocalDashboardStats = {
     totalServers: 0,
     totalDocuments: 0,
@@ -157,6 +160,8 @@ export class DashboardHomeComponent implements OnInit {
     });
 
     this.loadDashboardStats();
+    this.fetchStorageInfo();
+    this.currentUser = this.authService.getCurrentUser();
   }
 
   loadDashboardStats() {
@@ -252,5 +257,29 @@ export class DashboardHomeComponent implements OnInit {
 
   navigateToServer(serverId: string) {
     this.router.navigate(['/servers', serverId]);
+  }
+
+  isAdmin(): boolean {
+    return this.currentUser?.role === 'admin';
+  }
+
+  private fetchStorageInfo(): void {
+    console.log('🚀 fetchStorageInfo iniciado');
+    this.documentsService.getDriveStorageInfo().subscribe({
+      next: (response) => {
+        console.log('✅ Resposta recebida do armazenamento:', response);
+        if (response.success && response.data) {
+          console.log('📦 Dados de armazenamento encontrados:', response.data);
+          this.storageUsed = response.data.used;
+          this.storageTotal = response.data.total;
+          console.log('💾 Valores de armazenamento atribuídos - Usado:', this.storageUsed, 'Total:', this.storageTotal);
+        } else {
+          console.warn('⚠️ Resposta de armazenamento sem sucesso ou sem dados:', response);
+        }
+      },
+      error: (err) => {
+        console.error('❌ Erro ao carregar informações de armazenamento:', err);
+      },
+    });
   }
 }

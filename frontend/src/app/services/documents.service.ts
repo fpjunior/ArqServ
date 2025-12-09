@@ -346,4 +346,29 @@ export class DocumentsService {
       })
     );
   }
+
+  /**
+   * Obter informações de armazenamento do Google Drive
+   */
+  getDriveStorageInfo(): Observable<ApiResponse<{ used: number; total: number; usageInDrive: number; usageInTrash: number }>> {
+    const url = `${this.apiUrl}/documents/drive/storage-info`;
+    const headers = this.getAuthHeaders();
+
+    console.log('🔗 Chamando endpoint de armazenamento:', url);
+    console.log('🔑 Headers:', headers);
+
+    return this.http.get<ApiResponse<{ used: number; total: number; usageInDrive: number; usageInTrash: number }>>(url, { headers })
+      .pipe(
+        tap(response => {
+          console.log('✅ Resposta do endpoint de armazenamento:', response);
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('❌ Erro ao obter informações de armazenamento:', error);
+          console.error('Status:', error.status);
+          console.error('Message:', error.message);
+          console.error('Body:', error.error);
+          return throwError(() => new Error('Erro ao obter informações de armazenamento do Google Drive'));
+        })
+      );
+  }
 }

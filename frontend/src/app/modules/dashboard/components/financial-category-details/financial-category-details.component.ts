@@ -48,6 +48,8 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   selectedDocumentId: string = '';
   modalIsLoading: boolean = false;
   modalViewerUrl: any;
+  storageUsed: number = 0;
+  storageTotal: number = 0;
 
   constructor(
     private router: Router,
@@ -196,6 +198,8 @@ export class FinancialCategoryDetailsComponent implements OnInit {
       
       this.loadCategoryData();
     });
+
+    this.fetchStorageInfo();
   }
 
   loadCategoryData(): void {
@@ -244,6 +248,26 @@ export class FinancialCategoryDetailsComponent implements OnInit {
         this.isLoading = false;
       }
     );
+  }
+
+  private fetchStorageInfo(): void {
+    console.log('🚀 fetchStorageInfo iniciado');
+    this.documentsService.getDriveStorageInfo().subscribe({
+      next: (response) => {
+        console.log('✅ Resposta recebida:', response);
+        if (response.success && response.data) {
+          console.log('📦 Dados encontrados:', response.data);
+          this.storageUsed = response.data.used;
+          this.storageTotal = response.data.total;
+          console.log('💾 Valores atribuídos - Usado:', this.storageUsed, 'Total:', this.storageTotal);
+        } else {
+          console.warn('⚠️ Resposta sem sucesso ou sem dados:', response);
+        }
+      },
+      error: (err) => {
+        console.error('❌ Erro ao carregar informações de armazenamento:', err);
+      },
+    });
   }
 
   private getDocumentCategory(documentName: string): string {

@@ -24,8 +24,10 @@
       
       <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200">
         <div class="text-center">
-          <div class="text-2xl font-bold text-gray-900">{{ filteredDocuments.length }}</div>
-          <div class="text-sm text-gray-500">Documentos</div>
+          <div class="text-2xl font-bold text-gray-900">
+            {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) | number:'1.2-2') }} GB
+          </div>
+          <div class="text-sm text-gray-500">Armazenamento usado</div>
         </div>
       </div>
     </div>

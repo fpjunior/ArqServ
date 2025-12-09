@@ -430,12 +430,21 @@ class GoogleDriveOAuthService {
     return this.initialized;
   }
 
-  getStorageInfo() {
-    return {
-      isInitialized: this.initialized,
-      storageType: this.initialized ? 'Google Drive (OAuth)' : 'Local Storage',
-      rootFolder: this.rootFolderId || 'N/A'
-    };
+  async getStorageInfo() {
+    try {
+      const response = await this.drive.about.get({ fields: 'storageQuota' });
+      const { storageQuota } = response.data;
+
+      return {
+        used: storageQuota.usage, // Espaço usado
+        total: storageQuota.limit, // Espaço total disponível
+        usageInDrive: storageQuota.usageInDrive, // Espaço usado no Drive
+        usageInTrash: storageQuota.usageInTrash, // Espaço usado na lixeira
+      };
+    } catch (error) {
+      console.error('Erro ao obter informações de armazenamento do Google Drive:', error);
+      throw new Error('Não foi possível obter informações de armazenamento do Google Drive');
+    }
   }
 }
 

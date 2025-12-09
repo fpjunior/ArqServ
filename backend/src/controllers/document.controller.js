@@ -955,6 +955,36 @@ class DocumentController {
       });
     }
   }
+
+  /**
+   * Obter informações de armazenamento do Google Drive
+   * @route GET /api/documents/drive/storage-info
+   */
+  static async getDriveStorageInfo(req, res) {
+    try {
+      // Verificar se o serviço de OAuth do Google Drive está inicializado
+      if (!googleDriveOAuthService.isInitialized()) {
+        return res.status(503).json({
+          success: false,
+          message: 'Google Drive OAuth não está configurado',
+        });
+      }
+
+      // Obter informações de armazenamento do Google Drive
+      const storageInfo = await googleDriveOAuthService.getStorageInfo();
+
+      return res.status(200).json({
+        success: true,
+        data: storageInfo,
+      });
+    } catch (error) {
+      console.error('Erro ao obter informações de armazenamento do Google Drive:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao obter informações de armazenamento do Google Drive',
+      });
+    }
+  }
 }
 
 module.exports = DocumentController;
