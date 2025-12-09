@@ -68,45 +68,25 @@
   <!-- Documents Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 px-6" *ngIf="filteredDocuments.length > 0">
     <div 
-      *ngFor="let document of filteredDocuments"
-      class="document-card bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 overflow-hidden group">
+      *ngFor="let document of filteredDocuments" 
+      class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
       
-      <!-- Document Header -->
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">{{ getFileTypeIcon(document.type) }}</span>
-            <div>
-              <h3 class="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                {{ document.name }}
-              </h3>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-sm text-gray-500">{{ document.type }}</span>
-                <span class="text-gray-300">•</span>
-                <span class="text-sm text-gray-500">{{ document.size }}</span>
+          <!-- File Header -->
+          <div class="p-4 border-b border-gray-100">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-start space-x-3 flex-1">
+                <div class="text-2xl">{{ getFileIcon(document.mime_type || document.type) }}</div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-sm font-medium text-gray-900 truncate">{{ document.name }}</h3>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-sm text-gray-500">{{ getFileExtension(document.mime_type || document.type) }}</span>
+                    <span class="text-gray-300">•</span>
+                    <span class="text-sm text-gray-500">{{ document.size }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getStatusColor(document.status)">
-            {{ getStatusText(document.status) }}
-          </span>
-        </div>
-        
-        <p class="text-sm text-gray-600 mb-3" *ngIf="document.description">
-          {{ document.description }}
-        </p>
-        
-        <div class="flex flex-wrap gap-1 mb-3" *ngIf="document.tags && document.tags.length > 0">
-          <span 
-            *ngFor="let tag of document.tags"
-            class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg">
-            #{{ tag }}
-          </span>
-        </div>
-      </div>
-      
-      <!-- Document Actions -->
+          </div>      <!-- File Actions -->
       <div class="p-4 bg-gray-50 flex items-center justify-between">
         <div class="text-sm text-gray-500">
           {{ document.uploadDate | date:'dd/MM/yyyy' }}

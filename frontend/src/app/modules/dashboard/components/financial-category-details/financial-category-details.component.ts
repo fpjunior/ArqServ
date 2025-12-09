@@ -20,6 +20,8 @@ interface FinancialDocument {
   tags?: string[];
   googleDriveId?: string;
   googleDriveUrl?: string;
+  file_type?: string;
+  mime_type?: string;
 }
 
 interface FinancialCategory {
@@ -242,7 +244,9 @@ export class FinancialCategoryDetailsComponent implements OnInit {
             status: doc.is_active ? 'active' : 'archived',
             description: doc.description,
             googleDriveId: doc.google_drive_id,
-            googleDriveUrl: doc.google_drive_url
+            googleDriveUrl: doc.google_drive_url,
+            file_type: doc.file_type,
+            mime_type: doc.mime_type || this.getMimeTypeFromFileName(doc.file_name)
           }));
           this.filteredDocuments = [...this.documents];
         }
@@ -499,6 +503,48 @@ export class FinancialCategoryDetailsComponent implements OnInit {
       default:
         return '📎';
     }
+  }
+
+  getFileIcon(fileType: string): string {
+    const type = fileType.toLowerCase();
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('word') || type.includes('document')) return '📝';
+    if (type.includes('excel') || type.includes('sheet')) return '📊';
+    if (type.includes('powerpoint') || type.includes('presentation')) return '📋';
+    if (type.includes('text')) return '📄';
+    return '📁';
+  }
+
+  getMimeTypeFromFileName(fileName: string): string {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    const mimeTypes: { [key: string]: string } = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'txt': 'text/plain'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
+  }
+
+  getFileExtension(mimeType: string): string {
+    if (mimeType?.includes('pdf')) return 'PDF';
+    if (mimeType?.includes('image/jpeg')) return 'JPG';
+    if (mimeType?.includes('image/png')) return 'PNG';
+    if (mimeType?.includes('image')) return 'IMG';
+    if (mimeType?.includes('word') || mimeType?.includes('document')) return 'DOC';
+    if (mimeType?.includes('excel') || mimeType?.includes('sheet')) return 'XLS';
+    if (mimeType?.includes('powerpoint') || mimeType?.includes('presentation')) return 'PPT';
+    if (mimeType?.includes('text')) return 'TXT';
+    return 'FILE';
   }
 
   getDocumentsByStatus(status: string): number {
