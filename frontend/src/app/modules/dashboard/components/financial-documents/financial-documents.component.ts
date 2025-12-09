@@ -162,7 +162,7 @@ export class FinancialDocumentsComponent implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/documentacoes-financeiras']);
   }
 
   getTotalDocuments(): number {
