@@ -4,6 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
+import { DomSanitizer } from '@angular/platform-browser';
+import { AuthService } from '../../../../shared/services/auth.service';
 
 interface FinancialDocument {
   id: number;
@@ -42,50 +44,77 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   searchTerm: string = '';
   selectedStatus: string = 'all';
   isLoading: boolean = true;
+  isModalVisible: boolean = false;
+  selectedDocumentId: string = '';
+  modalIsLoading: boolean = false;
+  modalViewerUrl: any;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private http: HttpClient,
-    private documentsService: DocumentsService
+    private documentsService: DocumentsService,
+    private sanitizer: DomSanitizer,
+    private authService: AuthService // Adicionado para corrigir o erro
   ) {}
 
   // Definição das categorias
   categories: { [key: string]: FinancialCategory } = {
-    'folha-pagamento': {
-      id: 'folha-pagamento',
-      name: 'Folha de Pagamento',
-      icon: '💰',
-      description: 'Documentos de folha de pagamento',
-      color: 'from-blue-500 to-blue-600'
+    'balanco': {
+      id: 'balanco',
+      name: 'Balanço Patrimonial',
+      icon: '⚖️',
+      description: 'Documentos de balanço patrimonial',
+      color: 'from-indigo-500 to-indigo-600'
+    },
+    'orcamento': {
+      id: 'orcamento',
+      name: 'Orçamento Anual',
+      icon: '📊',
+      description: 'Documentos de orçamento anual',
+      color: 'from-cyan-500 to-cyan-600'
+    },
+    'prestacao-contas': {
+      id: 'prestacao-contas',
+      name: 'Prestação de Contas',
+      icon: '🔍',
+      description: 'Documentos de prestação de contas',
+      color: 'from-orange-500 to-orange-600'
+    },
+    'receitas': {
+      id: 'receitas',
+      name: 'Relatório de Receitas',
+      icon: '📈',
+      description: 'Documentos de receitas e arrecadação',
+      color: 'from-green-500 to-green-600'
     },
     'despesas': {
       id: 'despesas',
       name: 'Relatório de Despesas',
-      icon: '💸',
+      icon: '📉',
       description: 'Relatórios de despesas',
       color: 'from-red-500 to-red-600'
     },
     'licitacoes': {
       id: 'licitacoes',
-      name: 'Licitações',
+      name: 'Licitações e Contratos',
       icon: '📋',
-      description: 'Documentos de processos licitatórios',
+      description: 'Documentos de processos licitatórios e contratos',
       color: 'from-blue-500 to-blue-600'
     },
-    'receitas': {
-      id: 'receitas',
-      name: 'Receitas',
+    'folha-pagamento': {
+      id: 'folha-pagamento',
+      name: 'Folha de Pagamento',
       icon: '💰',
-      description: 'Documentos de receitas e arrecadação',
-      color: 'from-green-500 to-green-600'
-    },
-    'contratos': {
-      id: 'contratos',
-      name: 'Contratos',
-      icon: '📝',
-      description: 'Contratos firmados e documentação',
+      description: 'Documentos de folha de pagamento',
       color: 'from-purple-500 to-purple-600'
+    },
+    'outros': {
+      id: 'outros',
+      name: 'Outros',
+      icon: '📎',
+      description: 'Outros documentos financeiros',
+      color: 'from-gray-500 to-gray-600'
     }
   };
 
@@ -254,24 +283,95 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   }
 
   downloadDocument(doc: FinancialDocument): void {
-    console.log(`⬇️ Fazendo download do documento: ${doc.name}`);
-    if (doc.googleDriveUrl) {
-      // Implementar download direto em vez de abrir nova guia
-      const link = window.document.createElement('a');
-      link.href = doc.googleDriveUrl;
-      link.download = doc.name;
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
-    } else {
-      alert('URL do documento não encontrada');
+    console.log(`⬇️ Iniciando download de: ${doc.name}`);
+
+    const googleDriveId = doc.googleDriveId;
+    if (!googleDriveId) {
+      alert('ID do Google Drive não encontrado para download');
+      return;
     }
+
+    const token = this.authService.getToken();
+    if (!token) {
+      alert('Token de autenticação não encontrado');
+      return;
+    }
+
+    // Usar endpoint de download específico para Google Drive
+    this.http.get(`${environment.apiUrl}/documents/drive/${googleDriveId}/download`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      responseType: 'blob',
+      observe: 'response'
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Download concluído');
+
+        // Criar URL para o blob e fazer download
+        const blob = response.body;
+        if (blob) {
+          const url = window.URL.createObjectURL(blob);
+          const link = window.document.createElement('a'); // Corrigido para usar o objeto global document
+          link.href = url;
+          link.download = doc.name;
+          window.document.body.appendChild(link);
+          link.click();
+          window.document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erro no download:', error);
+        alert('Erro ao fazer download do arquivo');
+      }
+    });
   }
 
-  viewDocument(doc: FinancialDocument): void {
-    console.log(`👁️ Visualizando documento: ${doc.name}`);
-    // Modal não implementado para documentos financeiros ainda
-    alert('Visualização em modal não implementada para documentos financeiros');
+  viewDocument(document: FinancialDocument): void {
+    console.log('🆕 Visualizando documento:', document);
+
+    const googleDriveId = document.googleDriveId;
+    if (!googleDriveId) {
+      console.error('❌ ID do Google Drive não encontrado para este documento:', document);
+      console.log('📋 Propriedades do documento:', {
+        id: document.id,
+        name: document.name,
+        googleDriveId: document.googleDriveId,
+        googleDriveUrl: document.googleDriveUrl
+      });
+      alert('ID do Google Drive não encontrado para este documento. Verifique se o documento foi salvo com ID válido.');
+      return;
+    }
+
+    // FORÇAR modal a aparecer imediatamente
+    this.isModalVisible = true;
+    this.selectedDocumentId = googleDriveId;
+    this.modalIsLoading = true;
+
+    console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
+    console.log('🔥 Google Drive ID:', this.selectedDocumentId);
+
+    // Criar URL segura
+    const embedUrl = `https://drive.google.com/file/d/${googleDriveId}/preview`;
+    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+    console.log('🔥 Modal URL criada:', embedUrl);
+
+    // Adicionar verificação para garantir que o modal está sendo exibido
+    if (!this.isModalVisible || !this.modalViewerUrl) {
+      console.error('❌ O modal não foi configurado corretamente. Verifique as propriedades.');
+      alert('Erro ao configurar o modal de visualização.');
+      return;
+    }
+
+    // Parar loading após 1s
+    setTimeout(() => {
+      this.modalIsLoading = false;
+      console.log('🔥 Modal loading finished');
+    }, 1000);
+
+    // JAMAIS abrir nova guia
+    return; // Garante que nada mais seja executado
   }
 
   deleteDocument(document: FinancialDocument): void {
@@ -339,5 +439,13 @@ export class FinancialCategoryDetailsComponent implements OnInit {
 
   getDocumentsByStatus(status: string): number {
     return this.documents.filter(doc => doc.status === status).length;
+  }
+
+  closeModal(): void {
+    console.log('❌ Fechando modal');
+    this.isModalVisible = false;
+    this.selectedDocumentId = '';
+    this.modalViewerUrl = null;
+    this.modalIsLoading = false;
   }
 }

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { DomSanitizer } from '@angular/platform-browser';
 
 interface FinancialFolder {
   financial_document_type: string;
@@ -16,15 +17,26 @@ interface FinancialFolder {
 
 // Mapeamento de ícones e cores para tipos de documentos
 const FINANCIAL_TYPE_CONFIG: { [key: string]: { icon: string; color: string; description: string } } = {
-  'folha-pagamento': { icon: '💰', color: 'from-blue-500 to-blue-600', description: 'Folha de Pagamento' },
-  'despesas': { icon: '💸', color: 'from-red-500 to-red-600', description: 'Relatório de Despesas' },
-  'receitas': { icon: '💰', color: 'from-green-500 to-green-600', description: 'Relatório de Receitas' },
-  'contratos': { icon: '📝', color: 'from-purple-500 to-purple-600', description: 'Contratos firmados e documentação' },
-  'licitações': { icon: '📋', color: 'from-blue-500 to-blue-600', description: 'Documentos de processos licitatórios' },
-  'orçamento anual': { icon: '📊', color: 'from-cyan-500 to-cyan-600', description: 'Documentos de orçamento anual' },
-  'planejamento': { icon: '📊', color: 'from-cyan-500 to-cyan-600', description: 'Documentos de planejamento' },
-  'conformidade': { icon: '✅', color: 'from-green-600 to-green-700', description: 'Documentos de conformidade e auditoria' },
-  'prestação de contas': { icon: '🔍', color: 'from-orange-500 to-orange-600', description: 'Prestação de contas e relatórios' }
+  'balanco': { icon: '⚖️', color: 'from-indigo-500 to-indigo-600', description: 'Balanço Patrimonial' },
+  'orcamento': { icon: '📊', color: 'from-cyan-500 to-cyan-600', description: 'Orçamento Anual' },
+  'prestacao-contas': { icon: '🔍', color: 'from-orange-500 to-orange-600', description: 'Prestação de Contas' },
+  'receitas': { icon: '📈', color: 'from-green-500 to-green-600', description: 'Relatório de Receitas' },
+  'despesas': { icon: '📉', color: 'from-red-500 to-red-600', description: 'Relatório de Despesas' },
+  'licitacoes': { icon: '📋', color: 'from-blue-500 to-blue-600', description: 'Licitações e Contratos' },
+  'folha-pagamento': { icon: '💰', color: 'from-purple-500 to-purple-600', description: 'Folha de Pagamento' },
+  'outros': { icon: '📎', color: 'from-gray-500 to-gray-600', description: 'Outros' }
+};
+
+// Mapeamento de nomes para exibição na tela
+const FINANCIAL_TYPE_DISPLAY_NAMES: { [key: string]: string } = {
+  'balanco': 'Balanço Patrimonial',
+  'orcamento': 'Orçamento Anual',
+  'prestacao-contas': 'Prestação de Contas',
+  'receitas': 'Relatório de Receitas',
+  'despesas': 'Relatório de Despesas',
+  'licitacoes': 'Licitações e Contratos',
+  'folha-pagamento': 'Folha de Pagamento',
+  'outros': 'Outros'
 };
 
 @Component({
@@ -41,11 +53,18 @@ export class FinancialDocumentsComponent implements OnInit {
   isLoading: boolean = true;
   errorMessage: string = '';
 
+  // Novas propriedades para visualização de documentos
+  isModalVisible: boolean = false;
+  modalViewerUrl: any;
+  selectedDocumentId: string | null = null;
+  modalIsLoading: boolean = false;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private documentsService: DocumentsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -77,7 +96,8 @@ export class FinancialDocumentsComponent implements OnInit {
   }
 
   private loadFinancialTypesByMunicipality(municipalityCode: string): void {
-    this.documentsService.getFinancialDocumentTypes(municipalityCode).subscribe({
+    const currentYear = new Date().getFullYear();
+    this.documentsService.getFinancialDocumentTypes(municipalityCode, currentYear).subscribe({
       next: (response: any) => {
         console.log('📂 [FINANCIAL-DOCUMENTS] Documentos financeiros carregados:', response.data);
         
@@ -90,10 +110,13 @@ export class FinancialDocumentsComponent implements OnInit {
             description: 'Documentos diversos'
           };
           
+          // Usar o nome correto do mapeamento de exibição
+          const displayName = FINANCIAL_TYPE_DISPLAY_NAMES[type] || config.description;
+          
           return {
             financial_document_type: type,
             count: item.count || 0,
-            name: item.display_name || config.description,
+            name: displayName,
             icon: config.icon,
             description: config.description,
             color: config.color
@@ -144,5 +167,62 @@ export class FinancialDocumentsComponent implements OnInit {
 
   getTotalDocuments(): number {
     return this.financialFolders.reduce((total, folder) => total + folder.count, 0);
+  }
+
+  viewDocument(documentId: number): void {
+    console.log('🆕 Visualizando documento:', documentId);
+
+    // FORÇAR modal a aparecer imediatamente
+    this.isModalVisible = true;
+    this.selectedDocumentId = documentId.toString();
+    this.modalIsLoading = true;
+
+    console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
+    console.log('🔥 Documento selecionado:', this.selectedDocumentId);
+
+    // Criar URL segura
+    const embedUrl = `https://drive.google.com/file/d/${documentId}/preview`;
+    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+    console.log('🔥 Modal URL criada:', embedUrl);
+
+    // Parar loading após 1s
+    setTimeout(() => {
+      this.modalIsLoading = false;
+      console.log('🔥 Modal loading finished');
+    }, 1000);
+
+    // JAMAIS abrir nova guia
+    return; // Garante que nada mais seja executado
+  }
+
+  downloadDocument(documentId: number): void {
+    console.log(`⬇️ Iniciando download de: ${documentId}`);
+
+    const token = this.authService.getToken();
+    if (!token) {
+      alert('Token de autenticação não encontrado');
+      return;
+    }
+
+    // Usar o método correto do DocumentsService
+    this.documentsService.downloadDocument(documentId).subscribe({
+      next: (response: Blob) => {
+        console.log('✅ Download concluído');
+
+        // Criar URL para o blob e fazer download
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `document-${documentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('❌ Erro no download:', error);
+        alert('Erro ao fazer download do arquivo');
+      }
+    });
   }
 }

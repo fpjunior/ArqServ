@@ -643,6 +643,17 @@ class DocumentController {
 
       const documents = await Document.getFinancialDocumentsByType(municipality_code, type, year);
 
+      console.log(`✅ Retornando ${documents.length} documentos para o frontend`);
+      if (documents.length > 0) {
+        console.log(`🎯 Primeira documento:`, {
+          id: documents[0].id,
+          title: documents[0].title,
+          file_name: documents[0].file_name,
+          google_drive_id: documents[0].google_drive_id,
+          financial_document_type: documents[0].financial_document_type
+        });
+      }
+
       res.json({
         success: true,
         data: documents

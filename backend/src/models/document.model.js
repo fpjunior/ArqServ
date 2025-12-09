@@ -338,6 +338,12 @@ class Document {
         throw new Error('Erro ao buscar documentos no banco de dados.');
       }
 
+      console.log(`📁 [getFinancialDocumentsByType] Municipalidade: ${municipalityCode}, Tipo: ${type}, Ano: ${year || 'todos'}`);
+      console.log(`📄 Documentos encontrados: ${data?.length || 0}`);
+      if (data && data.length > 0) {
+        console.log(`🔑 Primeira documento:`, JSON.stringify(data[0], null, 2));
+      }
+
       return data || [];
     } catch (error) {
       console.error('❌ Erro em getFinancialDocumentsByType:', error);
