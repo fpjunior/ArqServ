@@ -8,6 +8,7 @@ import { environment } from '../../../../../environments/environment';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Location } from '@angular/common';
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
+import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
 
 interface ServerFile {
   id: number;
@@ -41,7 +42,7 @@ interface ApiResponse {
 @Component({
   selector: 'app-server-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDeleteModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmDeleteModalComponent, SuccessModalComponent],
   templateUrl: './server-details.component.html',
   styleUrls: ['./server-details.component.scss']
 })
@@ -63,6 +64,10 @@ export class ServerDetailsComponent implements OnInit {
   // Confirm delete modal
   confirmDeleteModalVisible = false;
   fileToDelete: ServerFile | null = null;
+
+  // Success modal
+  successModalVisible: boolean = false;
+  successMessage: string = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -250,7 +255,15 @@ export class ServerDetailsComponent implements OnInit {
         this.filteredFiles = this.filteredFiles.filter(f => f.id !== this.fileToDelete!.id);
         this.confirmDeleteModalVisible = false;
         this.fileToDelete = null;
-        alert('Documento removido com sucesso!');
+
+        // Exibir modal de sucesso
+        this.successMessage = 'Documento removido com sucesso!';
+        this.successModalVisible = true;
+
+        // Fechar modal automaticamente após 3 segundos
+        setTimeout(() => {
+          this.successModalVisible = false;
+        }, 3000);
       },
       error: (error) => {
         console.error('Erro ao remover documento:', error);
