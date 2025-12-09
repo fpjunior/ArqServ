@@ -552,6 +552,41 @@ class DocumentController {
   }
 
   /**
+   * Deletar documento financeiro
+   * @route DELETE /api/documents/financial/:id
+   */
+  static async deleteFinancialDocument(req, res) {
+    const { id } = req.params;
+    try {
+      // Se o ID começar com 'drive_', é um arquivo direto do Google Drive
+      if (id.startsWith('drive_')) {
+        const driveFileId = id.replace('drive_', '');
+        if (!googleDriveOAuthService.isInitialized()) {
+          await googleDriveOAuthService.initialize();
+        }
+        await googleDriveOAuthService.deleteFile(driveFileId);
+        return res.status(200).json({ success: true, message: 'Arquivo financeiro deletado do Google Drive' });
+      }
+      // Caso contrário, é um documento do banco de dados
+      const document = await Document.findById(id);
+      if (!document) {
+        return res.status(404).json({ success: false, message: 'Documento financeiro não encontrado' });
+      }
+      if (document.google_drive_id) {
+        try {
+          await googleDriveOAuthService.deleteFile(document.google_drive_id);
+        } catch (error) {
+          return res.status(500).json({ success: false, message: 'Erro ao deletar arquivo do Google Drive' });
+        }
+      }
+      await Document.deleteById(id);
+      return res.status(200).json({ success: true, message: 'Documento financeiro deletado com sucesso' });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: 'Erro ao deletar documento financeiro' });
+    }
+  }
+
+  /**
    * Listar todos os documentos (admin)
    * @route GET /api/documents/admin/all
    */

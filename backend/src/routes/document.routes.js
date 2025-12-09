@@ -122,6 +122,13 @@ router.get('/drive/:drive_file_id/download',
 router.delete('/:id', DocumentController.deleteDocument);
 
 /**
+ * @route DELETE /api/documents/financial/:id
+ * @desc Deletar documento financeiro
+ * @access Private
+ */
+router.delete('/financial/:id', authenticate, DocumentController.deleteFinancialDocument);
+
+/**
  * @route GET /api/documents/admin/all
  * @desc Listar todos os documentos (visão administrativa)
  * @access Private (admin only)

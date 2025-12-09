@@ -242,6 +242,20 @@ export class DocumentsService {
   }
 
   /**
+   * Deletar documento financeiro
+   */
+  deleteFinancialDocument(documentId: number | string): Observable<ApiResponse<null>> {
+    const url = `${this.apiUrl}/documents/financial/${documentId}`;
+    const headers = this.getAuthHeaders();
+    return this.http.delete<ApiResponse<null>>(url, { headers }).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('Erro ao deletar documento financeiro:', error);
+        return throwError(() => new Error(error.message));
+      })
+    );
+  }
+
+  /**
    * Tratamento de erros HTTP
    */
   private handleError(error: HttpErrorResponse): Observable<never> {

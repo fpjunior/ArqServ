@@ -6,6 +6,8 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer } from '@angular/platform-browser';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
+import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
 
 interface FinancialDocument {
   id: number;
@@ -31,7 +33,7 @@ interface FinancialCategory {
 @Component({
   selector: 'app-financial-category-details',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfirmDeleteModalComponent, SuccessModalComponent],
   templateUrl: './financial-category-details.component.html',
   styleUrls: ['./financial-category-details.component.scss']
 })
@@ -50,6 +52,11 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   modalViewerUrl: any;
   storageUsed: number = 0;
   storageTotal: number = 0;
+  confirmDeleteModalVisible = false;
+  documentToDelete: FinancialDocument | null = null;
+  errorMessage: string = '';
+  successModalVisible: boolean = false;
+  successMessage: string = '';
 
   constructor(
     private router: Router,
@@ -398,13 +405,46 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     return; // Garante que nada mais seja executado
   }
 
-  deleteDocument(document: FinancialDocument): void {
-    if (confirm(`Tem certeza que deseja excluir o documento "${document.name}"?`)) {
-      this.documents = this.documents.filter(d => d.id !== document.id);
-      this.filterDocuments();
-      console.log(`Documento excluído: ${document.name}`);
-      // TODO: Implementar exclusão no backend
-    }
+  showDeleteModal(document: FinancialDocument): void {
+    this.documentToDelete = document;
+    this.confirmDeleteModalVisible = true;
+  }
+
+  onDeleteConfirmed(): void {
+    if (!this.documentToDelete) return;
+    this.isLoading = true;
+    this.documentsService.deleteFinancialDocument(this.documentToDelete.id).subscribe({
+      next: () => {
+        // Remove do array local
+        this.documents = this.documents.filter(d => d.id !== this.documentToDelete!.id);
+        this.filteredDocuments = this.filteredDocuments.filter(d => d.id !== this.documentToDelete!.id);
+        this.confirmDeleteModalVisible = false;
+        this.documentToDelete = null;
+
+        // Exibir modal de sucesso
+        this.successMessage = 'Documento removido com sucesso!';
+        this.successModalVisible = true;
+
+        // Fechar modal automaticamente após 3 segundos
+        setTimeout(() => {
+          this.successModalVisible = false;
+        }, 3000);
+      },
+      error: (error) => {
+        console.error('Erro ao remover documento:', error);
+        this.errorMessage = 'Erro ao remover documento financeiro.';
+        this.confirmDeleteModalVisible = false;
+        this.documentToDelete = null;
+      },
+      complete: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  onDeleteModalClosed(): void {
+    this.confirmDeleteModalVisible = false;
+    this.documentToDelete = null;
   }
 
   navigateBack(): void {

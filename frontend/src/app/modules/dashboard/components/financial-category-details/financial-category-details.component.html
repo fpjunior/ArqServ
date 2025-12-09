@@ -136,8 +136,8 @@
           </button>
           
           <button 
-            (click)="deleteDocument(document)"
-            class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+            (click)="showDeleteModal(document)"
+            class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
             title="Excluir">
             <span>🗑️</span>
           </button>
@@ -222,3 +222,17 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<app-confirm-delete-modal 
+  [isVisible]="confirmDeleteModalVisible" 
+  [itemName]="documentToDelete?.name || ''" 
+  (confirmed)="onDeleteConfirmed()" 
+  (closed)="onDeleteModalClosed()">
+</app-confirm-delete-modal>
+
+<app-success-modal 
+  *ngIf="successModalVisible" 
+  [visible]="successModalVisible" 
+  [message]="successMessage">
+</app-success-modal>
