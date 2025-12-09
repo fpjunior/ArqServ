@@ -83,11 +83,7 @@ class Document {
     try {
       let query = supabase
         .from('documents')
-        .select(`
-          *,
-          uploaded_by_name:users(name),
-          municipality_name:municipalities(name)
-        `)
+        .select('*')
         .eq('municipality_code', municipalityCode)
         .eq('is_active', true);
 
@@ -124,11 +120,7 @@ class Document {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select(`
-          *,
-          uploaded_by_name:users(name),
-          municipality_name:municipalities(name)
-        `)
+        .select('*')
         .eq('id', id)
         .eq('is_active', true)
         .single();
@@ -217,11 +209,7 @@ class Document {
     try {
       let query = supabase
         .from('documents')
-        .select(`
-          *,
-          uploaded_by_name:users(name),
-          municipality_name:municipalities(name)
-        `)
+        .select('*')
         .eq('is_active', true);
 
       // Filtros
@@ -309,6 +297,24 @@ class Document {
       return result;
     } catch (error) {
       console.error('❌ Erro em getAvailableFinancialTypes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deletar documento por ID
+   */
+  static async deleteById(id) {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao deletar documento:', error);
       throw error;
     }
   }

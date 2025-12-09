@@ -341,7 +341,7 @@ class DocumentController {
           
           // Converter arquivos do Drive para formato esperado pelo frontend
           documents = (driveFiles.data.files || []).map(file => ({
-            id: file.id,
+            id: `drive_${file.id}`,
             title: file.name,
             file_name: file.name,
             description: `Arquivo do Google Drive - ${file.mimeType}`,
@@ -486,33 +486,67 @@ class DocumentController {
    * @route DELETE /api/documents/:id
    */
   static async deleteDocument(req, res) {
-    try {
-      const { id } = req.params;
-      const document = await Document.findById(id);
+    const { id } = req.params;
 
+    try {
+      // Se o ID começar com 'drive_', é um arquivo direto do Google Drive
+      if (id.startsWith('drive_')) {
+        const driveFileId = id.replace('drive_', '');
+        
+        try {
+          if (!googleDriveOAuthService.isInitialized()) {
+            await googleDriveOAuthService.initialize();
+          }
+          
+          await googleDriveOAuthService.deleteFile(driveFileId);
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Arquivo deletado com sucesso do Google Drive',
+          });
+        } catch (error) {
+          console.error('Erro ao deletar arquivo do Google Drive:', error);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao deletar arquivo do Google Drive',
+          });
+        }
+      }
+      
+      // Caso contrário, é um documento do banco de dados
+      const document = await Document.findById(id);
       if (!document) {
         return res.status(404).json({
           success: false,
-          message: 'Documento não encontrado'
+          message: 'Documento não encontrado',
         });
       }
 
       // Deletar do Google Drive
-      await googleDriveOAuthService.deleteFile(document.google_drive_id);
+      if (document.drive_file_id) {
+        try {
+          await googleDriveOAuthService.deleteFile(document.drive_file_id);
+        } catch (error) {
+          console.error('Erro ao deletar arquivo do Google Drive:', error);
+          return res.status(500).json({
+            success: false,
+            message: 'Erro ao deletar arquivo do Google Drive',
+          });
+        }
+      }
 
-      // Deletar do banco (soft delete)
-      await Document.delete(id);
+      // Deletar do banco de dados
+      await Document.deleteById(id);
 
-      res.json({
+      return res.status(200).json({
         success: true,
-        message: 'Documento deletado com sucesso'
+        message: 'Documento deletado com sucesso',
       });
-
     } catch (error) {
-      console.error('❌ Erro ao deletar documento:', error);
-      res.status(500).json({
+      console.error('Erro ao deletar documento:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: 'Erro ao deletar documento',
       });
     }
   }

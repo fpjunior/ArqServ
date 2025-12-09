@@ -7,6 +7,7 @@ import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Location } from '@angular/common';
+import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 
 interface ServerFile {
   id: number;
@@ -40,7 +41,7 @@ interface ApiResponse {
 @Component({
   selector: 'app-server-details',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDeleteModalComponent],
   templateUrl: './server-details.component.html',
   styleUrls: ['./server-details.component.scss']
 })
@@ -58,6 +59,10 @@ export class ServerDetailsComponent implements OnInit {
   selectedFile: ServerFile | null = null;
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
+
+  // Confirm delete modal
+  confirmDeleteModalVisible = false;
+  fileToDelete: ServerFile | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -221,6 +226,47 @@ export class ServerDetailsComponent implements OnInit {
         alert('Erro ao fazer download do arquivo');
       }
     });
+  }
+
+  /**
+   * Remover documento
+   */
+  showDeleteModal(file: ServerFile): void {
+    this.fileToDelete = file;
+    this.confirmDeleteModalVisible = true;
+  }
+
+  onDeleteConfirmed(): void {
+    if (!this.fileToDelete) return;
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.http.delete(`${environment.apiUrl}/documents/${this.fileToDelete.id}`, {
+      headers: {
+        Authorization: `Bearer ${this.authService.getToken()}`
+      }
+    }).subscribe({
+      next: () => {
+        this.files = this.files.filter(f => f.id !== this.fileToDelete!.id);
+        this.filteredFiles = this.filteredFiles.filter(f => f.id !== this.fileToDelete!.id);
+        this.confirmDeleteModalVisible = false;
+        this.fileToDelete = null;
+        alert('Documento removido com sucesso!');
+      },
+      error: (error) => {
+        console.error('Erro ao remover documento:', error);
+        this.errorMessage = 'Erro ao remover documento. Tente novamente mais tarde.';
+        this.confirmDeleteModalVisible = false;
+        this.fileToDelete = null;
+      },
+      complete: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  onDeleteModalClosed(): void {
+    this.confirmDeleteModalVisible = false;
+    this.fileToDelete = null;
   }
 
   getFileIcon(file: ServerFile): string {

@@ -229,9 +229,16 @@ export class DocumentsService {
   /**
    * Deletar documento
    */
-  deleteDocument(id: number): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/documents/${id}`, { headers: this.getAuthHeaders() })
-      .pipe(catchError(this.handleError));
+  deleteDocument(documentId: number): Observable<ApiResponse<null>> {
+    const url = `${this.apiUrl}/documents/${documentId}`;
+    const headers = this.getAuthHeaders();
+
+    return this.http.delete<ApiResponse<null>>(url, { headers }).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('Erro ao deletar documento:', error);
+        return throwError(() => new Error(error.message));
+      })
+    );
   }
 
   /**

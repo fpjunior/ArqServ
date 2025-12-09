@@ -115,6 +115,12 @@
                 <span>⬇️</span>
                 <span>Baixar</span>
               </button>
+              <button 
+                (click)="showDeleteModal(file)"
+                class="flex-1 px-3 py-2 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center space-x-1">
+                <span>🗑️</span>
+                <span>Remover</span>
+              </button>
             </div>
           </div>
         </div>
@@ -193,3 +199,10 @@
     </div>
   </div>
 </div>
+
+<app-confirm-delete-modal 
+  [isVisible]="confirmDeleteModalVisible" 
+  [itemName]="fileToDelete?.title || ''" 
+  (confirmed)="onDeleteConfirmed()" 
+  (closed)="onDeleteModalClosed()">
+</app-confirm-delete-modal>
