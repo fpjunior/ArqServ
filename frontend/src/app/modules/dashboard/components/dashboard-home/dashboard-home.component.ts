@@ -172,10 +172,17 @@ export class DashboardHomeComponent implements OnInit {
 
         if (response && response.success && response.data) {
           // Converter timestamps para Date objects
-          this.recentActivities = response.data.map((activity: any) => ({
-            ...activity,
-            timestamp: new Date(activity.timestamp)
-          }));
+          this.recentActivities = response.data.map((activity: any) => {
+            // Garantir que a string de data seja tratada como UTC
+            let timestampStr = activity.timestamp;
+            if (timestampStr && !timestampStr.endsWith('Z')) {
+              timestampStr += 'Z';
+            }
+            return {
+              ...activity,
+              timestamp: new Date(timestampStr)
+            };
+          });
           console.log('✅ [DASHBOARD] Atividades carregadas:', this.recentActivities.length);
         } else {
           console.warn('⚠️ [DASHBOARD] Resposta de atividades inválida:', response);
@@ -213,17 +220,25 @@ export class DashboardHomeComponent implements OnInit {
   }
 
   formatTime(date: Date): string {
-    const diff = Date.now() - date.getTime();
+    const now = Date.now();
+    const activityTime = date.getTime();
+
+    // Calcular diferença. Se negativo (futuro), tratar como zero (agora)
+    // Isso resolve problemas de fuso horário ou pequenas desincronias de relógio
+    const diff = Math.max(0, now - activityTime);
+
     const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    if (minutes < 60) {
+    if (minutes < 1) {
+      return 'agora mesmo';
+    } else if (minutes < 60) {
       return `${minutes} min atrás`;
     } else if (hours < 24) {
-      return `${hours}h atrás`;
+      return `${hours} ${hours === 1 ? 'hora' : 'horas'} atrás`;
     } else {
-      return `${days}d atrás`;
+      return `${days} ${days === 1 ? 'dia' : 'dias'} atrás`;
     }
   }
 

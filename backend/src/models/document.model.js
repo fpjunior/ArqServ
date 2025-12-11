@@ -134,6 +134,26 @@ class Document {
   }
 
   /**
+   * Buscar documento por Google Drive ID
+   */
+  static async findByGoogleDriveId(driveId) {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('google_drive_id', driveId)
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || null;
+    } catch (error) {
+      console.error('❌ Erro ao buscar documento por Drive ID:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Buscar documentos por servidor
    */
   static async findByServer(serverId) {
@@ -243,7 +263,7 @@ class Document {
   static async getAvailableFinancialTypes(municipalityCode, year = null) {
     try {
       console.log(`🔍 [getAvailableFinancialTypes] Municipality: ${municipalityCode}, Year: ${year}`);
-      
+
       // SEMPRE buscar TODOS os tipos financeiros para o município (ignorar filtro de ano)
       const allTypesQuery = supabase
         .from('documents')

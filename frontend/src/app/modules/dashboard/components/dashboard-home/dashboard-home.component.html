@@ -11,21 +11,17 @@
             Gerencie seus documentos e servidores de forma eficiente
           </p>
         </div>
-        
+
         <div class="flex items-center gap-4">
           <div class="relative flex-1 lg:w-80">
             <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-            <input 
-              type="text" 
-              placeholder="Buscar documentos, servidores..." 
+            <input type="text" placeholder="Buscar documentos, servidores..."
               class="w-full pl-10 pr-4 py-3 bg-white/90 backdrop-blur-sm border-0 rounded-xl focus:ring-2 focus:ring-white/50 focus:bg-white transition-all shadow-lg"
-              [(ngModel)]="searchTerm"
-              (input)="onSearch()">
+              [(ngModel)]="searchTerm" (input)="onSearch()">
           </div>
-          
-          <button 
-            (click)="refreshData()" 
-            class="bg-white/20 backdrop-blur-sm p-3 rounded-xl hover:bg-white/30 transition-colors shadow-lg" 
+
+          <button (click)="refreshData()"
+            class="bg-white/20 backdrop-blur-sm p-3 rounded-xl hover:bg-white/30 transition-colors shadow-lg"
             title="Atualizar dados">
             <span class="text-xl">🔄</span>
           </button>
@@ -37,9 +33,11 @@
   <!-- Conteúdo Principal -->
   <div class="px-6 space-y-8">
     <!-- Cards de Estatísticas -->
-    <div [class.grid-cols-1]="true" [class.sm:grid-cols-2]="!isAdmin()" [class.md:grid-cols-3]="!isAdmin()" [class.md:grid-cols-2]="isAdmin()" [class.lg:grid-cols-4]="isAdmin()" class="grid gap-6">
+    <div [class.grid-cols-1]="true" [class.sm:grid-cols-2]="!isAdmin()" [class.md:grid-cols-3]="!isAdmin()"
+      [class.md:grid-cols-2]="isAdmin()" [class.lg:grid-cols-4]="isAdmin()" class="grid gap-6">
       <!-- Total de Servidores -->
-      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
+      <div
+        class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-3xl font-bold text-gray-900">{{ stats.totalServers | number }}</div>
@@ -50,13 +48,15 @@
           </div>
         </div>
         <div class="mt-4 flex items-center">
-          <span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">+{{ stats.pendingReviews }}</span>
+          <span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">+{{ stats.pendingReviews
+            }}</span>
           <span class="text-gray-500 text-xs ml-2">este mês</span>
         </div>
       </div>
 
       <!-- Total de Documentos -->
-      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
+      <div
+        class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-3xl font-bold text-gray-900">{{ stats.totalDocuments | number }}</div>
@@ -67,17 +67,20 @@
           </div>
         </div>
         <div class="mt-4 flex items-center">
-          <span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">+{{ stats.recentUploads }}</span>
+          <span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">+{{ stats.recentUploads
+            }}</span>
           <span class="text-gray-500 text-xs ml-2">novos hoje</span>
         </div>
       </div>
 
       <!-- Armazenamento -->
-      <div *ngIf="isAdmin()" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
+      <div *ngIf="isAdmin()"
+        class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-3xl font-bold text-gray-900">
-              {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) | number:'1.2-2') }} GB
+              {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) |
+              number:'1.2-2') }} GB
             </div>
             <div class="text-sm font-medium text-gray-600">Armazenamento Google Drive</div>
           </div>
@@ -87,8 +90,8 @@
         </div>
         <div class="mt-4">
           <div class="bg-gray-200 rounded-full h-2">
-            <div class="bg-gradient-to-r from-purple-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
-                 [style.width.%]="storageTotal > 0 ? (storageUsed / storageTotal) * 100 : 0"></div>
+            <div class="bg-gradient-to-r from-purple-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+              [style.width.%]="storageTotal > 0 ? (storageUsed / storageTotal) * 100 : 0"></div>
           </div>
           <div class="text-xs text-gray-500 mt-2">
             {{ storageUsed > 0 ? (((storageUsed / storageTotal) * 100) | number:'1.1-1') : '0' }}% utilizado
@@ -97,14 +100,15 @@
       </div>
 
       <!-- Resumo do Dia -->
-      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
+      <div
+        class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="text-sm font-medium text-gray-600 mb-1">Resumo do Dia</div>
             <span class="text-2xl">📊</span>
           </div>
         </div>
-        
+
         <div class="space-y-3">
           <div class="flex items-center gap-3">
             <div class="bg-blue-100 p-2 rounded-lg">
@@ -125,8 +129,9 @@
             <span class="text-gray-700 text-sm">{{ stats.downloadsToday }} downloads</span>
           </div>
         </div>
-        
-        <button class="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+
+        <button
+          class="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors">
           Ver Todas as Atividades
         </button>
       </div>
@@ -134,7 +139,7 @@
 
     <!-- Seção Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      
+
       <!-- Ações Rápidas -->
       <div class="lg:col-span-2">
         <div class="flex items-center gap-3 mb-6">
@@ -143,14 +148,13 @@
           </div>
           <h2 class="text-2xl font-bold text-gray-800">Ações Rápidas</h2>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div 
-            *ngFor="let action of getFilteredQuickActions()"
-            (click)="executeQuickAction(action)"
+          <div *ngFor="let action of getFilteredQuickActions()" (click)="executeQuickAction(action)"
             class="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group transform hover:-translate-y-1">
             <div class="flex items-center gap-4">
-              <div class="bg-gradient-to-br from-gray-50 to-gray-100 w-12 h-12 rounded-xl flex items-center justify-center text-xl group-hover:from-blue-50 group-hover:to-blue-100 transition-colors">
+              <div
+                class="bg-gradient-to-br from-gray-50 to-gray-100 w-12 h-12 rounded-xl flex items-center justify-center text-xl group-hover:from-blue-50 group-hover:to-blue-100 transition-colors">
                 {{ action.icon }}
               </div>
               <div class="flex-1">
@@ -166,37 +170,35 @@
       </div>
 
       <!-- Atividades Recentes -->
-      <div class="lg:col-span-1">
-        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <div class="flex items-center gap-3 mb-6">
+      <div class="lg:col-span-1 h-full" style="height: 380px; margin-top: 56px;">
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-full flex flex-col">
+          <div class="flex items-center gap-3 mb-6 shrink-0">
             <div class="bg-indigo-100 p-2 rounded-lg">
               <span class="text-indigo-600 text-xl">🕒</span>
             </div>
             <h3 class="text-xl font-bold text-gray-800">Atividades Recentes</h3>
-            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">({{ recentActivities.length }})</span>
+            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">({{ recentActivities.length
+              }})</span>
           </div>
-          
-          <div class="space-y-4">
-            <div 
-              *ngFor="let activity of recentActivities.slice(0, 5)"
-              (click)="navigateToActivity(activity)"
+
+          <div class="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+            <div *ngFor="let activity of recentActivities.slice(0, 10)" (click)="navigateToActivity(activity)"
               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm"
-                   [class.bg-green-500]="activity.type === 'upload'"
-                   [class.bg-blue-500]="activity.type === 'view'"
-                   [class.bg-purple-500]="activity.type === 'download'"
-                   [class.bg-yellow-500]="activity.type === 'edit'">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm shrink-0"
+                [class.bg-green-500]="activity.type === 'upload'" [class.bg-blue-500]="activity.type === 'view'"
+                [class.bg-purple-500]="activity.type === 'download'" [class.bg-yellow-500]="activity.type === 'edit'">
                 {{ activity.icon }}
               </div>
-              <div class="flex-1">
-                <div class="font-medium text-gray-900 text-sm">{{ activity.title }}</div>
-                <div class="text-gray-600 text-xs">{{ activity.description }}</div>
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-900 text-sm truncate">{{ activity.title }}</div>
+                <div class="text-gray-600 text-xs truncate">{{ activity.description }}</div>
                 <div class="text-xs text-gray-500 mt-1">{{ formatTime(activity.timestamp) }}</div>
               </div>
             </div>
           </div>
-          
-          <button class="w-full mt-6 bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors">
+
+          <button
+            class="w-full mt-6 bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors shrink-0">
             Ver Todas as Atividades
           </button>
         </div>
@@ -212,7 +214,7 @@
         <h2 class="text-xl font-bold text-gray-800">Documentos Pendentes</h2>
         <span class="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full">{{ stats.pendingReviews }}</span>
       </div>
-      
+
       <div class="text-center py-8">
         <div class="text-4xl mb-4">📋</div>
         <p class="text-gray-600 mb-4">{{ stats.pendingReviews }} documentos aguardando sua revisão</p>
@@ -230,11 +232,10 @@
         </div>
         <h2 class="text-xl font-bold text-gray-800">Acesso Rápido</h2>
       </div>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Card Ana Maria -->
-        <div 
-          (click)="navigateToServer('65')"
+        <div (click)="navigateToServer('65')"
           class="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
           <div class="flex items-center space-x-3">
             <div class="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
@@ -248,8 +249,7 @@
         </div>
 
         <!-- Card João Santos -->
-        <div 
-          (click)="navigateToServer('74')"
+        <div (click)="navigateToServer('74')"
           class="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
           <div class="flex items-center space-x-3">
             <div class="bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
@@ -263,8 +263,7 @@
         </div>
 
         <!-- Card Maria Silva -->
-        <div 
-          (click)="navigateToServer('77')"
+        <div (click)="navigateToServer('77')"
           class="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
           <div class="flex items-center space-x-3">
             <div class="bg-purple-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
@@ -277,10 +276,9 @@
           </div>
         </div>
       </div>
-      
+
       <div class="mt-4 text-center">
-        <button 
-          (click)="router.navigate(['/servers'])"
+        <button (click)="router.navigate(['/servers'])"
           class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
           Ver todos os servidores →
         </button>

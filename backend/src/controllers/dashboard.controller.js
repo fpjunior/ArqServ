@@ -45,6 +45,7 @@ function getActivityType(doc) {
 class DashboardController {
   /**
    * Obter atividades recentes do dashboard
+   * Inclui: visualizações, downloads e uploads
    * @route GET /api/dashboard/recent-activities
    */
   static async getRecentActivities(req, res) {
@@ -56,20 +57,17 @@ class DashboardController {
       console.log('🔵 [DASHBOARD] Endpoint getRecentActivities chamado');
       console.log(`👤 [DASHBOARD] Usuário: role=${userRole}, municipality=${userMunicipality}`);
 
-      // Buscar documentos recentes com informações do servidor
+      // Buscar atividades recentes da tabela activity_logs
       let query = pool.supabase
-        .from('documents')
+        .from('activity_logs')
         .select(`
           id,
-          title,
-          file_name,
-          file_size,
-          mime_type,
-          category,
-          created_at,
-          server_id,
-          uploaded_by,
-          municipality_code
+          activity_type,
+          document_id,
+          user_id,
+          municipality_code,
+          metadata,
+          created_at
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -79,48 +77,131 @@ class DashboardController {
         query = query.eq('municipality_code', userMunicipality);
       }
 
-      const { data: documents, error: docError } = await query;
+      const { data: activityLogs, error: logError } = await query;
 
-      if (docError) {
-        console.error('❌ [DASHBOARD] Erro ao buscar documentos recentes:', docError);
-        throw docError;
+      if (logError) {
+        console.error('❌ [DASHBOARD] Erro ao buscar activity_logs:', logError);
+        throw logError;
       }
 
-      // Buscar informações dos servidores relacionados
-      const serverIds = [...new Set(documents?.filter(d => d.server_id).map(d => d.server_id) || [])];
-      let serversMap = {};
+      console.log(`📊 [DASHBOARD] Encontradas ${activityLogs?.length || 0} atividades na tabela activity_logs`);
 
-      if (serverIds.length > 0) {
-        const { data: servers, error: serverError } = await pool.supabase
+      // Buscar informações dos usuários relacionados
+      const userIds = [...new Set(activityLogs?.filter(a => a.user_id).map(a => a.user_id) || [])];
+      let usersMap = {};
+
+      if (userIds.length > 0) {
+        const { data: users, error: userError } = await pool.supabase
           .from('users')
           .select('id, name, email')
-          .in('id', serverIds);
+          .in('id', userIds);
 
-        if (!serverError && servers) {
-          serversMap = servers.reduce((acc, server) => {
-            acc[server.id] = server;
+        if (!userError && users) {
+          usersMap = users.reduce((acc, user) => {
+            acc[user.id] = user;
             return acc;
           }, {});
         }
       }
 
+      // --- ENRIQUECIMENTO DE DADOS (Documentos e Servidores) ---
+      const documentIds = [...new Set(activityLogs?.filter(a => a.document_id).map(a => a.document_id) || [])];
+      let documentsMap = {};
+      let serversMap = {};
+
+      if (documentIds.length > 0) {
+        // 1. Buscar detalhes dos documentos
+        const { data: documents, error: docError } = await pool.supabase
+          .from('documents')
+          .select('id, category, financial_document_type, server_id, title')
+          .in('id', documentIds);
+
+        if (!docError && documents) {
+          console.log('✅ [DEBUG] Documentos encontrados para enriquecimento:', documents.length);
+          documentsMap = documents.reduce((acc, doc) => {
+            acc[doc.id] = doc;
+            return acc;
+          }, {});
+
+          // 2. Extrair IDs de servidores dos documentos encontrados
+          const serverIds = [...new Set(documents.filter(d => d.server_id).map(d => d.server_id))];
+
+          if (serverIds.length > 0) {
+            // 3. Buscar nomes dos servidores
+            const { data: servers, error: serverError } = await pool.supabase
+              .from('servers')
+              .select('id, name')
+              .in('id', serverIds);
+
+            if (!serverError && servers) {
+              serversMap = servers.reduce((acc, srv) => {
+                acc[srv.id] = srv;
+                return acc;
+              }, {});
+            }
+          }
+        }
+      }
+
       // Formatar atividades
-      const activities = (documents || []).map(doc => {
-        const server = serversMap[doc.server_id] || {};
-        const activityType = getActivityType(doc);
+      const activities = (activityLogs || []).map(log => {
+        const user = usersMap[log.user_id] || {};
+        const metadata = log.metadata || {};
+        const fileName = metadata.file_name || 'Arquivo';
+
+        // Dados enriquecidos
+        const doc = documentsMap[log.document_id];
+        let contextInfo = metadata.context_info || ''; // Prioridade para metadados salvos
+
+        if (!contextInfo && doc) {
+          if (doc.category === 'financeiro' || doc.financial_document_type) {
+            contextInfo = ` • ${doc.financial_document_type || 'Financeiro'}`;
+          } else if (doc.server_id) {
+            const server = serversMap[doc.server_id];
+            if (server) {
+              contextInfo = ` • ${server.name}`;
+            }
+          }
+        }
+
+        const description = `${fileName}${contextInfo}`;
+
+        // Determinar tipo, título e ícone baseado no activity_type
+        let type, title, icon;
+        switch (log.activity_type) {
+          case 'view':
+            type = 'view';
+            title = 'Documento visualizado';
+            icon = '👁️';
+            break;
+          case 'download':
+            type = 'download';
+            title = 'Documento baixado';
+            icon = '⬇️';
+            break;
+          case 'upload':
+            type = 'upload';
+            title = 'Novo documento adicionado';
+            icon = '📤';
+            break;
+          default:
+            type = log.activity_type || 'other';
+            title = 'Atividade';
+            icon = '📋';
+        }
 
         return {
-          id: doc.id.toString(),
-          type: activityType.type,
-          title: activityType.title,
-          description: `${doc.file_name}${server.name ? ` - ${server.name}` : ''}`,
-          timestamp: doc.created_at,
-          user: server.name || 'Sistema',
-          icon: activityType.icon,
-          documentId: doc.id,
-          fileName: doc.file_name,
-          fileSize: doc.file_size,
-          category: doc.category
+          id: log.id.toString(),
+          type: type,
+          title: title,
+          description: description,
+          timestamp: log.created_at,
+          user: user.name || 'Sistema',
+          icon: icon,
+          documentId: log.document_id,
+          fileName: fileName,
+          fileSize: metadata.file_size,
+          municipalityCode: log.municipality_code
         };
       });
 

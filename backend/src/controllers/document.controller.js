@@ -245,6 +245,32 @@ class DocumentController {
 
       console.log(`💾 Documento salvo no banco: ID ${document.id}`);
 
+      // Construir contexto para o log
+      let contextInfo = '';
+      if (upload_type === 'financeiras') {
+        contextInfo = ` • ${financial_document_type || 'Financeiro'}`;
+      } else if (server) {
+        contextInfo = ` • ${server.name}`;
+      }
+
+      // Registrar atividade de upload
+      await ActivityLogService.logActivity({
+        activityType: 'upload',
+        documentId: document.id,
+        userId: req.user?.id || null,
+        municipalityCode: municipality_code,
+        metadata: {
+          file_name: fileName,
+          file_size: file.size,
+          mime_type: file.mimetype,
+          drive_file_id: driveFile.googleDriveId,
+          context_info: contextInfo
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      console.log('📝 Atividade de upload registrada no activity_logs');
+
       res.status(201).json({
         success: true,
         message: 'Documento enviado com sucesso',
@@ -808,52 +834,7 @@ class DocumentController {
    * Download de arquivo diretamente do Google Drive
    * @route GET /api/documents/drive/:drive_file_id/download
    */
-  static async downloadDriveFile(req, res) {
-    try {
-      const { drive_file_id } = req.params;
-      console.log(`⬇️ Download do Google Drive, arquivo ID: ${drive_file_id}`);
 
-      const googleDriveOAuthService = require('../services/google-drive-oauth.service');
-      if (!googleDriveOAuthService.initialized) {
-        await googleDriveOAuthService.initialize();
-      }
-
-      // Primeiro, obter informações do arquivo
-      const fileInfo = await googleDriveOAuthService.drive.files.get({
-        fileId: drive_file_id,
-        fields: 'name,mimeType,size'
-      });
-
-      console.log(`📁 Arquivo encontrado: ${fileInfo.data.name}, tipo: ${fileInfo.data.mimeType}`);
-
-      // Baixar o arquivo
-      const fileStream = await googleDriveOAuthService.drive.files.get({
-        fileId: drive_file_id,
-        alt: 'media'
-      }, { responseType: 'stream' });
-
-      // Configurar headers para download
-      res.setHeader('Content-Type', fileInfo.data.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.data.name}"`);
-
-      if (fileInfo.data.size) {
-        res.setHeader('Content-Length', fileInfo.data.size);
-      }
-
-      // Pipe do stream para a resposta
-      fileStream.data.pipe(res);
-
-      console.log(`✅ Download iniciado: ${fileInfo.data.name}`);
-
-    } catch (error) {
-      console.error('❌ Erro no download do Google Drive:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro ao fazer download do arquivo',
-        error: error.message
-      });
-    }
-  }
 
   /**
    * Download de arquivo do Google Drive
@@ -861,7 +842,14 @@ class DocumentController {
    */
   static async downloadDriveFile(req, res) {
     try {
-      const fileId = req.params.fileId || req.params.drive_file_id;
+      let fileId = req.params.fileId || req.params.drive_file_id;
+
+      // Sanitizar ID: remover prefixo 'drive_' se existir
+      if (fileId && fileId.startsWith('drive_')) {
+        console.log('🧹 [DOWNLOAD] Removendo prefixo drive_ do ID:', fileId);
+        fileId = fileId.replace(/^drive_/, '');
+      }
+
       console.log(`⬇️ Iniciando download do arquivo: ${fileId}`);
 
       if (!googleDriveOAuthService || !googleDriveOAuthService.isInitialized()) {
@@ -882,36 +870,54 @@ class DocumentController {
 
       // Buscar o municipality_code do documento no banco de dados
       let documentMunicipalityCode = null;
+      let docId = null;
+      let finalContextInfo = '';
+
       try {
+        console.log(`🔄 [DOWNLOAD] Buscando contexto para ID: ${fileId}`);
         const { data: docData, error: docError } = await supabase
           .from('documents')
-          .select('municipality_code')
+          .select('id, municipality_code, category, financial_document_type, server_id')
           .eq('google_drive_id', fileId)
           .single();
 
-        if (!docError && docData) {
+        if (docData && !docError) {
+          docId = docData.id;
           documentMunicipalityCode = docData.municipality_code;
-          console.log(`📋 [DOWNLOAD] Município do documento encontrado: ${documentMunicipalityCode}`);
+
+          // Construir contexto
+          if (docData.category === 'financeiro' || docData.financial_document_type) {
+            finalContextInfo = ` • ${docData.financial_document_type || 'Financeiro'}`;
+          } else if (docData.server_id) {
+            try {
+              const server = await Server.findById(docData.server_id);
+              if (server) finalContextInfo = ` • ${server.name}`;
+            } catch (srvErr) {
+              console.error('⚠️ [DOWNLOAD] Erro ao buscar servidor:', srvErr.message);
+            }
+          }
+          console.log(`✅ [DOWNLOAD] Contexto encontrado: DocID ${docId}, Contexto: "${finalContextInfo}"`);
         } else {
-          console.log(`⚠️ [DOWNLOAD] Documento não encontrado no banco, usando município do usuário como fallback`);
+          console.log(`⚠️ [DOWNLOAD] Documento não encontrado no banco. (Erro: ${docError?.message || 'N/A'})`);
           documentMunicipalityCode = req.user?.municipality_code || null;
         }
       } catch (lookupError) {
-        console.error('⚠️ [DOWNLOAD] Erro ao buscar município do documento:', lookupError);
+        console.error('❌ [DOWNLOAD] Erro no lookup do documento:', lookupError.message);
         documentMunicipalityCode = req.user?.municipality_code || null;
       }
 
-      // Registrar atividade de download com o municipality_code do documento
+      // Registrar atividade de download
       await ActivityLogService.logActivity({
         activityType: 'download',
-        documentId: null, // Não temos o ID do documento, apenas do arquivo no Drive
+        documentId: docId,
         userId: req.user?.id || null,
         municipalityCode: documentMunicipalityCode,
         metadata: {
           drive_file_id: fileId,
           file_name: downloadResult.fileName,
           file_size: downloadResult.size,
-          mime_type: downloadResult.mimeType
+          mime_type: downloadResult.mimeType,
+          context_info: finalContextInfo
         },
         ipAddress: req.ip || req.connection?.remoteAddress,
         userAgent: req.get('User-Agent')
