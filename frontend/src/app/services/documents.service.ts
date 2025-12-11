@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpEvent, HttpEventType, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { catchError, map, filter, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../shared/services/auth.service';
@@ -409,5 +409,48 @@ export class DocumentsService {
           return throwError(() => new Error('Erro ao obter informações de armazenamento do Google Drive'));
         })
       );
+  }
+
+  /**
+   * Registrar visualização de documento
+   */
+  logView(data: { documentId?: number; driveFileId?: string; fileName?: string; municipalityCode?: string }): Observable<any> {
+    const url = `${environment.apiUrl}/activities/view`;
+    console.log('👁️ [Activity] Chamando logView:', url, data);
+
+    const token = this.authService.getToken();
+    if (!token) {
+      console.warn('⚠️ [Activity] Token não encontrado para logView');
+      return of({ success: false });
+    }
+
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.post<any>(url, data, { headers }).pipe(
+      tap((response) => console.log('📊 [Activity] Visualização registrada:', response)),
+      catchError((error) => {
+        console.error('❌ [Activity] Erro ao registrar visualização:', error);
+        // Não propagar erro para não afetar a experiência do usuário
+        return of({ success: false });
+      })
+    );
+  }
+
+  /**
+   * Registrar download de documento
+   */
+  logDownload(data: { documentId?: number; driveFileId?: string; fileName?: string; municipalityCode?: string }): Observable<any> {
+    const url = `${environment.apiUrl}/activities/download`;
+    return this.http.post<any>(url, data, { headers: this.getAuthHeaders() }).pipe(
+      tap(() => console.log('📊 [Activity] Download registrado')),
+      catchError((error) => {
+        console.error('❌ [Activity] Erro ao registrar download:', error);
+        // Não propagar erro para não afetar a experiência do usuário
+        return of({ success: false });
+      })
+    );
   }
 }

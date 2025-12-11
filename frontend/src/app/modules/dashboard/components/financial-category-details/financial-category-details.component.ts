@@ -67,7 +67,7 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
     private authService: AuthService // Adicionado para corrigir o erro
-  ) {}
+  ) { }
 
   // Definição das categorias
   categories: { [key: string]: FinancialCategory } = {
@@ -193,7 +193,7 @@ export class FinancialCategoryDetailsComponent implements OnInit {
       this.categoryId = params['category'];
       this.municipalityCode = params['municipalityCode'] || sessionStorage.getItem('selectedMunicipalityCode') || '';
       console.log('🎯 [FINANCIAL-CATEGORY] Category:', this.categoryId, 'Municipality:', this.municipalityCode);
-      
+
       if (!this.municipalityCode) {
         console.error('❌ [FINANCIAL-CATEGORY] Código do município não encontrado');
         const storedCode = sessionStorage.getItem('selectedMunicipalityCode');
@@ -204,7 +204,7 @@ export class FinancialCategoryDetailsComponent implements OnInit {
         }
         return;
       }
-      
+
       this.loadCategoryData();
     });
 
@@ -213,10 +213,10 @@ export class FinancialCategoryDetailsComponent implements OnInit {
 
   loadCategoryData(): void {
     this.isLoading = true;
-    
+
     // Carregar dados da categoria
     this.category = this.categories[this.categoryId];
-    
+
     if (!this.category) {
       const storedCode = sessionStorage.getItem('selectedMunicipalityCode');
       if (storedCode) {
@@ -230,7 +230,7 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     // Buscar documentos reais da API
     const url = `${environment.apiUrl}/documents/financial/${this.municipalityCode}/type/${this.categoryId}`;
     console.log('📡 [FINANCIAL-CATEGORY] Buscando documentos de:', url);
-    
+
     this.http.get<any>(url).subscribe(
       (response) => {
         console.log('✅ [FINANCIAL-CATEGORY] Documentos recebidos:', response);
@@ -297,12 +297,12 @@ export class FinancialCategoryDetailsComponent implements OnInit {
 
   filterDocuments(): void {
     this.filteredDocuments = this.documents.filter(doc => {
-      const matchesSearch = !this.searchTerm || 
+      const matchesSearch = !this.searchTerm ||
         doc.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         doc.description?.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
+
       const matchesStatus = this.selectedStatus === 'all' || doc.status === this.selectedStatus;
-      
+
       return matchesSearch && matchesStatus;
     });
   }
@@ -391,6 +391,14 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     const embedUrl = `https://drive.google.com/file/d/${googleDriveId}/preview`;
     this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
     console.log('🔥 Modal URL criada:', embedUrl);
+
+    // Registrar visualização
+    this.documentsService.logView({
+      documentId: document.id,
+      driveFileId: googleDriveId,
+      fileName: document.name,
+      municipalityCode: this.municipalityCode
+    }).subscribe();
 
     // Adicionar verificação para garantir que o modal está sendo exibido
     if (!this.isModalVisible || !this.modalViewerUrl) {

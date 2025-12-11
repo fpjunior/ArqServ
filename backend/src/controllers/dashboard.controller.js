@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const ActivityLogService = require('../services/activity-log.service');
 
 /**
  * Função auxiliar para determinar o tipo de atividade baseado no documento
@@ -243,6 +244,18 @@ class DashboardController {
 
       console.log('✅ [DASHBOARD] Documentos de hoje:', docsToday);
 
+      // Contar visualizações de hoje
+      const viewsToday = await ActivityLogService.countViewsToday(
+        userRole !== 'admin' && userMunicipality ? userMunicipality : null
+      );
+      console.log('✅ [DASHBOARD] Visualizações de hoje:', viewsToday);
+
+      // Contar downloads de hoje
+      const downloadsToday = await ActivityLogService.countDownloadsToday(
+        userRole !== 'admin' && userMunicipality ? userMunicipality : null
+      );
+      console.log('✅ [DASHBOARD] Downloads de hoje:', downloadsToday);
+
       const responseData = {
         servers: {
           total: serverCount || 0,
@@ -258,8 +271,8 @@ class DashboardController {
         },
         activities: {
           uploads_today: docsToday || 0,
-          views_today: 147, // Mock value
-          downloads_today: 23 // Mock value
+          views_today: viewsToday,
+          downloads_today: downloadsToday
         }
       };
 
@@ -272,32 +285,32 @@ class DashboardController {
     } catch (error) {
       console.error('❌ [DASHBOARD] Erro ao buscar estatísticas:', error);
 
-      // Fallback com dados mockados
-      console.log('⚠️ [DASHBOARD] Retornando dados mockados por erro');
-      const mockData = {
+      // Fallback com dados zerados (melhor que dados falsos)
+      console.log('⚠️ [DASHBOARD] Retornando dados zerados por erro');
+      const fallbackData = {
         servers: {
-          total: 1547,
-          this_month: 12
+          total: 0,
+          this_month: 0
         },
         documents: {
-          total: 23456,
-          today: 47
+          total: 0,
+          today: 0
         },
         storage: {
-          used: 75.5 * 1024 * 1024 * 1024,
+          used: 0,
           total: 100 * 1024 * 1024 * 1024
         },
         activities: {
-          uploads_today: 47,
-          views_today: 147,
-          downloads_today: 23
+          uploads_today: 0,
+          views_today: 0,
+          downloads_today: 0
         }
       };
 
       res.status(200).json({
         success: true,
-        data: mockData,
-        warning: 'Dados mockados - erro ao consultar banco de dados'
+        data: fallbackData,
+        warning: 'Dados zerados - erro ao consultar banco de dados'
       });
     }
   }

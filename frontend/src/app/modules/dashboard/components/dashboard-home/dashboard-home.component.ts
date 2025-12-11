@@ -32,6 +32,8 @@ interface LocalDashboardStats {
   pendingReviews: number;
   storageUsed: number;
   storageLimit: number;
+  viewsToday: number;
+  downloadsToday: number;
 }
 
 @Component({
@@ -54,7 +56,9 @@ export class DashboardHomeComponent implements OnInit {
     recentUploads: 0,
     pendingReviews: 0,
     storageUsed: 0,
-    storageLimit: 0
+    storageLimit: 0,
+    viewsToday: 0,
+    downloadsToday: 0
   };
 
   quickActions: QuickAction[] = [
@@ -137,7 +141,9 @@ export class DashboardHomeComponent implements OnInit {
             recentUploads: data.activities.uploads_today,
             pendingReviews: data.servers.this_month,
             storageUsed: Math.round((data.storage.used / (1024 * 1024 * 1024)) * 10) / 10,
-            storageLimit: Math.round((data.storage.total / (1024 * 1024 * 1024)) * 10) / 10
+            storageLimit: Math.round((data.storage.total / (1024 * 1024 * 1024)) * 10) / 10,
+            viewsToday: data.activities.views_today || 0,
+            downloadsToday: data.activities.downloads_today || 0
           };
           console.log('✅ Dashboard Stats Carregado:', this.stats);
         } else {

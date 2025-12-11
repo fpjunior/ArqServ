@@ -65,14 +65,14 @@ export class FinancialDocumentsComponent implements OnInit {
     private documentsService: DocumentsService,
     private authService: AuthService,
     private sanitizer: DomSanitizer
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     try {
       // Obter município da rota (admin escolhe) ou do usuário logado (user tem fixo)
       const routeMunicipalityCode = this.route.snapshot.paramMap.get('municipalityCode');
       const user = this.authService.getCurrentUser();
-      
+
       if (routeMunicipalityCode) {
         // Admin acessando via seletor de município
         this.municipalityCode = routeMunicipalityCode;
@@ -100,7 +100,7 @@ export class FinancialDocumentsComponent implements OnInit {
     this.documentsService.getFinancialDocumentTypes(municipalityCode, currentYear).subscribe({
       next: (response: any) => {
         console.log('📂 [FINANCIAL-DOCUMENTS] Documentos financeiros carregados:', response.data);
-        
+
         // Mapear os dados do backend para incluir ícones, cores e descrições
         this.financialFolders = (response.data || []).map((item: any) => {
           const type = item.financial_document_type || '';
@@ -109,10 +109,10 @@ export class FinancialDocumentsComponent implements OnInit {
             color: 'from-gray-500 to-gray-600',
             description: 'Documentos diversos'
           };
-          
+
           // Usar o nome correto do mapeamento de exibição
           const displayName = FINANCIAL_TYPE_DISPLAY_NAMES[type] || config.description;
-          
+
           return {
             financial_document_type: type,
             count: item.count || 0,
@@ -122,13 +122,13 @@ export class FinancialDocumentsComponent implements OnInit {
             color: config.color
           };
         });
-        
+
         console.log('✅ [FINANCIAL-DOCUMENTS] Folders mapeados:', this.financialFolders);
         this.isLoading = false;
       },
       error: (error: any) => {
         console.error('❌ [FINANCIAL-DOCUMENTS] Erro ao carregar documentos financeiros:', error);
-        
+
         // Verificar se o erro é devido a token expirado
         if (error.status === 401) {
           console.log('🔐 Token expirado, redirecionando para login...');
@@ -144,15 +144,15 @@ export class FinancialDocumentsComponent implements OnInit {
   selectFolder(folder: FinancialFolder): void {
     this.selectedFolder = folder;
     console.log(`📁 Pasta selecionada: ${folder.name}`, `(tipo: ${folder.financial_document_type})`);
-    
+
     if (!this.municipalityCode) {
       console.error('❌ Código do município não disponível');
       return;
     }
-    
+
     // Salvar município no sessionStorage
     sessionStorage.setItem('selectedMunicipalityCode', this.municipalityCode);
-    
+
     // Navegar para a página de detalhes da categoria com o tipo de documento
     this.router.navigate([
       '/documentacoes-financeiras/municipality',
@@ -184,6 +184,13 @@ export class FinancialDocumentsComponent implements OnInit {
     const embedUrl = `https://drive.google.com/file/d/${documentId}/preview`;
     this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
     console.log('🔥 Modal URL criada:', embedUrl);
+
+    // Registrar visualização
+    this.documentsService.logView({
+      documentId: documentId,
+      driveFileId: documentId.toString(),
+      municipalityCode: this.municipalityCode || undefined
+    }).subscribe();
 
     // Parar loading após 1s
     setTimeout(() => {

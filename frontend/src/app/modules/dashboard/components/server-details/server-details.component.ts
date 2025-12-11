@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { DocumentsService } from '../../../../services/documents.service';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Location } from '@angular/common';
@@ -54,7 +55,7 @@ export class ServerDetailsComponent implements OnInit {
   letter: string = '';
   isLoading: boolean = false;
   errorMessage: string = '';
-  
+
   // Modal state - integrado diretamente
   isModalVisible = false;
   selectedFile: ServerFile | null = null;
@@ -74,28 +75,29 @@ export class ServerDetailsComponent implements OnInit {
     private router: Router,
     private http: HttpClient,
     private authService: AuthService,
+    private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
     private location: Location
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     const serverId = this.route.snapshot.params['id'];
     this.letter = this.route.snapshot.params['letter'] || '';
-    
+
     // Validação: se o ID é um código de município (7 dígitos) ou não numérico, redirecionar
     if (!serverId || isNaN(Number(serverId)) || serverId.length === 7) {
       console.warn(`⚠️ ID inválido para servidor: ${serverId}. Redirecionando para listagem.`);
       this.router.navigate(['/servers']);
       return;
     }
-    
+
     // Validação adicional: se letter é "municipality", também redirecionar
     if (this.letter === 'municipality') {
       console.warn(`⚠️ Rota incorreta detectada: /servers/municipality/${serverId}. Redirecionando.`);
       this.router.navigate(['/servers']);
       return;
     }
-    
+
     this.loadServerFiles(serverId);
   }
 
@@ -120,7 +122,7 @@ export class ServerDetailsComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('📡 Resposta da API:', response);
-        
+
         if (response.success) {
           this.files = response.data;
           this.server = response.server || null;
@@ -130,7 +132,7 @@ export class ServerDetailsComponent implements OnInit {
           this.errorMessage = response.message || 'Erro ao carregar documentos';
           console.error('❌ Erro na resposta da API:', response.message);
         }
-        
+
         this.isLoading = false;
       },
       error: (error) => {
@@ -146,7 +148,7 @@ export class ServerDetailsComponent implements OnInit {
       this.filteredFiles = this.files;
     } else {
       const searchLower = this.searchTerm.toLowerCase();
-      this.filteredFiles = this.files.filter(file => 
+      this.filteredFiles = this.files.filter(file =>
         file.title.toLowerCase().includes(searchLower) ||
         file.file_name.toLowerCase().includes(searchLower) ||
         (file.description && file.description.toLowerCase().includes(searchLower))
@@ -160,15 +162,15 @@ export class ServerDetailsComponent implements OnInit {
 
   viewDocument(file: ServerFile): void {
     console.log('🆕 NOVO ViewDocument chamado:', file);
-    
+
     // FORÇAR modal a aparecer imediatamente
     this.isModalVisible = true;
     this.selectedFile = file;
     this.modalIsLoading = true;
-    
+
     console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
     console.log('🔥 Selected file:', this.selectedFile);
-    
+
     // Criar URL segura
     const driveFileId = file.drive_file_id || file.google_drive_id;
     if (driveFileId) {
@@ -176,20 +178,32 @@ export class ServerDetailsComponent implements OnInit {
       this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
       console.log('🔥 Modal URL criada:', embedUrl);
     }
-    
+
+    // Registrar visualização (sempre, independente de ter driveFileId)
+    console.log('👁️ Chamando logView para servidor...');
+    this.documentsService.logView({
+      documentId: file.id,
+      driveFileId: driveFileId || undefined,
+      fileName: file.file_name || file.title,
+      municipalityCode: this.server?.municipality_code
+    }).subscribe({
+      next: (res) => console.log('✅ logView sucesso:', res),
+      error: (err) => console.error('❌ logView erro:', err)
+    });
+
     // Parar loading após 1s
     setTimeout(() => {
       this.modalIsLoading = false;
       console.log('🔥 Modal loading finished');
     }, 1000);
-    
+
     // JAMAIS abrir nova guia
     return; // Garante que nada mais seja executado
   }
 
   downloadDocument(file: ServerFile): void {
     console.log(`⬇️ Iniciando download de: ${file.title}`);
-    
+
     const driveFileId = file.drive_file_id || file.google_drive_id;
     if (!driveFileId) {
       alert('Arquivo não disponível para download');
@@ -212,7 +226,7 @@ export class ServerDetailsComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('✅ Download concluído');
-        
+
         // Criar URL para o blob e fazer download
         const blob = response.body;
         if (blob) {
@@ -284,29 +298,29 @@ export class ServerDetailsComponent implements OnInit {
 
   getFileIcon(file: ServerFile): string {
     const mimeType = file.mime_type?.toLowerCase() || '';
-    
+
     if (mimeType.includes('pdf')) return '📄';
     if (mimeType.includes('image')) return '🖼️';
     if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
     if (mimeType.includes('excel') || mimeType.includes('sheet')) return '📊';
     if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📋';
     if (mimeType.includes('text')) return '📄';
-    
+
     return '📎'; // Arquivo genérico
   }
 
   formatFileSize(sizeInBytes: number | undefined): string {
     if (!sizeInBytes) return 'Tamanho desconhecido';
-    
+
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = sizeInBytes;
     let unitIndex = 0;
-    
+
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
+
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   }
 

@@ -10,6 +10,7 @@ const documentRoutes = require('./routes/document.routes');
 const serverRoutes = require('./routes/server.routes');
 const municipalityRoutes = require('./routes/municipality.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const activityRoutes = require('./routes/activity.routes');
 
 // Controller simples para testar
 const SimpleDocumentController = require('./controllers/document.simple.controller');
@@ -47,10 +48,11 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/municipalities', municipalityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Rotas de teste (sem Google Drive)
-app.post('/api/documents/upload-simple', 
-  SimpleDocumentController.uploadSimple, 
+app.post('/api/documents/upload-simple',
+  SimpleDocumentController.uploadSimple,
   SimpleDocumentController.uploadFileSimple
 );
 
@@ -78,7 +80,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: function (req, file, cb) {
@@ -98,7 +100,7 @@ const dbPool = new Pool({
 
 // ROTA DE UPLOAD REMOVIDA - usando apenas document.routes.js + document.controller.js
 
-app.get('/api/documents/simple/municipality/:code', 
+app.get('/api/documents/simple/municipality/:code',
   SimpleDocumentController.getDocumentsByMunicipalitySimple
 );
 
@@ -116,7 +118,7 @@ app.get('/api/municipalities', async (req, res) => {
       { id: 7, code: '2607307', name: 'Ingazeira', state: 'PE' },
       { id: 8, code: '2609907', name: 'Nabuco', state: 'PE' }
     ];
-    
+
     res.json({
       success: true,
       data: mockMunicipalities
@@ -136,7 +138,7 @@ app.get('/api/servers/municipality/:code', async (req, res) => {
   try {
     const { code } = req.params;
     console.log('🔄 Buscando servidores para município:', code);
-    
+
     const mockServers = {
       '2600500': [ // Aliança
         { id: 1, name: 'Ana Silva Santos', municipality_code: '2600500' },
@@ -149,9 +151,9 @@ app.get('/api/servers/municipality/:code', async (req, res) => {
         { id: 6, name: 'Beatriz Almeida Souza', municipality_code: '2600609' }
       ]
     };
-    
+
     const servers = mockServers[code] || [];
-    
+
     res.json({
       success: true,
       data: servers
@@ -167,8 +169,8 @@ app.get('/api/servers/municipality/:code', async (req, res) => {
 
 // Rota de teste
 app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'ArqServ Backend funcionando!', 
+  res.json({
+    message: 'ArqServ Backend funcionando!',
     timestamp: new Date().toISOString(),
     port: PORT
   });
@@ -176,7 +178,7 @@ app.get('/api/test', (req, res) => {
 
 // Rota de health check (rápida, sem banco)
 app.get('/api/ping', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
@@ -186,13 +188,13 @@ app.get('/api/ping', (req, res) => {
 // Rota de debug para verificar configurações
 app.get('/api/debug', async (req, res) => {
   const pool = require('./config/database');
-  
+
   try {
     // Testar conexão com o banco
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
     client.release();
-    
+
     res.json({
       status: 'SUCCESS',
       message: 'Conexões OK',
@@ -233,12 +235,12 @@ app.get('/api/debug', async (req, res) => {
 // Rota para verificar usuários (apenas para debug)
 app.get('/api/debug/users', async (req, res) => {
   const pool = require('./config/database');
-  
+
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT email, name, role FROM users ORDER BY email');
     client.release();
-    
+
     res.json({
       status: 'SUCCESS',
       users: result.rows
@@ -255,10 +257,10 @@ app.get('/api/debug/users', async (req, res) => {
 // Rota para verificar tabelas do sistema
 app.get('/api/debug/tables', async (req, res) => {
   const pool = require('./config/database');
-  
+
   try {
     const client = await pool.connect();
-    
+
     // Verificar quais tabelas existem
     const tablesResult = await client.query(`
       SELECT table_name 
@@ -266,9 +268,9 @@ app.get('/api/debug/tables', async (req, res) => {
       WHERE table_schema = 'public'
       ORDER BY table_name
     `);
-    
+
     const tables = {};
-    
+
     // Para cada tabela, verificar se existe e mostrar algumas colunas
     for (const table of tablesResult.rows) {
       const tableName = table.table_name;
@@ -279,7 +281,7 @@ app.get('/api/debug/tables', async (req, res) => {
           WHERE table_name = $1 
           ORDER BY ordinal_position
         `, [tableName]);
-        
+
         tables[tableName] = {
           exists: true,
           columns: columnsResult.rows
@@ -291,9 +293,9 @@ app.get('/api/debug/tables', async (req, res) => {
         };
       }
     }
-    
+
     client.release();
-    
+
     res.json({
       status: 'SUCCESS',
       tables: tables
@@ -390,17 +392,17 @@ app.get('/api/debug/db-ping', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🚀 ArqServ Backend rodando na porta ${PORT}`);
   console.log(`📡 Acesse: http://localhost:${PORT}/api/test`);
-  
+
   // Inicializar Google Drive services
   console.log('🔄 Inicializando Google Drive services...');
-  
+
   const driveOAuthInitialized = await googleDriveOAuthService.initialize();
   const driveServiceInitialized = await googleDriveService.initialize();
-  
+
   // Armazenar serviços no app Express
   app.set('googleDriveOAuthService', googleDriveOAuthService);
   app.set('googleDriveService', googleDriveService);
-  
+
   if (driveOAuthInitialized) {
     console.log('✅ Google Drive OAuth service pronto!');
   } else if (driveServiceInitialized) {
