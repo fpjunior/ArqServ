@@ -86,6 +86,8 @@ class ActivityLogService {
      */
     static async countActivities(activityType, municipalityCode = null, startDate = null, endDate = null) {
         try {
+            console.log(`📊 [ACTIVITY] Contando atividades: tipo=${activityType}, município=${municipalityCode || 'TODOS'}, desde=${startDate?.toISOString() || 'N/A'}`);
+
             let query = pool.supabase
                 .from('activity_logs')
                 .select('id', { count: 'exact' })
@@ -110,6 +112,7 @@ class ActivityLogService {
                 return 0;
             }
 
+            console.log(`📊 [ACTIVITY] Resultado da contagem: ${count}`);
             return count || 0;
         } catch (error) {
             console.error('❌ [ACTIVITY] Erro ao contar atividades:', error);

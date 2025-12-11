@@ -244,16 +244,16 @@ class DashboardController {
 
       console.log('✅ [DASHBOARD] Documentos de hoje:', docsToday);
 
+      // Determinar filtro de município para atividades
+      const activityMunicipalityFilter = (userRole !== 'admin' && userMunicipality) ? userMunicipality : null;
+      console.log(`🔍 [DASHBOARD] Filtro de município para atividades: ${activityMunicipalityFilter || 'TODOS (admin)'}`);
+
       // Contar visualizações de hoje
-      const viewsToday = await ActivityLogService.countViewsToday(
-        userRole !== 'admin' && userMunicipality ? userMunicipality : null
-      );
+      const viewsToday = await ActivityLogService.countViewsToday(activityMunicipalityFilter);
       console.log('✅ [DASHBOARD] Visualizações de hoje:', viewsToday);
 
       // Contar downloads de hoje
-      const downloadsToday = await ActivityLogService.countDownloadsToday(
-        userRole !== 'admin' && userMunicipality ? userMunicipality : null
-      );
+      const downloadsToday = await ActivityLogService.countDownloadsToday(activityMunicipalityFilter);
       console.log('✅ [DASHBOARD] Downloads de hoje:', downloadsToday);
 
       const responseData = {

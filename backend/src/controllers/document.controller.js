@@ -880,12 +880,33 @@ class DocumentController {
         });
       }
 
-      // Registrar atividade de download
+      // Buscar o municipality_code do documento no banco de dados
+      let documentMunicipalityCode = null;
+      try {
+        const { data: docData, error: docError } = await supabase
+          .from('documents')
+          .select('municipality_code')
+          .eq('google_drive_id', fileId)
+          .single();
+
+        if (!docError && docData) {
+          documentMunicipalityCode = docData.municipality_code;
+          console.log(`📋 [DOWNLOAD] Município do documento encontrado: ${documentMunicipalityCode}`);
+        } else {
+          console.log(`⚠️ [DOWNLOAD] Documento não encontrado no banco, usando município do usuário como fallback`);
+          documentMunicipalityCode = req.user?.municipality_code || null;
+        }
+      } catch (lookupError) {
+        console.error('⚠️ [DOWNLOAD] Erro ao buscar município do documento:', lookupError);
+        documentMunicipalityCode = req.user?.municipality_code || null;
+      }
+
+      // Registrar atividade de download com o municipality_code do documento
       await ActivityLogService.logActivity({
         activityType: 'download',
         documentId: null, // Não temos o ID do documento, apenas do arquivo no Drive
         userId: req.user?.id || null,
-        municipalityCode: req.user?.municipality_code || null,
+        municipalityCode: documentMunicipalityCode,
         metadata: {
           drive_file_id: fileId,
           file_name: downloadResult.fileName,
