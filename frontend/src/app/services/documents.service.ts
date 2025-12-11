@@ -64,11 +64,11 @@ export interface DashboardStats {
 export class DocumentsService {
   private apiUrl = environment.apiUrl;
   private uploadProgressSubject = new BehaviorSubject<UploadProgress | null>(null);
-  
+
   // Observable para progresso de upload
   uploadProgress$ = this.uploadProgressSubject.asObservable();
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(private http: HttpClient, private authService: AuthService) { }
 
   private getAuthHeaders(): HttpHeaders {
     const token = this.authService.getToken();
@@ -110,18 +110,18 @@ export class DocumentsService {
       data: documentData,
       apiUrl: this.apiUrl
     });
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', documentData.title);
     formData.append('description', documentData.description || '');
-    
+
     if (documentData.category) {
       formData.append('category', documentData.category);
     }
-    
+
     formData.append('municipality_code', documentData.municipality_code);
-    
+
     // Campos para upload de servidores
     if (documentData.server_id) {
       formData.append('server_id', documentData.server_id);
@@ -175,11 +175,11 @@ export class DocumentsService {
               this.uploadProgressSubject.next(progress);
             }
             return null as any;
-          
+
           case HttpEventType.Response:
             this.uploadProgressSubject.next(null);
             return event.body!;
-          
+
           default:
             return null as any;
         }
@@ -193,11 +193,11 @@ export class DocumentsService {
    * Listar documentos por município
    */
   getDocumentsByMunicipality(
-    municipalityCode: string, 
+    municipalityCode: string,
     filters?: DocumentFilters
   ): Observable<ApiResponse<Document[]>> {
     let params = new URLSearchParams();
-    
+
     if (filters?.category) params.append('category', filters.category);
     if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) params.append('dateTo', filters.dateTo);
@@ -260,7 +260,7 @@ export class DocumentsService {
    */
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'Erro desconhecido';
-    
+
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Erro: ${error.error.message}`;
     } else {
@@ -320,10 +320,28 @@ export class DocumentsService {
   getDashboardStats(): Observable<any> {
     const url = `${environment.apiUrl}/dashboard/stats`;
     console.log('🔵 [DocumentsService] Chamando endpoint:', url);
-    
+
     return this.http.get<any>(url, { headers: this.getAuthHeaders() }).pipe(
       catchError((error) => {
         console.error('❌ [DocumentsService] Erro na requisição:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Obter atividades recentes do dashboard
+   */
+  getRecentActivities(limit: number = 10): Observable<ApiResponse<any[]>> {
+    const url = `${environment.apiUrl}/dashboard/recent-activities?limit=${limit}`;
+    console.log('🔵 [DocumentsService] Chamando endpoint de atividades recentes:', url);
+
+    return this.http.get<ApiResponse<any[]>>(url, { headers: this.getAuthHeaders() }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Atividades recentes recebidas:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar atividades recentes:', error);
         return this.handleError(error);
       })
     );

@@ -44,10 +44,10 @@ interface LocalDashboardStats {
 export class DashboardHomeComponent implements OnInit {
   currentUser: User | null = null;
   searchTerm = '';
-  
+
   storageUsed: number = 0;
   storageTotal: number = 0;
-  
+
   stats: LocalDashboardStats = {
     totalServers: 0,
     totalDocuments: 0,
@@ -99,59 +99,13 @@ export class DashboardHomeComponent implements OnInit {
     }
   ];
 
-  recentActivities: RecentActivity[] = [
-    {
-      id: '1',
-      type: 'upload',
-      title: 'Novo documento adicionado',
-      description: 'Contrato_Silva_2024.pdf - João Silva',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000),
-      user: 'João Silva',
-      icon: '📄'
-    },
-    {
-      id: '2',
-      type: 'view',
-      title: 'Documento visualizado',
-      description: 'Relatório_Anual.xlsx - Maria Santos',
-      timestamp: new Date(Date.now() - 60 * 60 * 1000),
-      user: 'Maria Santos',
-      icon: '👁️'
-    },
-    {
-      id: '3',
-      type: 'edit',
-      title: 'Informações atualizadas',
-      description: 'Cadastro de Ana Costa foi atualizado',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      user: 'Ana Costa',
-      icon: '✏️'
-    },
-    {
-      id: '4',
-      type: 'download',
-      title: 'Download realizado',
-      description: 'Certidão_Nascimento.pdf - Pedro Lima',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      user: 'Pedro Lima',
-      icon: '⬇️'
-    },
-    {
-      id: '5',
-      type: 'upload',
-      title: 'Múltiplos documentos',
-      description: '5 documentos adicionados por Carlos Mendes',
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      user: 'Carlos Mendes',
-      icon: '📁'
-    }
-  ];
+  recentActivities: RecentActivity[] = [];
 
   constructor(
     private documentsService: DocumentsService,
     private authService: AuthService,
     public router: Router
-  ) {}
+  ) { }
 
   ngOnInit() {
     console.log('🔵 [DASHBOARD-HOME] ngOnInit chamado');
@@ -160,6 +114,7 @@ export class DashboardHomeComponent implements OnInit {
     });
 
     this.loadDashboardStats();
+    this.loadRecentActivities();
     this.fetchStorageInfo();
     this.currentUser = this.authService.getCurrentUser();
   }
@@ -167,15 +122,15 @@ export class DashboardHomeComponent implements OnInit {
   loadDashboardStats() {
     console.log('🟢 [DASHBOARD] Iniciando carregamento de estatísticas...');
     console.log('🟢 [DASHBOARD] URL da API:', 'http://localhost:3005/api/dashboard/stats');
-    
+
     this.documentsService.getDashboardStats().subscribe(
       (response: any) => {
         console.log('🟢 [DASHBOARD] Resposta recebida:', response);
-        
+
         if (response && response.success && response.data) {
           const data = response.data;
           console.log('🟢 [DASHBOARD] Dados extraídos:', data);
-          
+
           this.stats = {
             totalServers: data.servers.total,
             totalDocuments: data.documents.total,
@@ -202,6 +157,32 @@ export class DashboardHomeComponent implements OnInit {
     }
   }
 
+  loadRecentActivities() {
+    console.log('🔵 [DASHBOARD] Carregando atividades recentes...');
+
+    this.documentsService.getRecentActivities(10).subscribe({
+      next: (response: any) => {
+        console.log('🟢 [DASHBOARD] Atividades recebidas:', response);
+
+        if (response && response.success && response.data) {
+          // Converter timestamps para Date objects
+          this.recentActivities = response.data.map((activity: any) => ({
+            ...activity,
+            timestamp: new Date(activity.timestamp)
+          }));
+          console.log('✅ [DASHBOARD] Atividades carregadas:', this.recentActivities.length);
+        } else {
+          console.warn('⚠️ [DASHBOARD] Resposta de atividades inválida:', response);
+        }
+      },
+      error: (error) => {
+        console.error('❌ [DASHBOARD] Erro ao carregar atividades:', error);
+        // Manter array vazio em caso de erro
+        this.recentActivities = [];
+      }
+    });
+  }
+
   executeQuickAction(action: QuickAction) {
     // Verifica se o usuário tem permissão
     if (action.roleRequired && this.currentUser?.role !== action.roleRequired) {
@@ -220,7 +201,7 @@ export class DashboardHomeComponent implements OnInit {
   }
 
   getFilteredQuickActions(): QuickAction[] {
-    return this.quickActions.filter(action => 
+    return this.quickActions.filter(action =>
       !action.roleRequired || action.roleRequired === this.currentUser?.role
     );
   }
@@ -252,6 +233,7 @@ export class DashboardHomeComponent implements OnInit {
 
   refreshData() {
     this.loadDashboardStats();
+    this.loadRecentActivities();
     // Mostrar feedback de atualização
   }
 

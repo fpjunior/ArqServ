@@ -25,4 +25,12 @@ router.get('/test', (req, res) => {
  */
 router.get('/stats', authenticate, DashboardController.getDashboardStats);
 
+/**
+ * @route GET /api/dashboard/recent-activities
+ * @desc Obter atividades recentes do dashboard
+ * @access Private (Requer autenticação)
+ * @query limit - Número máximo de atividades (default: 10)
+ */
+router.get('/recent-activities', authenticate, DashboardController.getRecentActivities);
+
 module.exports = router;
