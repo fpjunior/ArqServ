@@ -3,29 +3,30 @@
   <div class="mb-8 pt-6 px-6 relative z-0">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <button 
-          (click)="navigateBack()"
+        <button (click)="navigateBack()"
           class="p-3 hover:bg-white/80 rounded-xl transition-colors shadow-sm border border-gray-200 relative z-0">
           <span class="text-xl">←</span>
         </button>
-        
+
         <div class="flex items-center gap-4">
           <!-- Ícone da categoria com gradient -->
-          <div [class]="'w-16 h-16 bg-gradient-to-r ' + (category?.color || 'from-gray-500 to-gray-600') + ' rounded-2xl flex items-center justify-center shadow-lg'">
+          <div
+            [class]="'w-16 h-16 bg-gradient-to-r ' + (category?.color || 'from-gray-500 to-gray-600') + ' rounded-2xl flex items-center justify-center shadow-lg'">
             <span class="text-3xl filter drop-shadow-lg">{{ category?.icon }}</span>
           </div>
-          
+
           <div>
             <h1 class="text-3xl font-bold text-gray-900">{{ category?.name }}</h1>
             <p class="text-gray-600 mt-1">{{ category?.description }}</p>
           </div>
         </div>
       </div>
-      
+
       <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200">
         <div class="text-center">
           <div class="text-2xl font-bold text-gray-900">
-            {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) | number:'1.2-2') }} GB
+            {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) |
+            number:'1.2-2') }} GB
           </div>
           <div class="text-sm text-gray-500">Armazenamento usado</div>
         </div>
@@ -39,25 +40,22 @@
       <div class="flex-1 max-w-md">
         <div class="relative">
           <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">🔍</span>
-          <input 
-            type="text" 
-            placeholder="Buscar documentos..."
-            (input)="onSearchChange($event)"
+          <input type="text" placeholder="Buscar documentos..." (input)="onSearchChange($event)"
             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
         </div>
       </div>
-      
+
       <div class="flex gap-4">
-        <select 
-          (change)="onStatusChange($event)"
+        <select (change)="onStatusChange($event)"
           class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
           <option value="all">Todos os Status</option>
           <option value="active">Ativos</option>
           <option value="pending">Pendentes</option>
           <option value="archived">Arquivados</option>
         </select>
-        
-        <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center gap-2">
+
+        <button
+          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center gap-2">
           <span>📤</span>
           Novo Upload
         </button>
@@ -67,58 +65,52 @@
 
   <!-- Documents Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 px-6" *ngIf="filteredDocuments.length > 0">
-    <div 
-      *ngFor="let document of filteredDocuments" 
+    <div *ngFor="let document of filteredDocuments"
       class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
-      
-          <!-- File Header -->
-          <div class="p-4 border-b border-gray-100">
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex items-start space-x-3 flex-1">
-                <div class="text-2xl">{{ getFileIcon(document.mime_type || document.type) }}</div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-sm font-medium text-gray-900 truncate">{{ document.name }}</h3>
-                  <div class="flex items-center gap-2 mt-1">
-                    <span class="text-sm text-gray-500">{{ getFileExtension(document.mime_type || document.type) }}</span>
-                    <span class="text-gray-300">•</span>
-                    <span class="text-sm text-gray-500">{{ document.size }}</span>
-                  </div>
-                </div>
+
+      <!-- File Header -->
+      <div class="p-4 border-b border-gray-100">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-start space-x-3 flex-1">
+            <div class="text-2xl">{{ getFileIcon(document.mime_type || document.type) }}</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-medium text-gray-900 truncate">{{ document.name }}</h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm text-gray-500">{{ getFileExtension(document.mime_type || document.type) }}</span>
+                <span class="text-gray-300">•</span>
+                <span class="text-sm text-gray-500">{{ document.size }}</span>
               </div>
             </div>
-          </div>      <!-- File Actions -->
+          </div>
+        </div>
+      </div> <!-- File Actions -->
       <div class="p-4 bg-gray-50 flex items-center justify-between">
         <div class="text-sm text-gray-500">
           {{ document.uploadDate | date:'dd/MM/yyyy' }}
         </div>
-        
+
         <div class="flex gap-2">
-          <button 
-            (click)="viewDocument(document)"
+          <button (click)="viewDocument(document)"
             class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
             title="Visualizar">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </button>
-          
-          <button 
-            (click)="downloadDocument(document)"
-            class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
-            title="Baixar">
+
+          <button (click)="downloadDocument(document)"
+            class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50" title="Baixar">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </button>
-          
-          <button 
-            (click)="showDeleteModal(document)"
-            class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-            title="Excluir">
+
+          <button (click)="showDeleteModal(document)"
+            class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Excluir">
             <span>🗑️</span>
           </button>
         </div>
@@ -136,7 +128,8 @@
       <span *ngIf="searchTerm">Não encontramos documentos que correspondam à sua busca.</span>
       <span *ngIf="!searchTerm">Esta categoria ainda não possui documentos cadastrados.</span>
     </p>
-    <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+    <button
+      class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
       Fazer primeiro upload
     </button>
   </div>
@@ -149,21 +142,21 @@
       </div>
       <div class="text-sm text-gray-500">Ativos</div>
     </div>
-    
+
     <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
       <div class="text-2xl font-bold text-yellow-600">
         {{ getDocumentsByStatus('pending') }}
       </div>
       <div class="text-sm text-gray-500">Pendentes</div>
     </div>
-    
+
     <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
       <div class="text-2xl font-bold text-gray-600">
         {{ getDocumentsByStatus('archived') }}
       </div>
       <div class="text-sm text-gray-500">Arquivados</div>
     </div>
-    
+
     <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
       <div class="text-2xl font-bold text-blue-600">
         {{ documents.length }}
@@ -182,7 +175,7 @@
 </div>
 
 <!-- Modal de Visualização -->
-<div *ngIf="isModalVisible" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+<div *ngIf="isModalVisible" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
   <div class="bg-white rounded-lg shadow-lg w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] overflow-hidden">
     <div class="p-4 flex justify-between items-center border-b">
       <h3 class="text-lg font-bold">Visualizar Documento</h3>
@@ -193,10 +186,7 @@
         <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
         <p class="text-gray-500">Carregando documento...</p>
       </div>
-      <iframe 
-        *ngIf="!modalIsLoading && modalViewerUrl" 
-        [src]="modalViewerUrl" 
-        class="w-full h-96 border rounded">
+      <iframe *ngIf="!modalIsLoading && modalViewerUrl" [src]="modalViewerUrl" class="w-full h-96 border rounded">
       </iframe>
       <p *ngIf="!modalIsLoading && !modalViewerUrl" class="text-center text-red-500">Erro ao carregar documento</p>
     </div>
@@ -204,15 +194,9 @@
 </div>
 
 <!-- Modal de Confirmação de Exclusão -->
-<app-confirm-delete-modal 
-  [isVisible]="confirmDeleteModalVisible" 
-  [itemName]="documentToDelete?.name || ''" 
-  (confirmed)="onDeleteConfirmed()" 
-  (closed)="onDeleteModalClosed()">
+<app-confirm-delete-modal [isVisible]="confirmDeleteModalVisible" [itemName]="documentToDelete?.name || ''"
+  (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
 </app-confirm-delete-modal>
 
-<app-success-modal 
-  *ngIf="successModalVisible" 
-  [visible]="successModalVisible" 
-  [message]="successMessage">
+<app-success-modal *ngIf="successModalVisible" [visible]="successModalVisible" [message]="successMessage">
 </app-success-modal>

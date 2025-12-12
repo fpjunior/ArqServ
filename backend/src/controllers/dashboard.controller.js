@@ -154,13 +154,23 @@ class DashboardController {
         let contextInfo = metadata.context_info || ''; // Prioridade para metadados salvos
 
         if (!contextInfo && doc) {
+          const parts = [];
+
+          // Adiciona tipo financeiro se existir
           if (doc.category === 'financeiro' || doc.financial_document_type) {
-            contextInfo = ` • ${doc.financial_document_type || 'Financeiro'}`;
-          } else if (doc.server_id) {
+            parts.push(doc.financial_document_type || 'Financeiro');
+          }
+
+          // Adiciona nome do servidor (pasta) se existir
+          if (doc.server_id) {
             const server = serversMap[doc.server_id];
             if (server) {
-              contextInfo = ` • ${server.name}`;
+              parts.push(server.name);
             }
+          }
+
+          if (parts.length > 0) {
+            contextInfo = ` • ${parts.join(' • ')}`;
           }
         }
 
