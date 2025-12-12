@@ -253,7 +253,9 @@ export class FinancialCategoryDetailsComponent implements OnInit {
             googleDriveUrl: doc.google_drive_url,
             file_type: doc.file_type,
             mime_type: doc.mime_type || this.getMimeTypeFromFileName(doc.file_name)
-          }));
+          })).sort((a: any, b: any) => {
+            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+          });
           this.filteredDocuments = [...this.documents];
         }
         this.isLoading = false;

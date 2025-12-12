@@ -351,7 +351,7 @@ class Document {
         .eq('category', 'financeiro')
         .eq('financial_document_type', type)
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('file_name', { ascending: true });
 
       if (year) {
         query = query.eq('financial_year', parseInt(year, 10));
