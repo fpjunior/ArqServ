@@ -76,10 +76,10 @@ export class UploadDocumentsComponent implements OnInit {
   recentDocuments: Document[] = [];
   selectedMunicipalityCode: string = '';
   selectedMunicipalityName: string = '';
-  
+
   // Controle do tipo de upload
   uploadType: 'servidores' | 'financeiras' = 'servidores';
-  
+
   // Controle do diálogo customizado
   showTailwindDialog = false;
   showServerDialog = false;
@@ -108,7 +108,7 @@ export class UploadDocumentsComponent implements OnInit {
       documentsService: this.documentsService,
       dialog: this.dialog
     });
-    
+
     this.loadMunicipalities();
     this.loadRecentDocuments();
     this.setupFormValidation();
@@ -166,7 +166,7 @@ export class UploadDocumentsComponent implements OnInit {
   onFileDrop(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver = false;
-    
+
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       this.handleFileSelection(files[0]);
@@ -181,9 +181,9 @@ export class UploadDocumentsComponent implements OnInit {
   }
 
   private handleFileSelection(file: File): void {
-    // Validar tamanho (50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      this.showMessage('Arquivo muito grande! Máximo 50MB.', 'error');
+    // Validar tamanho (500MB)
+    if (file.size > 500 * 1024 * 1024) {
+      this.showMessage('Arquivo muito grande! Máximo 500MB.', 'error');
       return;
     }
 
@@ -195,7 +195,7 @@ export class UploadDocumentsComponent implements OnInit {
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'image/jpeg',
-      'image/jpg', 
+      'image/jpg',
       'image/png',
       'image/gif',
       'text/plain'
@@ -207,7 +207,7 @@ export class UploadDocumentsComponent implements OnInit {
     }
 
     this.selectedFile = file;
-    
+
     // Auto-preencher título se estiver vazio
     if (!this.uploadForm.get('title')?.value) {
       const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
@@ -227,20 +227,20 @@ export class UploadDocumentsComponent implements OnInit {
   onMunicipalityChange(event: any): void {
     const municipalityCode = event.target.value;
     this.selectedMunicipalityCode = municipalityCode;
-    
+
     // Definir nome do município
     const municipality = this.municipalities.find(m => m.code === municipalityCode);
     this.selectedMunicipalityName = municipality ? municipality.name : '';
-    
+
     console.log(`📍 [MUNICIPALITY CHANGE] Código: ${municipalityCode}, Nome: ${this.selectedMunicipalityName}`);
-    
+
     // Limpar lista de servidores primeiro
     this.servers = [];
-    
+
     if (municipalityCode) {
       this.loadServersByMunicipality(municipalityCode);
     }
-    
+
     // Resetar seleção de servidor
     this.uploadForm.get('server_id')?.setValue('');
   }
@@ -254,7 +254,7 @@ export class UploadDocumentsComponent implements OnInit {
       this.documentsService.getServersByMunicipality(municipalityCode).subscribe({
         next: (response: any) => {
           console.log(`📦 [RESPONSE] Resposta completa:`, response);
-          
+
           if (!response || !response.success) {
             console.warn('⚠️ [RESPONSE] Resposta inesperada da API:', response);
             this.servers = [];
@@ -264,12 +264,12 @@ export class UploadDocumentsComponent implements OnInit {
           // Endpoint pode retornar { servers, groupedByLetter } ou array simples
           const data = response.data;
           console.log(`📋 [DATA] Data recebida:`, data);
-          
+
           const servers = data?.servers || data || [];
           this.servers = servers || [];
-          
+
           console.log(`✅ [SUCCESS] ${this.servers.length} servidores carregados:`, this.servers);
-          
+
           if (this.servers.length === 0) {
             this.showMessage(`Nenhum servidor encontrado para ${this.selectedMunicipalityName}`, 'info');
           }
@@ -283,7 +283,7 @@ export class UploadDocumentsComponent implements OnInit {
           this.showMessage('Erro ao carregar servidores.', 'error');
         }
       });
-      
+
     } catch (error) {
       console.error('💥 [EXCEPTION] Erro geral:', error);
       this.servers = [];
@@ -296,7 +296,7 @@ export class UploadDocumentsComponent implements OnInit {
     console.log('📍 Municipality Code:', this.selectedMunicipalityCode);
     console.log('📍 Municipality Name:', this.selectedMunicipalityName);
     console.log('📍 showServerDialog antes:', this.showServerDialog);
-    
+
     if (!this.selectedMunicipalityCode) {
       this.showMessage('Selecione um município primeiro!', 'error');
       return;
@@ -325,7 +325,7 @@ export class UploadDocumentsComponent implements OnInit {
 
   onMunicipalityCreated(municipality: any): void {
     console.log('📋 Município criado:', municipality);
-    
+
     // Adicionar novo município à lista
     const newMunicipality = {
       id: Date.now(), // ID temporário
@@ -333,9 +333,9 @@ export class UploadDocumentsComponent implements OnInit {
       name: municipality.name,
       state: municipality.state
     } as Municipality;
-    
+
     this.municipalities.push(newMunicipality);
-    
+
     // Selecionar o município recém-criado
     this.uploadForm.patchValue({
       municipality_code: municipality.code
@@ -343,10 +343,10 @@ export class UploadDocumentsComponent implements OnInit {
 
     // Carregar servidores do município
     this.onMunicipalityChange({ target: { value: municipality.code } });
-    
+
     // Fechar diálogo
     this.showTailwindDialog = false;
-    
+
     this.showMessage(`Município ${municipality.name} adicionado com sucesso!`, 'success');
   }
 
@@ -409,14 +409,14 @@ export class UploadDocumentsComponent implements OnInit {
   getHierarchicalPath(): string {
     const municipalityCode = this.uploadForm.get('municipality_code')?.value;
     const serverId = this.uploadForm.get('server_id')?.value;
-    
+
     if (!municipalityCode || !serverId) {
       return 'Selecione município e servidor para ver o caminho...';
     }
 
     const municipality = this.municipalities.find(m => m.code === municipalityCode);
     const server = this.servers.find(s => s.id === parseInt(serverId));
-    
+
     if (!municipality || !server) {
       return 'Dados incompletos...';
     }
@@ -426,7 +426,7 @@ export class UploadDocumentsComponent implements OnInit {
   }
 
   // Verificar se pode mostrar o caminho hierárquico
-  
+
   // Método para debug do estado do botão
   isSubmitDisabled(): boolean {
     if (this.isUploading || !this.selectedFile) {
@@ -460,12 +460,12 @@ export class UploadDocumentsComponent implements OnInit {
   mainButtonClick(event: any): void {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    
+
     if (this.isSubmitDisabled()) {
       this.showMessage('Preencha todos os campos obrigatórios e selecione um arquivo!', 'error');
       return;
     }
-    
+
     if (!this.selectedFile) {
       this.showMessage('Selecione um arquivo primeiro!', 'error');
       return;
@@ -523,11 +523,11 @@ export class UploadDocumentsComponent implements OnInit {
       };
 
       selectedMunicipality = this.municipalities.find(m => m.code === formData.municipality_code);
-      
+
       // Definir nome amigável do tipo de documento
-      const typeNames: {[key: string]: string} = {
+      const typeNames: { [key: string]: string } = {
         'balanco': 'Balanço Patrimonial',
-        'orcamento': 'Orçamento Anual', 
+        'orcamento': 'Orçamento Anual',
         'prestacao-contas': 'Prestação de Contas',
         'receitas': 'Relatório de Receitas',
         'despesas': 'Relatório de Despesas',
@@ -535,7 +535,7 @@ export class UploadDocumentsComponent implements OnInit {
         'folha-pagamento': 'Folha de Pagamento',
         'outros': 'Outros'
       };
-      
+
       documentTypeInfo = typeNames[documentType] || documentType;
       console.log('📋 Nome amigável do tipo:', documentTypeInfo);
     }
@@ -548,11 +548,11 @@ export class UploadDocumentsComponent implements OnInit {
           console.log('📡 Resposta do upload:', response);
           this.isUploading = false;
           this.loadRecentDocuments();
-          
+
           // Exibir modal de sucesso
           if (response.success) {
             console.log('✅ Upload bem-sucedido! Abrindo modal personalizado...');
-            
+
             // Configurar dados do modal baseado no tipo
             if (this.uploadType === 'servidores') {
               this.successModalData = {
@@ -567,11 +567,11 @@ export class UploadDocumentsComponent implements OnInit {
                 serverName: documentTypeInfo
               };
             }
-            
+
             // Mostrar modal personalizado
             this.showSuccessModal = true;
             console.log('📋 Modal personalizado aberto');
-            
+
           } else {
             console.log('❌ Upload falhou:', response.message);
             this.showMessage('Erro no upload: ' + (response.message || 'Erro desconhecido'), 'error');
@@ -652,13 +652,13 @@ export class UploadDocumentsComponent implements OnInit {
       isUploading: this.isUploading,
       formValue: this.uploadForm.value
     });
-    
+
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadProgress = 0;
     this.isUploading = false;
     this.isDragOver = false;
-    
+
     console.log('✅ Formulário limpo');
     console.log('📋 Estado após limpeza:', {
       selectedFile: this.selectedFile,
@@ -699,7 +699,7 @@ export class UploadDocumentsComponent implements OnInit {
     const municipality = this.uploadForm.get('municipality_code')?.value;
     const documentType = this.uploadForm.get('financial_document_type')?.value;
     const year = this.uploadForm.get('financial_year')?.value;
-    
+
     return this.uploadType === 'financeiras' && municipality && documentType && year;
   }
 
@@ -714,9 +714,9 @@ export class UploadDocumentsComponent implements OnInit {
     }
 
     let path = `${municipality.name} > Documentações Financeiras > ${year}`;
-    
+
     // Adicionar tipo de documento
-    const typeNames: {[key: string]: string} = {
+    const typeNames: { [key: string]: string } = {
       'balanco': 'Balanço Patrimonial',
       'orcamento': 'Orçamento Anual',
       'prestacao-contas': 'Prestação de Contas',
@@ -726,20 +726,20 @@ export class UploadDocumentsComponent implements OnInit {
       'folha-pagamento': 'Folha de Pagamento',
       'outros': 'Outros'
     };
-    
+
     path += ` > ${typeNames[documentType] || documentType}`;
-    
+
     // Adicionar período se especificado
     if (period) {
-      const periodNames: {[key: string]: string} = {
+      const periodNames: { [key: string]: string } = {
         '1': '1º Trimestre',
-        '2': '2º Trimestre', 
+        '2': '2º Trimestre',
         '3': '3º Trimestre',
         '4': '4º Trimestre',
         'semestral-1': '1º Semestre',
         'semestral-2': '2º Semestre'
       };
-      
+
       path += ` > ${periodNames[period] || period}`;
     }
 

@@ -25,8 +25,8 @@ const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 
 // Log de requisições
 app.use((req, res, next) => {
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'OK',
     message: 'ArqServ Backend funcionando!'
   });
@@ -55,8 +55,8 @@ console.log('✅ Municipality routes registradas em /api/municipalities');
 
 // Rota de teste
 app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'ArqServ Backend funcionando!', 
+  res.json({
+    message: 'ArqServ Backend funcionando!',
     timestamp: new Date().toISOString(),
     port: PORT,
     environment: process.env.NODE_ENV || 'development'
@@ -66,7 +66,7 @@ app.get('/api/test', (req, res) => {
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
   console.error('Erro:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Erro interno do servidor',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado!'
   });
@@ -74,9 +74,9 @@ app.use((err, req, res, next) => {
 
 // Middleware para rotas não encontradas
 app.use('*', (req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Rota não encontrada',
-    path: req.originalUrl 
+    path: req.originalUrl
   });
 });
 
@@ -89,7 +89,7 @@ const startServer = async () => {
     if (process.env.SUPABASE_URL) {
       console.log('🔗 Supabase URL configured:', process.env.SUPABASE_URL);
     }
-    
+
     // Iniciar o servidor
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor ArqServ rodando na porta ${PORT}`);
