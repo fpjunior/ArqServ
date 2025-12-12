@@ -1,10 +1,10 @@
 const express = require('express');
 const DocumentController = require('../controllers/document.controller');
 const { authenticate } = require('../middleware/auth.middleware');
-const { 
-  checkMunicipalityAccess, 
+const {
+  checkMunicipalityAccess,
   filterDocumentsByUserMunicipality,
-  checkUploadMunicipalityAccess 
+  checkUploadMunicipalityAccess
 } = require('../middleware/municipality-access.middleware');
 
 const router = express.Router();
@@ -14,7 +14,7 @@ const router = express.Router();
  * @desc Upload de documento com informações
  * @access Private (requer autenticação)
  */
-router.post('/upload', 
+router.post('/upload',
   authenticate,
   checkUploadMunicipalityAccess,
   DocumentController.uploadDocument,
@@ -31,7 +31,7 @@ router.post('/upload',
  * @query financial_period - Período do documento (opcional)
  * @query limit - Limite de resultados (opcional)
  */
-router.get('/financial/:municipality_code', 
+router.get('/financial/:municipality_code',
   authenticate,
   checkMunicipalityAccess,
   DocumentController.getFinancialDocuments
@@ -42,7 +42,7 @@ router.get('/financial/:municipality_code',
  * @desc Listar documentos financeiros do município vinculado ao usuário logado
  * @access Private (requer autenticação)
  */
-router.get('/financial', 
+router.get('/financial',
   authenticate,
   DocumentController.getFinancialDocumentsByUser
 );
@@ -53,7 +53,23 @@ router.get('/financial',
  * @access Public
  * @params municipality_code - Código do município
  */
+/**
+ * @route GET /api/documents/financial/:municipality_code/years
+ * @desc Buscar anos disponíveis para documentos financeiros de um município (opcionalmente filtrado por tipo via query ?type=...)
+ * @access Public
+ * @params municipality_code - Código do município
+ * @query type - Tipo de documento (opcional)
+ */
 router.get('/financial/:municipality_code/years', DocumentController.getFinancialYears);
+
+/**
+ * @route GET /api/documents/financial/:municipality_code/years/:type
+ * @desc Buscar anos disponíveis para um tipo específico de documento financeiro
+ * @access Public
+ * @params municipality_code - Código do município
+ * @params type - Tipo de documento financeiro
+ */
+router.get('/financial/:municipality_code/years/:type', DocumentController.getFinancialYearsByType);
 
 /**
  * @route GET /api/documents/financial/:municipality_code/types
@@ -82,7 +98,7 @@ router.get('/financial/:municipality_code/type/:type', DocumentController.getFin
  * @query dateFrom - Data inicial (opcional)
  * @query dateTo - Data final (opcional)
  */
-router.get('/municipality/:code', 
+router.get('/municipality/:code',
   authenticate,
   checkMunicipalityAccess,
   DocumentController.getDocumentsByMunicipality
@@ -109,7 +125,7 @@ router.get('/:id/download', DocumentController.downloadDocument);
  * @desc Download de arquivo diretamente do Google Drive
  * @access Private (requer autenticação)
  */
-router.get('/drive/:drive_file_id/download', 
+router.get('/drive/:drive_file_id/download',
   authenticate,
   DocumentController.downloadDriveFile
 );
@@ -136,7 +152,7 @@ router.delete('/financial/:id', authenticate, DocumentController.deleteFinancial
  * @query municipality_code - Filtro por município (opcional)  
  * @query limit - Limite de resultados (opcional)
  */
-router.get('/admin/all', 
+router.get('/admin/all',
   authenticate,
   filterDocumentsByUserMunicipality,
   DocumentController.getAllDocuments
@@ -173,7 +189,7 @@ router.get('/financial/:municipality_code', DocumentController.getFinancialDocum
  * @desc Buscar documentos de um servidor específico
  * @access Private
  */
-router.get('/server/:server_id', 
+router.get('/server/:server_id',
   authenticate,
   filterDocumentsByUserMunicipality,
   DocumentController.getDocumentsByServer
@@ -184,7 +200,7 @@ router.get('/server/:server_id',
  * @desc Buscar quantidade de arquivos de um servidor específico
  * @access Private
  */
-router.get('/server/:server_id/files-count', 
+router.get('/server/:server_id/files-count',
   authenticate,
   filterDocumentsByUserMunicipality,
   DocumentController.getFilesCountByServer
@@ -195,7 +211,7 @@ router.get('/server/:server_id/files-count',
  * @desc Obter informações de armazenamento do Google Drive
  * @access Private (requer autenticação)
  */
-router.get('/drive/storage-info', 
+router.get('/drive/storage-info',
   authenticate,
   DocumentController.getDriveStorageInfo
 );

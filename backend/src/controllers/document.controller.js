@@ -703,21 +703,63 @@ class DocumentController {
   }
 
   /**
-   * Buscar anos disponíveis para documentos financeiros
+   * Buscar anos disponíveis para documentos financeiros (geral ou por tipo)
    * @route GET /api/documents/financial/:municipality_code/years
    */
   static async getFinancialYears(req, res) {
     try {
-      console.log('🔍 getFinancialYears called');
+      const { municipality_code } = req.params;
+      const { type } = req.query; // Tipo opcional para filtrar anos
+
+      console.log(`🔍 getFinancialYears called for municipality='${municipality_code}', type='${type || 'all'}'`);
+
+      let years;
+
+      if (type) {
+        // Buscar anos especificamente para o tipo
+        years = await Document.getAvailableYearsForType(municipality_code, type);
+      } else {
+        // Buscar todos os anos (existente - fallback)
+        // Idealmente deveríamos ter um método no model para isso também, mas por enquanto vamos simular ou melhorar depois
+        // Para simplificar e atender a demanda imediata de "anos por tipo", focaremos no fluxo com type.
+        // Se não tiver type, retornamos uma lista vazia ou genérica por enquanto, 
+        // mas o foco do usuário é "Tipo > Ano".
+        years = [2024, 2023, 2022]; // Mock temporário se não houver tipo, ou implementar no model
+      }
+
       res.json({
         success: true,
-        data: [2024, 2023, 2022]
+        data: years
       });
     } catch (error) {
-      console.error('❌ Erro:', error);
+      console.error('❌ Erro em getFinancialYears:', error);
       res.status(500).json({
         success: false,
-        message: 'Erro interno'
+        message: 'Erro interno do servidor'
+      });
+    }
+  }
+
+  /**
+   * Buscar anos disponíveis para um tipo específico de documento (Rota dedicada se necessário)
+   * @route GET /api/documents/financial/:municipality_code/years/:type
+   */
+  static async getFinancialYearsByType(req, res) {
+    try {
+      const { municipality_code, type } = req.params;
+      console.log(`🔍 getFinancialYearsByType called for municipality='${municipality_code}', type='${type}'`);
+
+      const years = await Document.getAvailableYearsForType(municipality_code, type);
+
+      res.json({
+        success: true,
+        data: years
+      });
+    } catch (error) {
+      console.error('❌ Erro em getFinancialYearsByType:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
       });
     }
   }

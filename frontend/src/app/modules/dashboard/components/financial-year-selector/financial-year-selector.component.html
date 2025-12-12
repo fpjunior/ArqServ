@@ -1,0 +1,102 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <!-- Header -->
+    <div class="mb-8 pt-6 px-6 relative z-0">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <button (click)="navigateBack()"
+                    class="p-3 hover:bg-white/80 rounded-xl transition-colors shadow-sm border border-gray-200 relative z-0">
+                    <span class="text-xl">←</span>
+                </button>
+
+                <div class="flex items-center gap-4">
+                    <!-- Ícone da categoria com gradient -->
+                    <div
+                        [class]="'w-16 h-16 bg-gradient-to-r ' + (categoryInfo?.color || 'from-gray-500 to-gray-600') + ' rounded-2xl flex items-center justify-center shadow-lg'">
+                        <span class="text-3xl filter drop-shadow-lg">{{ categoryInfo?.icon }}</span>
+                    </div>
+
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">{{ categoryInfo?.name }}</h1>
+                        <p class="text-gray-600 mt-1">Selecione o ano de referência</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="px-6 py-12 text-center">
+        <div class="inline-block">
+            <div class="animate-spin">
+                <div class="h-12 w-12 border-4 border-gray-300 border-t-blue-600 rounded-full"></div>
+            </div>
+            <p class="mt-4 text-gray-600 font-medium">Carregando anos disponíveis...</p>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="!isLoading && errorMessage" class="px-6 py-12">
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <span class="text-4xl">⚠️</span>
+            <p class="mt-2 text-red-700 font-medium">{{ errorMessage }}</p>
+            <button (click)="navigateBack()"
+                class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                Voltar
+            </button>
+        </div>
+    </div>
+
+    <!-- Years Grid -->
+    <div *ngIf="!isLoading && !errorMessage" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6">
+        <div *ngFor="let year of years" (click)="selectYear(year)"
+            class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-gray-200 overflow-hidden group">
+
+            <!-- Gradient Header -->
+            <div
+                [class]="'h-24 bg-gradient-to-r ' + (categoryInfo?.color || 'from-gray-500 to-gray-600') + ' relative'">
+                <div class="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors"></div>
+                <div class="relative h-full flex items-center justify-center">
+                    <span class="text-4xl filter drop-shadow-lg text-white">📅</span>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {{ year }}
+                    </h3>
+                    <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full font-medium">
+                        Ano
+                    </span>
+                </div>
+
+                <p class="text-gray-600 text-sm mb-6 leading-relaxed">
+                    Visualizar documentos referentes ao exercício financeiro de {{ year }}.
+                </p>
+
+                <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <span>📁</span>
+                        <span>Documentos</span>
+                    </div>
+                    <button
+                        class="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors group-hover:translate-x-1 transform duration-200 flex items-center gap-1">
+                        Abrir <span class="text-lg">→</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State if no years found -->
+        <div *ngIf="years.length === 0"
+            class="col-span-full py-16 text-center bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-4xl text-gray-400">📅</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum ano encontrado</h3>
+            <p class="text-gray-600 max-w-md mx-auto">Não encontramos documentos financeiros registrados para esta
+                categoria ainda.</p>
+        </div>
+    </div>
+</div>

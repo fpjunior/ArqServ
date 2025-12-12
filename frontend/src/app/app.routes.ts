@@ -69,6 +69,11 @@ export const routes: Routes = [
       },
       {
         path: 'documentacoes-financeiras/municipality/:municipalityCode/:category',
+        loadComponent: () => import('./modules/dashboard/components/financial-year-selector/financial-year-selector.component')
+          .then(m => m.FinancialYearSelectorComponent)
+      },
+      {
+        path: 'documentacoes-financeiras/municipality/:municipalityCode/:category/:year',
         loadComponent: () => import('./modules/dashboard/components/financial-category-details/financial-category-details.component')
           .then(m => m.FinancialCategoryDetailsComponent)
       },

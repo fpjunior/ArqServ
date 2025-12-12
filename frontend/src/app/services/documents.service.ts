@@ -368,6 +368,24 @@ export class DocumentsService {
   }
 
   /**
+   * Buscar anos disponíveis para um tipo de documento financeiro
+   */
+  getFinancialYearsByType(municipalityCode: string, type: string): Observable<any> {
+    const url = `${environment.apiUrl}/documents/financial/${municipalityCode}/years/${type}`;
+    console.log(`📡 [DocumentsService] Fetching years for type ${type} from: ${url}`);
+
+    return this.http.get<any>(url).pipe(
+      tap((response) => {
+        console.log('✅ [DocumentsService] Anos recebidos:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar anos:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Buscar documentos financeiros do município do usuário logado
    */
   getFinancialDocumentsByUser(): Observable<any> {

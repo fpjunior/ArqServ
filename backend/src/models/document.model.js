@@ -376,6 +376,35 @@ class Document {
       throw error;
     }
   }
+  /**
+   * Buscar anos disponíveis para um tipo de documento financeiro
+   */
+  static async getAvailableYearsForType(municipalityCode, type) {
+    try {
+      console.log(`🔍 [getAvailableYearsForType] Municipality: ${municipalityCode}, Type: ${type}`);
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select('financial_year')
+        .eq('municipality_code', municipalityCode)
+        .eq('category', 'financeiro')
+        .eq('financial_document_type', type)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('❌ Erro na consulta ao Supabase:', error);
+        throw new Error('Erro ao buscar anos no banco de dados.');
+      }
+
+      const years = [...new Set(data.map(item => item.financial_year))].sort((a, b) => b - a);
+      console.log(`📅 Anos encontrados para ${type}:`, years);
+
+      return years;
+    } catch (error) {
+      console.error('❌ Erro em getAvailableYearsForType:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Document;

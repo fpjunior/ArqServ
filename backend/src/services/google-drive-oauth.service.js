@@ -13,11 +13,11 @@ class GoogleDriveOAuthService {
   async initialize() {
     try {
       console.log('🔄 Inicializando Google Drive OAuth service...');
-      
+
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-      
+
       if (!clientId || !clientSecret || !refreshToken) {
         console.log('⚠️ Google OAuth credentials not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN');
         return false;
@@ -45,7 +45,7 @@ class GoogleDriveOAuthService {
 
       // Testar conexão
       await this.testConnection();
-      
+
       console.log('✅ Google Drive OAuth service initialized successfully');
       this.initialized = true;
       return true;
@@ -70,7 +70,7 @@ class GoogleDriveOAuthService {
   async createFolderIfNotExists(name, parentFolderId) {
     try {
       const cacheKey = `${parentFolderId}/${name}`;
-      
+
       if (this.folderCache.has(cacheKey)) {
         return this.folderCache.get(cacheKey);
       }
@@ -100,7 +100,7 @@ class GoogleDriveOAuthService {
       const folderId = createResponse.data.id;
       this.folderCache.set(cacheKey, folderId);
       console.log(`📁 Created folder: ${name} (${folderId})`);
-      
+
       return folderId;
 
     } catch (error) {
@@ -112,10 +112,10 @@ class GoogleDriveOAuthService {
   async getServerFolderId(municipalityName, serverName) {
     try {
       console.log(`📁 Criando estrutura hierárquica para: ${municipalityName} > ${serverName}`);
-      
+
       // 1. Pasta do município
       const municipalityFolderId = await this.createFolderIfNotExists(
-        municipalityName, 
+        municipalityName,
         this.rootFolderId
       );
       console.log(`📁 Pasta município criada: ${municipalityName} (ID: ${municipalityFolderId})`);
@@ -124,7 +124,7 @@ class GoogleDriveOAuthService {
       const firstLetter = serverName.charAt(0).toUpperCase();
       const letterFolderName = `Servidores ${firstLetter}`;
       console.log(`📁 Criando pasta da letra: ${letterFolderName} (primeira letra de "${serverName}" é "${firstLetter}")`);
-      
+
       const letterFolderId = await this.createFolderIfNotExists(
         letterFolderName,
         municipalityFolderId
@@ -173,7 +173,7 @@ class GoogleDriveOAuthService {
         const bufferStream = new Readable();
         bufferStream.push(fileBufferOrPath);
         bufferStream.push(null);
-        
+
         media = {
           mimeType: mimeType,
           body: bufferStream,
@@ -186,7 +186,7 @@ class GoogleDriveOAuthService {
       }
 
       console.log(`☁️ Uploading to Google Drive folder: ${parentFolderId}`);
-      
+
       // Fazer upload
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
@@ -195,9 +195,9 @@ class GoogleDriveOAuthService {
       });
 
       const fileData = response.data;
-      
+
       console.log(`✅ File uploaded successfully: ${fileData.name} (${fileData.id})`);
-      
+
       return {
         googleDriveId: fileData.id,
         googleDriveLink: fileData.webViewLink,
@@ -236,14 +236,14 @@ class GoogleDriveOAuthService {
       const bufferStream = new Readable();
       bufferStream.push(fileBuffer);
       bufferStream.push(null);
-      
+
       const media = {
         mimeType: mimeType,
         body: bufferStream,
       };
 
       console.log(`☁️ Uploading financial document to Google Drive folder: ${parentFolderId}`);
-      
+
       // Fazer upload
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
@@ -252,9 +252,9 @@ class GoogleDriveOAuthService {
       });
 
       const fileData = response.data;
-      
+
       console.log(`✅ Financial document uploaded successfully: ${fileData.name} (${fileData.id})`);
-      
+
       return {
         googleDriveId: fileData.id,
         googleDriveLink: fileData.webViewLink,
@@ -273,15 +273,15 @@ class GoogleDriveOAuthService {
   async getFinancialDocumentFolderId(municipalityName, documentType, year, period = null) {
     try {
       console.log(`🗂️ Getting financial document folder ID for ${municipalityName}/${documentType}/${year}/${period || 'Anual'}`);
-      
+
       // 1. Obter ou criar pasta do município
       const municipalityFolderId = await this.createFolderIfNotExists(municipalityName, this.rootFolderId);
       console.log(`📍 Municipality folder: ${municipalityFolderId}`);
-      
+
       // 2. Obter ou criar pasta "Documentações Financeiras"
       const financialFolderId = await this.createFolderIfNotExists('Documentações Financeiras', municipalityFolderId);
       console.log(`💰 Financial folder: ${financialFolderId}`);
-      
+
       // 3. Obter ou criar pasta do tipo de documento
       const typeNames = {
         'balanco': 'Balanço Patrimonial',
@@ -293,12 +293,20 @@ class GoogleDriveOAuthService {
         'folha-pagamento': 'Folha de Pagamento',
         'outros': 'Outros'
       };
-      
+
       const typeFolderName = typeNames[documentType] || documentType;
       const typeFolderId = await this.createFolderIfNotExists(typeFolderName, financialFolderId);
       console.log(`📂 Document type folder: ${typeFolderId}`);
-      
-      return typeFolderId;
+
+      // 4. Obter ou criar pasta do ANO
+      if (!year) {
+        throw new Error('Year is required for financial documents');
+      }
+
+      const yearFolderId = await this.createFolderIfNotExists(year.toString(), typeFolderId);
+      console.log(`📅 Year folder: ${yearFolderId}`);
+
+      return yearFolderId;
 
     } catch (error) {
       console.error('❌ Error getting financial document folder ID:', error.message);
@@ -324,7 +332,7 @@ class GoogleDriveOAuthService {
 
   generateAuthUrl() {
     const scopes = ['https://www.googleapis.com/auth/drive.file'];
-    
+
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
@@ -393,7 +401,7 @@ class GoogleDriveOAuthService {
       }
 
       console.log(`📁 Listando arquivos na pasta: ${folderId}`);
-      
+
       const response = await this.drive.files.list({
         q: `'${folderId}' in parents and trashed=false`,
         fields: 'files(id, name, mimeType, size, modifiedTime, webViewLink, webContentLink)',
@@ -402,7 +410,7 @@ class GoogleDriveOAuthService {
 
       const files = response.data.files || [];
       console.log(`📄 Encontrados ${files.length} arquivos na pasta`);
-      
+
       return {
         success: true,
         files: files.map(file => ({
@@ -415,7 +423,7 @@ class GoogleDriveOAuthService {
           webContentLink: file.webContentLink
         }))
       };
-      
+
     } catch (error) {
       console.error('❌ Erro ao listar arquivos na pasta:', error);
       return {

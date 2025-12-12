@@ -59,6 +59,7 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   errorMessage: string = '';
   successModalVisible: boolean = false;
   successMessage: string = '';
+  year: number | null = null;
 
   constructor(
     private router: Router,
@@ -192,7 +193,8 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     this.route.params.subscribe(params => {
       this.categoryId = params['category'];
       this.municipalityCode = params['municipalityCode'] || sessionStorage.getItem('selectedMunicipalityCode') || '';
-      console.log('🎯 [FINANCIAL-CATEGORY] Category:', this.categoryId, 'Municipality:', this.municipalityCode);
+      this.year = params['year'] ? parseInt(params['year'], 10) : null;
+      console.log('🎯 [FINANCIAL-CATEGORY] Category:', this.categoryId, 'Municipality:', this.municipalityCode, 'Year:', this.year);
 
       if (!this.municipalityCode) {
         console.error('❌ [FINANCIAL-CATEGORY] Código do município não encontrado');
@@ -228,7 +230,11 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     }
 
     // Buscar documentos reais da API
-    const url = `${environment.apiUrl}/documents/financial/${this.municipalityCode}/type/${this.categoryId}`;
+    // Buscar documentos reais da API
+    let url = `${environment.apiUrl}/documents/financial/${this.municipalityCode}/type/${this.categoryId}`;
+    if (this.year) {
+      url += `?year=${this.year}`;
+    }
     console.log('📡 [FINANCIAL-CATEGORY] Buscando documentos de:', url);
 
     this.http.get<any>(url).subscribe(
@@ -461,7 +467,10 @@ export class FinancialCategoryDetailsComponent implements OnInit {
 
   navigateBack(): void {
     const municipalityCode = this.municipalityCode || sessionStorage.getItem('selectedMunicipalityCode');
-    if (municipalityCode) {
+    if (municipalityCode && this.categoryId) {
+      // Voltar para o seletor de anos
+      this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode, this.categoryId]);
+    } else if (municipalityCode) {
       this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode]);
     } else {
       this.router.navigate(['/documentacoes-financeiras']);
