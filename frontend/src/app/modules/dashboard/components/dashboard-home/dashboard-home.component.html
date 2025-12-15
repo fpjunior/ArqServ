@@ -23,7 +23,7 @@
           <button (click)="refreshData()"
             class="bg-white/20 backdrop-blur-sm p-3 rounded-xl hover:bg-white/30 transition-colors shadow-lg"
             title="Atualizar dados">
-            <span class="text-xl">🔄</span>
+            <span class="text-xl inline-block" [class.animate-spin]="isRefreshing">🔄</span>
           </button>
         </div>
       </div>

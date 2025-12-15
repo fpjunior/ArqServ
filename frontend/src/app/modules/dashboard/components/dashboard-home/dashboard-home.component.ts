@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
+import { forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 interface QuickAction {
   id: string;
@@ -46,6 +48,7 @@ interface LocalDashboardStats {
 export class DashboardHomeComponent implements OnInit {
   currentUser: User | null = null;
   searchTerm = '';
+  isRefreshing = false;
 
   storageUsed: number = 0;
   storageTotal: number = 0;
@@ -253,9 +256,55 @@ export class DashboardHomeComponent implements OnInit {
   }
 
   refreshData() {
-    this.loadDashboardStats();
-    this.loadRecentActivities();
-    // Mostrar feedback de atualização
+    this.isRefreshing = true;
+
+    forkJoin({
+      stats: this.documentsService.getDashboardStats(),
+      activities: this.documentsService.getRecentActivities(10),
+      storage: this.documentsService.getDriveStorageInfo()
+    }).pipe(
+      finalize(() => this.isRefreshing = false)
+    ).subscribe({
+      next: (results: any) => {
+        // Update Stats
+        if (results.stats && results.stats.success && results.stats.data) {
+          const data = results.stats.data;
+          this.stats = {
+            totalServers: data.servers.total,
+            totalDocuments: data.documents.total,
+            recentUploads: data.activities.uploads_today,
+            pendingReviews: data.servers.this_month,
+            storageUsed: Math.round((data.storage.used / (1024 * 1024 * 1024)) * 10) / 10,
+            storageLimit: Math.round((data.storage.total / (1024 * 1024 * 1024)) * 10) / 10,
+            viewsToday: data.activities.views_today || 0,
+            downloadsToday: data.activities.downloads_today || 0
+          };
+        }
+
+        // Update Activities
+        if (results.activities && results.activities.success && results.activities.data) {
+          this.recentActivities = results.activities.data.map((activity: any) => {
+            let timestampStr = activity.timestamp;
+            if (timestampStr && !timestampStr.endsWith('Z')) {
+              timestampStr += 'Z';
+            }
+            return {
+              ...activity,
+              timestamp: new Date(timestampStr)
+            };
+          });
+        }
+
+        // Update Storage
+        if (results.storage && results.storage.success && results.storage.data) {
+          this.storageUsed = results.storage.data.used;
+          this.storageTotal = results.storage.data.total;
+        }
+      },
+      error: (error) => {
+        console.error('❌ [DASHBOARD] Erro ao atualizar dados:', error);
+      }
+    });
   }
 
   navigateToServer(serverId: string) {
