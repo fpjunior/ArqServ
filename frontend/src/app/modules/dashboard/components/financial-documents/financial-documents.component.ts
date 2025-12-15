@@ -97,47 +97,86 @@ export class FinancialDocumentsComponent implements OnInit {
 
   private loadFinancialTypesByMunicipality(municipalityCode: string): void {
     const currentYear = new Date().getFullYear();
-    this.documentsService.getFinancialDocumentTypes(municipalityCode, currentYear).subscribe({
-      next: (response: any) => {
-        console.log('📂 [FINANCIAL-DOCUMENTS] Documentos financeiros carregados:', response.data);
 
-        // Mapear os dados do backend para incluir ícones, cores e descrições
-        this.financialFolders = (response.data || []).map((item: any) => {
-          const type = item.financial_document_type || '';
-          const config = FINANCIAL_TYPE_CONFIG[type] || {
-            icon: '📄',
-            color: 'from-gray-500 to-gray-600',
-            description: 'Documentos diversos'
-          };
+    // Carregar em paralelo: contagem de documentos (folders) e metadados dos tipos (nomes)
+    import('rxjs').then(({ forkJoin }) => {
+      forkJoin({
+        folders: this.documentsService.getFinancialDocumentTypes(municipalityCode, currentYear),
+        allTypes: this.documentsService.getAllFinancialDocumentTypes()
+      }).subscribe({
+        next: (responses) => {
+          const foldersData = responses.folders.data || [];
+          const allTypesData = responses.allTypes.success ? responses.allTypes.data : [];
 
-          // Usar o nome correto do mapeamento de exibição
-          const displayName = FINANCIAL_TYPE_DISPLAY_NAMES[type] || config.description;
+          console.log('📂 [FINANCIAL-DOCUMENTS] Folders data:', foldersData);
+          console.log('📋 [FINANCIAL-DOCUMENTS] All types metadata:', allTypesData);
 
-          return {
-            financial_document_type: type,
-            count: item.count || 0,
-            name: displayName,
-            icon: config.icon,
-            description: config.description,
-            color: config.color
-          };
-        });
+          // Criar mapa de metadados para busca rápida
+          const typesMap = new Map(allTypesData?.map(t => [t.code, t]));
 
-        console.log('✅ [FINANCIAL-DOCUMENTS] Folders mapeados:', this.financialFolders);
-        this.isLoading = false;
-      },
-      error: (error: any) => {
-        console.error('❌ [FINANCIAL-DOCUMENTS] Erro ao carregar documentos financeiros:', error);
+          this.financialFolders = foldersData.map((item: any) => {
+            const typeCode = item.financial_document_type || '';
+            const typeMetadata = typesMap.get(typeCode);
 
-        // Verificar se o erro é devido a token expirado
-        if (error.status === 401) {
-          console.log('🔐 Token expirado, redirecionando para login...');
-          this.authService.logout();
-        } else {
-          this.errorMessage = 'Erro ao carregar documentos financeiros';
+            // Tentar obter config hardcoded ou gerar dinâmica
+            const hardcodedConfig = FINANCIAL_TYPE_CONFIG[typeCode];
+
+            // Definir ícone e cor
+            let icon = '📄';
+            let color = 'from-gray-500 to-gray-600';
+
+            if (hardcodedConfig) {
+              icon = hardcodedConfig.icon;
+              color = hardcodedConfig.color;
+            } else {
+              // Gerar cor baseada no código se não for hardcoded (para consistência)
+              const colors = [
+                'from-blue-500 to-blue-600',
+                'from-green-500 to-green-600',
+                'from-purple-500 to-purple-600',
+                'from-yellow-500 to-yellow-600',
+                'from-pink-500 to-pink-600',
+                'from-indigo-500 to-indigo-600',
+                'from-teal-500 to-teal-600'
+              ];
+              // Hash simples do código para escolher cor
+              let hash = 0;
+              for (let i = 0; i < typeCode.length; i++) {
+                hash = typeCode.charCodeAt(i) + ((hash << 5) - hash);
+              }
+              const colorIndex = Math.abs(hash) % colors.length;
+              color = colors[colorIndex];
+              icon = '📁'; // Ícone genérico para tipos dinâmicos
+            }
+
+            // Definir Nome e Descrição
+            // Prioridade: Nome do banco > Nome hardcoded > Código
+            const name = typeMetadata?.name || FINANCIAL_TYPE_DISPLAY_NAMES[typeCode] || typeCode;
+            const description = typeMetadata?.description || hardcodedConfig?.description || 'Documentos diversos';
+
+            return {
+              financial_document_type: typeCode,
+              count: item.count || 0,
+              name: name,
+              icon: icon,
+              description: description,
+              color: color
+            };
+          });
+
+          console.log('✅ [FINANCIAL-DOCUMENTS] Folders mapeados com sucesso:', this.financialFolders);
+          this.isLoading = false;
+        },
+        error: (error: any) => {
+          console.error('❌ [FINANCIAL-DOCUMENTS] Erro ao carregar dados:', error);
+          if (error.status === 401) {
+            this.authService.logout();
+          } else {
+            this.errorMessage = 'Erro ao carregar documentos financeiros';
+          }
+          this.isLoading = false;
         }
-        this.isLoading = false;
-      }
+      });
     });
   }
 

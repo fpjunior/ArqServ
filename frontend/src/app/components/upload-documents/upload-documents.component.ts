@@ -8,6 +8,7 @@ import { DocumentsService, Municipality, Document, UploadProgress } from '../../
 // Dialogs
 import { MunicipalityDialogComponent } from '../../dialogs/municipality-dialog/municipality-dialog.component';
 import { ServerDialogComponent } from '../../dialogs/server-dialog/server-dialog.component';
+import { FinancialTypeDialogComponent } from '../../dialogs/financial-type-dialog/financial-type-dialog.component';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -48,7 +49,8 @@ interface Server {
     MatDialogModule,
     MatSnackBarModule,
     MunicipalityDialogComponent,
-    ServerDialogComponent
+    ServerDialogComponent,
+    FinancialTypeDialogComponent
   ],
   templateUrl: './upload-documents.component.html',
   styleUrl: './upload-documents.component.scss'
@@ -90,6 +92,10 @@ export class UploadDocumentsComponent implements OnInit {
     serverName: ''
   };
 
+  // Tipos de documentos financeiros dinâmicos
+  financialDocumentTypes: any[] = [];
+  showFinancialTypeDialog = false;
+
   constructor(
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
@@ -112,6 +118,7 @@ export class UploadDocumentsComponent implements OnInit {
     this.loadMunicipalities();
     this.loadRecentDocuments();
     this.setupFormValidation();
+    this.loadFinancialDocumentTypes();
   }
 
   private setupFormValidation(): void {
@@ -693,6 +700,54 @@ export class UploadDocumentsComponent implements OnInit {
       years.push(year);
     }
     return years;
+  }
+
+  // Carregar tipos de documentos financeiros do banco
+  loadFinancialDocumentTypes(): void {
+    console.log('💰 [UPLOAD] Carregando tipos de documentos financeiros...');
+    this.documentsService.getAllFinancialDocumentTypes().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.financialDocumentTypes = response.data;
+          console.log(`✅ [UPLOAD] ${this.financialDocumentTypes.length} tipos carregados`);
+        }
+      },
+      error: (error) => {
+        console.error('❌ [UPLOAD] Erro ao carregar tipos:', error);
+        // Fallback para tipos locais se API falhar
+        this.financialDocumentTypes = [
+          { code: 'balanco', name: 'Balanço Patrimonial' },
+          { code: 'orcamento', name: 'Orçamento Anual' },
+          { code: 'prestacao-contas', name: 'Prestação de Contas' },
+          { code: 'receitas', name: 'Relatório de Receitas' },
+          { code: 'despesas', name: 'Relatório de Despesas' },
+          { code: 'licitacoes', name: 'Licitações e Contratos' },
+          { code: 'folha-pagamento', name: 'Folha de Pagamento' },
+          { code: 'outros', name: 'Outros' }
+        ];
+      }
+    });
+  }
+
+  openFinancialTypeDialog(): void {
+    this.showFinancialTypeDialog = true;
+  }
+
+  onFinancialTypeCreated(type: any): void {
+    console.log('📝 [UPLOAD] Novo tipo criado:', type);
+    this.financialDocumentTypes.push(type);
+    this.uploadForm.patchValue({ financial_document_type: type.code });
+    this.showFinancialTypeDialog = false;
+    this.showMessage(`Tipo "${type.name}" criado com sucesso!`, 'success');
+  }
+
+  onFinancialTypeDialogCancelled(): void {
+    this.showFinancialTypeDialog = false;
+  }
+
+  getFinancialTypeName(code: string): string {
+    const type = this.financialDocumentTypes.find(t => t.code === code);
+    return type ? type.name : code;
   }
 
   canShowFinancialPath(): boolean {

@@ -42,12 +42,23 @@ export class FinancialYearSelectorComponent implements OnInit {
             this.municipalityCode = params['municipalityCode'];
             this.category = params['category'];
 
-            this.categoryInfo = this.categoryConfigs[this.category] || {
-                name: this.category,
-                icon: '📂',
-                description: 'Documentos',
-                color: 'from-gray-500 to-gray-600'
-            };
+            // Tentar config hardcoded primeiro
+            const hardcodedConfig = this.categoryConfigs[this.category];
+
+            if (hardcodedConfig) {
+                this.categoryInfo = hardcodedConfig;
+            } else {
+                // Config temporária com fallback para o código
+                this.categoryInfo = {
+                    name: this.category,
+                    icon: '📂',
+                    description: 'Documentos',
+                    color: 'from-gray-500 to-gray-600'
+                };
+
+                // Buscar nome real no backend
+                this.loadCategoryMetadata();
+            }
 
             if (this.municipalityCode && this.category) {
                 this.loadYears();
@@ -55,6 +66,27 @@ export class FinancialYearSelectorComponent implements OnInit {
                 this.errorMessage = 'Parâmetros inválidos';
                 this.isLoading = false;
             }
+        });
+    }
+
+    loadCategoryMetadata(): void {
+        // Buscar todos os tipos para encontrar o nome correto
+        this.documentsService.getAllFinancialDocumentTypes().subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    const typeData = response.data.find(t => t.code === this.category);
+                    if (typeData) {
+                        console.log('✅ Metadados do tipo encontrados:', typeData);
+                        // Atualizar visualização com dados do banco
+                        this.categoryInfo = {
+                            ...this.categoryInfo,
+                            name: typeData.name,
+                            description: typeData.description || this.categoryInfo.description
+                        };
+                    }
+                }
+            },
+            error: (err) => console.error('Erro ao carregar metadados do tipo:', err)
         });
     }
 

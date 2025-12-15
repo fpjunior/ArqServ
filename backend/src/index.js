@@ -11,6 +11,7 @@ const serverRoutes = require('./routes/server.routes');
 const municipalityRoutes = require('./routes/municipality.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const activityRoutes = require('./routes/activity.routes');
+const financialDocumentTypesRoutes = require('./routes/financial-document-types.routes');
 
 // Controller simples para testar
 const SimpleDocumentController = require('./controllers/document.simple.controller');
@@ -49,6 +50,7 @@ app.use('/api/servers', serverRoutes);
 app.use('/api/municipalities', municipalityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/financial-document-types', financialDocumentTypesRoutes);
 
 // Rotas de teste (sem Google Drive)
 app.post('/api/documents/upload-simple',

@@ -219,15 +219,21 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     // Carregar dados da categoria
     this.category = this.categories[this.categoryId];
 
+    // Se não for uma categoria padrão, criar objeto dinâmico
     if (!this.category) {
-      const storedCode = sessionStorage.getItem('selectedMunicipalityCode');
-      if (storedCode) {
-        this.router.navigate(['/documentacoes-financeiras/municipality', storedCode]);
-      } else {
-        this.router.navigate(['/documentacoes-financeiras']);
-      }
-      return;
+      console.log('⚠️ [FINANCIAL-CATEGORY] Categoria dinâmica detectada:', this.categoryId);
+      this.category = {
+        id: this.categoryId,
+        name: this.categoryId,
+        icon: '📂',
+        description: 'Documentos financeiros',
+        color: 'from-gray-500 to-gray-600'
+      };
+
+      this.loadCategoryMetadata();
     }
+
+    // Buscar nome legível do tipo se possível (opcional, melhoria futura)
 
     // Buscar documentos reais da API
     // Buscar documentos reais da API
@@ -576,5 +582,26 @@ export class FinancialCategoryDetailsComponent implements OnInit {
     this.selectedDocumentId = '';
     this.modalViewerUrl = null;
     this.modalIsLoading = false;
+  }
+
+  loadCategoryMetadata(): void {
+    // Buscar todos os tipos para encontrar o nome correto
+    this.documentsService.getAllFinancialDocumentTypes().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const typeData = response.data.find(t => t.code === this.categoryId);
+          if (typeData && this.category) {
+            console.log('✅ Metadados do tipo encontrados:', typeData);
+            // Atualizar visualização com dados do banco
+            this.category = {
+              ...this.category,
+              name: typeData.name,
+              description: typeData.description || this.category.description
+            };
+          }
+        }
+      },
+      error: (err) => console.error('Erro ao carregar metadados do tipo:', err)
+    });
   }
 }

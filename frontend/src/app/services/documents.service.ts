@@ -58,6 +58,16 @@ export interface DashboardStats {
   activities: { uploads_today: number; views_today: number; downloads_today: number };
 }
 
+export interface FinancialDocumentType {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -347,25 +357,7 @@ export class DocumentsService {
     );
   }
 
-  /**
-   * Buscar tipos de documentos financeiros disponíveis
-   */
-  getFinancialDocumentTypes(municipalityCode: string, year?: number): Observable<any> {
-    const url = `${environment.apiUrl}/documents/financial/${municipalityCode}/types`;
-    const params = year ? new HttpParams().set('year', year.toString()) : undefined;
 
-    console.log(`📡 [DocumentsService] Fetching financial types from: ${url}`, { year });
-
-    return this.http.get<any>(url, { params }).pipe(
-      tap((response) => {
-        console.log('✅ [DocumentsService] Resposta de tipos financeiros:', response);
-      }),
-      catchError((error) => {
-        console.error('❌ [DocumentsService] Erro ao buscar tipos financeiros:', error);
-        return throwError(() => error);
-      })
-    );
-  }
 
   /**
    * Buscar anos disponíveis para um tipo de documento financeiro
@@ -468,6 +460,62 @@ export class DocumentsService {
         console.error('❌ [Activity] Erro ao registrar download:', error);
         // Não propagar erro para não afetar a experiência do usuário
         return of({ success: false });
+      })
+    );
+  }
+
+  /**
+   * Buscar tipos de documentos financeiros cadastrados no banco
+   */
+  getAllFinancialDocumentTypes(): Observable<ApiResponse<FinancialDocumentType[]>> {
+    const url = `${environment.apiUrl}/financial-document-types`;
+    console.log('📋 [DocumentsService] Buscando tipos de documentos financeiros:', url);
+
+    return this.http.get<ApiResponse<FinancialDocumentType[]>>(url, { headers: this.getAuthHeaders() }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Tipos recebidos:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar tipos:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Buscar tipos de documentos financeiros disponíveis (do Drive/Diretórios)
+   */
+  getFinancialDocumentTypes(municipalityCode: string, year?: number): Observable<any> {
+    const url = `${environment.apiUrl}/documents/financial/${municipalityCode}/types`;
+    const params = year ? new HttpParams().set('year', year.toString()) : undefined;
+
+    console.log(`📡 [DocumentsService] Fetching financial types from: ${url}`, { year });
+
+    return this.http.get<any>(url, { params }).pipe(
+      tap((response) => {
+        console.log('✅ [DocumentsService] Resposta de tipos financeiros:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar tipos financeiros:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Criar novo tipo de documento financeiro
+   */
+  createFinancialDocumentType(type: { name: string; description?: string }): Observable<ApiResponse<FinancialDocumentType>> {
+    const url = `${environment.apiUrl}/financial-document-types`;
+    console.log('📝 [DocumentsService] Criando novo tipo:', type);
+
+    return this.http.post<ApiResponse<FinancialDocumentType>>(url, type, { headers: this.getAuthHeaders() }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Tipo criado:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao criar tipo:', error);
+        return this.handleError(error);
       })
     );
   }

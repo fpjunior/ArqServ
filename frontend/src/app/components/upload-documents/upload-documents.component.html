@@ -12,6 +12,14 @@
   </app-server-dialog>
 </div>
 
+<!-- Diálogo Novo Tipo Financeiro -->
+<div *ngIf="showFinancialTypeDialog"
+  class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
+  <app-financial-type-dialog (typeCreated)="onFinancialTypeCreated($event)"
+    (cancelled)="onFinancialTypeDialogCancelled()">
+  </app-financial-type-dialog>
+</div>
+
 <!-- Modal de Sucesso Personalizado -->
 <div *ngIf="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
   <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden transform transition-all">
@@ -210,24 +218,28 @@
           </div>
 
           <!-- Tipo de Documento Financeiro -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento Financeiro *</label>
-            <select formControlName="financial_document_type" required
-              class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-              <option value="" disabled>Selecione o tipo de documento</option>
-              <option value="balanco">Balanço Patrimonial</option>
-              <option value="orcamento">Orçamento Anual</option>
-              <option value="prestacao-contas">Prestação de Contas</option>
-              <option value="receitas">Relatório de Receitas</option>
-              <option value="despesas">Relatório de Despesas</option>
-              <option value="licitacoes">Licitações e Contratos</option>
-              <option value="folha-pagamento">Folha de Pagamento</option>
-              <option value="outros">Outros</option>
-            </select>
-            <div
-              *ngIf="uploadForm.get('financial_document_type')?.hasError('required') && uploadForm.get('financial_document_type')?.touched"
-              class="text-red-500 text-sm mt-1">
-              Tipo de documento é obrigatório
+          <div class="flex items-start gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento Financeiro *</label>
+              <select formControlName="financial_document_type" required
+                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                <option value="" disabled>Selecione o tipo de documento</option>
+                <option *ngFor="let type of financialDocumentTypes" [value]="type.code">
+                  {{type.name}}
+                </option>
+              </select>
+              <div
+                *ngIf="uploadForm.get('financial_document_type')?.hasError('required') && uploadForm.get('financial_document_type')?.touched"
+                class="text-red-500 text-sm mt-1">
+                Tipo de documento é obrigatório
+              </div>
+            </div>
+            <div class="pt-6">
+              <button type="button" (click)="openFinancialTypeDialog()"
+                class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+                <mat-icon class="text-lg">add</mat-icon>
+                Novo Tipo
+              </button>
             </div>
           </div>
 
