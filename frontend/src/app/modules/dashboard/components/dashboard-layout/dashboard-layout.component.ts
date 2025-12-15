@@ -4,10 +4,12 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { filter } from 'rxjs/operators';
 
+import { ChangePasswordModalComponent } from '../change-password-modal/change-password-modal.component';
+
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterOutlet, ChangePasswordModalComponent],
   templateUrl: './dashboard-layout.component.html',
   styleUrls: ['./dashboard-layout.component.scss']
 })
@@ -15,6 +17,8 @@ export class DashboardLayoutComponent implements OnInit {
   currentUser: User | null = null;
   currentRoute: string = '';
   showLogoutModal: boolean = false;
+  showChangePasswordModal: boolean = false;
+  isUserMenuOpen: boolean = false;
 
   constructor(
     private authService: AuthService,
@@ -39,15 +43,15 @@ export class DashboardLayoutComponent implements OnInit {
         console.warn('⚠️ [DASHBOARD] Erro ao carregar usuário do localStorage');
       }
     }
-    
+
     // Continuar observando mudanças do AuthService
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       console.log('👤 [DASHBOARD] Current user atualizado:', this.currentUser);
     });
-    
+
     this.currentRoute = this.router.url;
-    
+
     // Adicionar atalho de teclado para logout (Ctrl/Cmd + Shift + L)
     document.addEventListener('keydown', (event) => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
@@ -76,6 +80,23 @@ export class DashboardLayoutComponent implements OnInit {
 
   cancelLogout(): void {
     this.showLogoutModal = false;
+  }
+
+  toggleUserMenu(): void {
+    this.isUserMenuOpen = !this.isUserMenuOpen;
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen = false;
+  }
+
+  openChangePasswordModal(): void {
+    this.isUserMenuOpen = false;
+    this.showChangePasswordModal = true;
+  }
+
+  closeChangePasswordModal(): void {
+    this.showChangePasswordModal = false;
   }
 
   forceLogout(): void {
@@ -119,13 +140,13 @@ export class DashboardLayoutComponent implements OnInit {
       const category = this.currentRoute.split('/')[2];
       const categoryNames: { [key: string]: string } = {
         'licitacoes': 'Licitações',
-        'despesas': 'Despesas', 
+        'despesas': 'Despesas',
         'receitas': 'Receitas',
         'contratos': 'Contratos'
       };
       return categoryNames[category] || 'Documentações Financeiras';
     }
-    
+
     switch (this.currentRoute) {
       case '/dashboard':
         return 'Bem-vindo ao ArqServ';
@@ -155,7 +176,7 @@ export class DashboardLayoutComponent implements OnInit {
       };
       return categoryDescriptions[category] || 'Gerencie documentos financeiros';
     }
-    
+
     switch (this.currentRoute) {
       case '/dashboard':
         return 'Gestão Compartilhada de Arquivosadfsdfas';
@@ -176,7 +197,7 @@ export class DashboardLayoutComponent implements OnInit {
 
   getUserTypeLabel(): string {
     if (!this.currentUser) return '';
-    
+
     // Retorna label baseado no role
     switch (this.currentUser.role) {
       case 'admin':

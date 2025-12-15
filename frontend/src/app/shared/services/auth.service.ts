@@ -37,13 +37,13 @@ export class AuthService {
     // If using Supabase auth, initialize client and subscribe to supabase auth state
     if (environment.useSupabaseAuth) {
       const supabase = getSupabaseClient();
-      
+
       // Carregar sessão atual do Supabase imediatamente
       supabase.auth.getSession().then(({ data: { session } }) => {
         console.log('🔍 [AUTH] Sessão inicial do Supabase:', session ? 'Encontrada' : 'Não encontrada');
         if (session && session.access_token) {
           const user = session.user;
-          
+
           // Log detalhado do user_metadata
           console.log('📋 [AUTH] User metadata do Supabase:', {
             user_metadata: user.user_metadata,
@@ -51,12 +51,12 @@ export class AuthService {
             role: user.user_metadata?.['role'],
             email: user.email
           });
-          
+
           // Primeiro tentar carregar do localStorage se existir (preserva role correto)
           const storedUser = localStorage.getItem('arqserv_user');
           let userRole = 'user';
           let preserveLocalData = false;
-          
+
           if (storedUser) {
             try {
               const parsedUser = JSON.parse(storedUser);
@@ -70,27 +70,27 @@ export class AuthService {
               console.warn('⚠️ [AUTH] Erro ao parsear usuário do localStorage');
             }
           }
-          
+
           // Se não tem no localStorage ou role não é admin, usar do Supabase
           if (!preserveLocalData && user.user_metadata?.['role']) {
             userRole = user.user_metadata['role'];
             console.log('✅ [AUTH] Role recuperado do Supabase metadata:', userRole);
           }
-          
+
           const currentUser = {
             id: user.id as unknown as number,
             email: user.email || '',
             name: user.user_metadata?.['name'] || user.email || '',
             role: userRole
           };
-          
+
           this.tokenSubject.next(session.access_token);
           this.currentUserSubject.next(currentUser);
           localStorage.setItem('arqserv_token', session.access_token);
           localStorage.setItem('arqserv_user', JSON.stringify(currentUser));
-          
+
           console.log('✅ [AUTH] Sessão Supabase carregada:', currentUser);
-          
+
           // Sincronizar com backend para garantir role correto
           this.syncWithBackend().subscribe({
             next: () => console.log('✅ [AUTH] Sincronização com backend concluída'),
@@ -104,14 +104,14 @@ export class AuthService {
       // OnInit: subscribe to auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
         console.log('🔄 [AUTH] Mudança de estado:', event, session ? 'com sessão' : 'sem sessão');
-        
+
         if (session && session.access_token) {
           console.log('🔄 [AUTH] Atualizando token...');
-          
+
           // SEMPRE atualizar token
           this.tokenSubject.next(session.access_token);
           localStorage.setItem('arqserv_token', session.access_token);
-          
+
           // Para login, sincronizar com backend para obter role correto
           if (event === 'SIGNED_IN') {
             console.log('🔐 [AUTH] LOGIN detectado - obtendo role AUTORITATIVO do backend...');
@@ -180,7 +180,7 @@ export class AuthService {
 
       // Decodificar o payload (parte do meio)
       const payload = JSON.parse(atob(parts[1]));
-      
+
       if (!payload || typeof payload !== 'object') {
         console.warn('⚠️ [AUTH] Token inválido - payload inválido');
         return false;
@@ -205,7 +205,7 @@ export class AuthService {
       // Verificar se o token expirou (exp é em segundos desde epoch)
       const now = Math.floor(Date.now() / 1000);
       const isValid = payload.exp > now;
-      
+
       if (!isValid) {
         const expiredDate = new Date(payload.exp * 1000);
         const nowDate = new Date();
@@ -281,7 +281,7 @@ export class AuthService {
           this.handleAuthResponse(response);
           if (payload.origin === 'supabase') {
             // Sync with backend (create user in backend if needed and get backend token)
-            this.syncWithBackend().subscribe({ next: () => {}, error: () => {} });
+            this.syncWithBackend().subscribe({ next: () => { }, error: () => { } });
           }
         }),
         // finally map back to original LoginResponse for consumers
@@ -320,18 +320,18 @@ export class AuthService {
     if (useSupabase) {
       const supabase = getSupabaseClient();
       // signUp via Supabase
-      return from(supabase.auth.signUp({ 
-        email, 
-        password, 
-        options: { 
-          data: { 
-            name, 
-            role, 
-            user_type, 
+      return from(supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role,
+            user_type,
             municipality,
-            municipality_code 
-          } 
-        } 
+            municipality_code
+          }
+        }
       })).pipe(
         switchMap((r: any) => {
           if (r.error) throw r.error;
@@ -345,9 +345,9 @@ export class AuthService {
     const registerData: any = { name, email, password, user_type, role };
     if (municipality) registerData.municipality = municipality;
     if (municipality_code) registerData.municipality_code = municipality_code;
-    
+
     console.log('📤 [AUTH] Registrando usuário no backend:', { ...registerData, password: '[HIDDEN]' });
-    
+
     return this.http.post<any>(`${this.apiUrl}/auth/register`, registerData)
       .pipe(catchError(this.handleError));
   }
@@ -379,7 +379,7 @@ export class AuthService {
   isAuthenticated(): boolean {
     const token = this.tokenSubject.value;
     if (!token) return false;
-    
+
     // Verificar se o token ainda é válido
     return this.isTokenValid(token);
   }
@@ -403,13 +403,13 @@ export class AuthService {
           const backendUser = response.data.user;
           console.log('🎯 [AUTH] BACKEND SYNC - Role da tabela users:', backendUser.role);
           console.log('🏛️ [AUTH] BACKEND SYNC - Municipality:', backendUser.municipality_code);
-          
+
           // SEMPRE usar dados do backend (tabela users) como autoritativo
           localStorage.setItem('arqserv_token', response.data.token);
           localStorage.setItem('arqserv_user', JSON.stringify(backendUser));
           this.tokenSubject.next(response.data.token);
           this.currentUserSubject.next(backendUser);
-          
+
           console.log('✅ [AUTH] Role DEFINITIVO aplicado:', backendUser.role);
           console.log('✅ [AUTH] Municipality DEFINITIVO aplicado:', backendUser.municipality_code);
         }
@@ -428,6 +428,25 @@ export class AuthService {
   refreshUserData(): Observable<any> {
     console.log('🔄 [AUTH] Forçando refresh dos dados do usuário...');
     return this.syncWithBackend();
+  }
+
+  updatePassword(password: string): Observable<any> {
+    const useSupabase = environment.useSupabaseAuth || (environment.supabaseUrl && environment.supabaseAnonKey) ? true : false;
+
+    if (useSupabase) {
+      const supabase = getSupabaseClient();
+      return from(supabase.auth.updateUser({ password })).pipe(
+        map((response: any) => {
+          if (response.error) throw response.error;
+          return response.data;
+        })
+      );
+    }
+
+    // Fallback for legacy backend if needed, though primarily we use Supabase for auth now
+    return this.http.post(`${this.apiUrl}/auth/change-password`, { password }).pipe(
+      catchError(this.handleError)
+    );
   }
 
   invite(email: string, redirectTo?: string): Observable<any> {
