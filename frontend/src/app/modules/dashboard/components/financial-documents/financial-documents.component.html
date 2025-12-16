@@ -1,21 +1,21 @@
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
   <!-- Header -->
   <div class="mb-8 pt-6 px-6 relative z-0">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <button 
-          (click)="navigateBack()"
+    <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+      <div class="flex items-center gap-4 w-full md:w-auto">
+        <button (click)="navigateBack()"
           class="p-2 hover:bg-white/80 rounded-xl transition-colors shadow-sm border border-gray-200 relative z-0">
           <span class="text-xl">←</span>
         </button>
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Documentações Financeiras</h1>
-          <p class="text-gray-600 mt-1">Gerencie documentos financeiros e contábeis por categoria</p>
+          <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Documentações Financeiras</h1>
+          <p class="text-gray-600 mt-1 text-sm md:text-base">Gerencie documentos financeiros e contábeis por categoria
+          </p>
         </div>
       </div>
-      
-      <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200">
-        <div class="text-center">
+
+      <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200 w-full md:w-auto">
+        <div class="text-center md:text-right">
           <div class="text-2xl font-bold text-gray-900">{{ getTotalDocuments() }}</div>
           <div class="text-sm text-gray-500">Total de Documentos</div>
         </div>
@@ -38,8 +38,7 @@
     <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
       <span class="text-4xl">⚠️</span>
       <p class="mt-2 text-red-700 font-medium">{{ errorMessage }}</p>
-      <button 
-        (click)="navigateBack()"
+      <button (click)="navigateBack()"
         class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
         Voltar
       </button>
@@ -48,11 +47,9 @@
 
   <!-- Financial Folders Grid -->
   <div *ngIf="!isLoading && !errorMessage" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6">
-    <div 
-      *ngFor="let folder of financialFolders"
-      (click)="selectFolder(folder)"
+    <div *ngFor="let folder of financialFolders" (click)="selectFolder(folder)"
       class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-gray-200 overflow-hidden group">
-      
+
       <!-- Gradient Header -->
       <div [class]="'h-24 bg-gradient-to-r ' + folder.color + ' relative'">
         <div class="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors"></div>
@@ -60,7 +57,7 @@
           <span class="text-4xl filter drop-shadow-lg">{{ folder.icon }}</span>
         </div>
       </div>
-      
+
       <!-- Content -->
       <div class="p-6">
         <div class="flex items-center justify-between mb-3">
@@ -71,15 +68,16 @@
             {{ folder.count }}
           </span>
         </div>
-        
+
         <p class="text-gray-600 text-sm mb-4 leading-relaxed">{{ folder.description }}</p>
-        
+
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 text-sm text-gray-500">
             <span>📁</span>
             <span>Categoria</span>
           </div>
-          <button class="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors group-hover:translate-x-1 transform duration-200">
+          <button
+            class="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors group-hover:translate-x-1 transform duration-200">
             Abrir →
           </button>
         </div>
@@ -100,10 +98,11 @@
         </div>
       </div>
     </div>
-    
+
     <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+        <div
+          class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
           <span class="text-white text-xl">✅</span>
         </div>
         <div>
@@ -112,10 +111,11 @@
         </div>
       </div>
     </div>
-    
+
     <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+        <div
+          class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
           <span class="text-white text-xl">🔄</span>
         </div>
         <div>
@@ -132,17 +132,19 @@
       <span>⚡</span>
       Ações Rápidas
     </h3>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-xl transition-all border border-green-200 hover:border-green-300">
+      <button
+        class="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-xl transition-all border border-green-200 hover:border-green-300">
         <span class="text-2xl">📊</span>
         <div class="text-left">
           <div class="font-medium text-gray-900">Relatórios</div>
           <div class="text-sm text-gray-600">Gerar relatório</div>
         </div>
       </button>
-      
-      <button class="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl transition-all border border-purple-200 hover:border-purple-300">
+
+      <button
+        class="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl transition-all border border-purple-200 hover:border-purple-300">
         <span class="text-2xl">🔍</span>
         <div class="text-left">
           <div class="font-medium text-gray-900">Buscar</div>
@@ -154,7 +156,8 @@
 
   <!-- Financial Document Types -->
   <div class="financial-cards px-6">
-    <div *ngFor="let folder of financialFolders" class="card bg-white rounded-2xl p-4 shadow-md border border-gray-200 mb-4">
+    <div *ngFor="let folder of financialFolders"
+      class="card bg-white rounded-2xl p-4 shadow-md border border-gray-200 mb-4">
       <h3 class="text-xl font-semibold text-gray-900">{{ folder.financial_document_type }}</h3>
       <p class="text-gray-700 text-sm">Total: {{ folder.count }}</p>
     </div>

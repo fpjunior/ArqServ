@@ -19,6 +19,7 @@ export class DashboardLayoutComponent implements OnInit {
   showLogoutModal: boolean = false;
   showChangePasswordModal: boolean = false;
   isUserMenuOpen: boolean = false;
+  isSidebarOpen: boolean = false;
 
   constructor(
     private authService: AuthService,
@@ -29,6 +30,7 @@ export class DashboardLayoutComponent implements OnInit {
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
       this.currentRoute = event.urlAfterRedirects;
+      this.closeSidebar(); // Fecha o sidebar ao navegar em mobile
     });
   }
 
@@ -88,6 +90,14 @@ export class DashboardLayoutComponent implements OnInit {
 
   closeUserMenu(): void {
     this.isUserMenuOpen = false;
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.isSidebarOpen = false;
   }
 
   openChangePasswordModal(): void {

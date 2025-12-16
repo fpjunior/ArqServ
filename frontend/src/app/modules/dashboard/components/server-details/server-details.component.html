@@ -1,36 +1,36 @@
 <div class="min-h-screen bg-gray-100">
   <div class="flex-1 flex flex-col">
     <!-- Header -->
-    <div class="bg-white shadow-sm px-8 py-6">
-      <div class="flex items-center justify-between">
+    <div class="bg-white shadow-sm px-4 md:px-8 py-4 md:py-6">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center space-x-4">
           <button (click)="goBack()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">{{ server?.name || 'Carregando...' }}</h1>
-            <p *ngIf="server?.municipality_name" class="text-gray-600 mt-1">🏛️ {{ server?.municipality_name }}</p>
+          <div class="min-w-0">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 truncate">{{ server?.name || 'Carregando...' }}</h1>
+            <p *ngIf="server?.municipality_name" class="text-gray-600 mt-1 truncate">🏛️ {{ server?.municipality_name }}
+            </p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Content Area -->
-    <div class="flex-1 p-8">
+    <div class="flex-1 p-4 md:p-8">
       <!-- Search Bar -->
       <div class="mb-6">
         <div class="relative max-w-md">
-          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input 
-            type="text" 
-            placeholder="Buscar documentos..." 
+          <input type="text" placeholder="Buscar documentos..."
             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            [(ngModel)]="searchTerm"
-            (input)="onSearch()">
+            [(ngModel)]="searchTerm" (input)="onSearch()">
         </div>
       </div>
 
@@ -47,15 +47,15 @@
         <div class="text-red-600 text-6xl mb-4">❌</div>
         <h3 class="text-lg font-medium text-red-800 mb-2">Erro ao carregar documentos</h3>
         <p class="text-red-700">{{ errorMessage }}</p>
-        <button 
-          (click)="loadServerFiles(server?.id?.toString() || '')"
+        <button (click)="loadServerFiles(server?.id?.toString() || '')"
           class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
           Tentar Novamente
         </button>
       </div>
 
       <!-- Empty State -->
-      <div *ngIf="!isLoading && !errorMessage && filteredFiles.length === 0 && files.length === 0" class="text-center py-12">
+      <div *ngIf="!isLoading && !errorMessage && filteredFiles.length === 0 && files.length === 0"
+        class="text-center py-12">
         <div class="text-gray-400 text-6xl mb-4">📁</div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhum documento encontrado</h3>
         <p class="text-gray-600">Este servidor ainda não possui documentos cadastrados.</p>
@@ -69,10 +69,11 @@
       </div>
 
       <!-- Files Grid -->
-      <div *ngIf="!isLoading && filteredFiles.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div *ngFor="let file of filteredFiles" 
-             class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
-          
+      <div *ngIf="!isLoading && filteredFiles.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div *ngFor="let file of filteredFiles"
+          class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
+
           <!-- File Header -->
           <div class="p-4 border-b border-gray-100">
             <div class="flex items-start justify-between mb-2">
@@ -81,7 +82,8 @@
                 <div class="flex-1 min-w-0">
                   <h3 class="text-sm font-medium text-gray-900 truncate">{{ file.title }}</h3>
                   <div class="flex items-center gap-2 mt-1">
-                    <span class="text-sm text-gray-500">{{ file.mime_type?.split('/')?.pop()?.toUpperCase() || 'PDF' }}</span>
+                    <span class="text-sm text-gray-500">{{ file.mime_type?.split('/')?.pop()?.toUpperCase() || 'PDF'
+                      }}</span>
                     <span class="text-gray-300">•</span>
                     <span class="text-sm text-gray-500">{{ formatFileSize(file.file_size) }}</span>
                   </div>
@@ -95,34 +97,30 @@
             <div class="text-sm text-gray-500">
               {{ file.created_at | date:'dd/MM/yyyy' }}
             </div>
-            
+
             <div class="flex gap-2">
-              <button 
-                (click)="viewDocument(file)"
+              <button (click)="viewDocument(file)"
                 class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
                 title="Visualizar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </button>
-              
-              <button 
-                (click)="downloadDocument(file)"
+
+              <button (click)="downloadDocument(file)"
                 class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
                 title="Baixar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </button>
-              
-              <button 
-                (click)="showDeleteModal(file)"
-                class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                title="Excluir">
+
+              <button (click)="showDeleteModal(file)"
+                class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Excluir">
                 <span>🗑️</span>
               </button>
             </div>
@@ -139,12 +137,12 @@
 </div>
 
 <!-- Document Viewer Modal -->
-<div *ngIf="isModalVisible" 
-     class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 modal-overlay"
-     (click)="closeModal()">
-  <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl overflow-hidden z-[9999] modal-content" 
-       (click)="$event.stopPropagation()">
-    
+<div *ngIf="isModalVisible"
+  class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 modal-overlay"
+  (click)="closeModal()">
+  <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl overflow-hidden z-[9999] modal-content"
+    (click)="$event.stopPropagation()">
+
     <!-- Modal Header -->
     <div class="flex items-center justify-between p-4 border-b bg-gray-50">
       <div class="flex items-center space-x-3">
@@ -154,19 +152,17 @@
           <p class="text-sm text-gray-600">{{ selectedFile?.file_name }}</p>
         </div>
       </div>
-      
+
       <div class="flex items-center space-x-2">
-        <button 
-          (click)="downloadDocument(selectedFile!)"
+        <button (click)="downloadDocument(selectedFile!)"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
           <span>⬇️</span>
           <span>Baixar</span>
         </button>
-        <button 
-          (click)="closeModal()"
+        <button (click)="closeModal()"
           class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
@@ -175,8 +171,7 @@
     <!-- Modal Content -->
     <div class="flex-1 relative h-full">
       <!-- Loading Spinner -->
-      <div *ngIf="modalIsLoading" 
-           class="absolute inset-0 flex items-center justify-center bg-gray-100">
+      <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100">
         <div class="text-center">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p class="text-gray-600">Carregando documento...</p>
@@ -184,16 +179,13 @@
       </div>
 
       <!-- Document Iframe -->
-      <iframe *ngIf="!modalIsLoading && modalViewerUrl"
-              [src]="modalViewerUrl"
-              class="w-full h-full border-0 relative"
-              style="z-index: 1 !important; pointer-events: auto;"
-              (load)="modalIsLoading = false">
+      <iframe *ngIf="!modalIsLoading && modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
+        style="z-index: 1 !important; pointer-events: auto;" (load)="modalIsLoading = false">
       </iframe>
 
       <!-- Error State -->
-      <div *ngIf="!modalIsLoading && !modalViewerUrl" 
-           class="absolute inset-0 flex items-center justify-center bg-gray-100">
+      <div *ngIf="!modalIsLoading && !modalViewerUrl"
+        class="absolute inset-0 flex items-center justify-center bg-gray-100">
         <div class="text-center">
           <div class="text-red-500 text-6xl mb-4">❌</div>
           <h3 class="text-lg font-medium text-gray-900 mb-2">Erro ao carregar documento</h3>
@@ -204,15 +196,9 @@
   </div>
 </div>
 
-<app-confirm-delete-modal 
-  [isVisible]="confirmDeleteModalVisible" 
-  [itemName]="fileToDelete?.title || ''" 
-  (confirmed)="onDeleteConfirmed()" 
-  (closed)="onDeleteModalClosed()">
+<app-confirm-delete-modal [isVisible]="confirmDeleteModalVisible" [itemName]="fileToDelete?.title || ''"
+  (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
 </app-confirm-delete-modal>
 
-<app-success-modal 
-  *ngIf="successModalVisible" 
-  [visible]="successModalVisible" 
-  [message]="successMessage">
+<app-success-modal *ngIf="successModalVisible" [visible]="successModalVisible" [message]="successMessage">
 </app-success-modal>
