@@ -48,6 +48,275 @@ class DashboardController {
    * Inclui: visualizações, downloads e uploads
    * @route GET /api/dashboard/recent-activities
    */
+  /**
+   * Obter documentos acessados recentemente (únicos)
+   * @route GET /api/dashboard/recent-documents
+   */
+  static async getRecentDocuments(req, res) {
+    try {
+      const userRole = req.user?.role;
+      const userMunicipality = req.user?.municipality_code;
+      const limit = parseInt(req.query.limit) || 3;
+
+      console.log('🔵 [DASHBOARD] Endpoint getRecentDocuments chamado');
+      console.log(`👤 [DASHBOARD] Usuário: role=${userRole}, municipality=${userMunicipality}`);
+
+      // 1. Buscar logs de atividade recentes da tabela activity_logs
+      // Trazemos metadata para conseguir processar arquivos do Drive (sem document_id no banco)
+      let query = pool.supabase
+        .from('activity_logs')
+        .select('document_id, activity_type, created_at, metadata, municipality_code')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // Filtrar por município se não for admin
+      if (userRole !== 'admin' && userMunicipality) {
+        query = query.eq('municipality_code', userMunicipality);
+      }
+
+      const { data: logs, error } = await query;
+
+      if (error) {
+        console.error('❌ [DASHBOARD] Erro ao buscar logs:', error);
+        throw error;
+      }
+
+      // 2. Processar logs para montar a lista de documentos
+      const uniqueDocs = [];
+      const seenKeys = new Set(); // Pode ser ID do banco ou Drive ID
+      const dbDocumentIds = [];
+
+      // Pré-processamento: separar o que precisa buscar no banco
+      if (logs) {
+        for (const log of logs) {
+          if (log.document_id) {
+            dbDocumentIds.push(log.document_id);
+          }
+        }
+      }
+
+      // Buscar detalhes dos documentos de banco em lote
+      let dbDocsMap = {};
+      if (dbDocumentIds.length > 0) {
+        const { data: documents, error: docError } = await pool.supabase
+          .from('documents')
+          .select('id, title, file_name, mime_type, category, financial_document_type, file_size, updated_at, file_path, google_drive_id, municipality_code, server_id')
+          .in('id', dbDocumentIds);
+
+        if (!docError && documents) {
+          dbDocsMap = documents.reduce((acc, doc) => {
+            acc[doc.id] = doc;
+            return acc;
+          }, {});
+        }
+      }
+
+      // 3. Coletar IDs únicos de municípios e servidores para busca em lote
+      const municipalityCodes = new Set();
+      const serverIds = new Set();
+
+      if (logs) {
+        for (const log of logs) {
+          if (log.municipality_code) {
+            municipalityCodes.add(log.municipality_code);
+          }
+          if (log.document_id && dbDocsMap[log.document_id]) {
+            const doc = dbDocsMap[log.document_id];
+            if (doc.municipality_code) municipalityCodes.add(doc.municipality_code);
+            if (doc.server_id) serverIds.add(doc.server_id);
+          }
+        }
+      }
+
+      // Buscar nomes dos servidores (pastas) - INCLUINDO municipality_code
+      let serversMap = {};
+      if (serverIds.size > 0) {
+        const { data: servers, error: srvError } = await pool.supabase
+          .from('servers')
+          .select('id, name, municipality_code')
+          .in('id', Array.from(serverIds));
+
+        if (!srvError && servers) {
+          serversMap = servers.reduce((acc, srv) => {
+            acc[srv.id] = { name: srv.name, municipality_code: srv.municipality_code };
+            return acc;
+          }, {});
+
+          // Adicionar municipality_codes dos servidores ao conjunto para buscar nomes
+          servers.forEach(srv => {
+            if (srv.municipality_code) {
+              municipalityCodes.add(srv.municipality_code);
+            }
+          });
+        }
+      }
+
+      // Buscar nomes dos municípios (DEPOIS de coletar todos os códigos, incluindo dos servidores)
+      let municipalitiesMap = {};
+      console.log(`📍 [DEBUG] Códigos de municípios coletados: ${Array.from(municipalityCodes).join(', ')}`);
+      console.log(`🏢 [DEBUG] IDs de servidores coletados: ${Array.from(serverIds).join(', ')}`);
+      console.log(`🗺️ [DEBUG] serversMap:`, JSON.stringify(serversMap, null, 2));
+
+      if (municipalityCodes.size > 0) {
+        const { data: municipalities, error: munError } = await pool.supabase
+          .from('municipalities')
+          .select('code, name')
+          .in('code', Array.from(municipalityCodes));
+
+        if (!munError && municipalities) {
+          municipalitiesMap = municipalities.reduce((acc, mun) => {
+            acc[mun.code] = mun.name;
+            return acc;
+          }, {});
+        }
+        console.log(`🏛️ [DEBUG] municipalitiesMap:`, JSON.stringify(municipalitiesMap, null, 2));
+      }
+
+      // 4. Construir lista final
+      if (logs) {
+        for (const log of logs) {
+          let docItem = null;
+          let uniqueKey = null;
+
+          // CASO 1: Documento de Banco
+          if (log.document_id && dbDocsMap[log.document_id]) {
+            const dbDoc = dbDocsMap[log.document_id];
+            uniqueKey = `db_${dbDoc.id}`;
+
+            // Validação de titulo
+            const title = dbDoc.title || dbDoc.file_name;
+
+            // DEBUG EXTREMO
+            console.log(`🔍 [DEBUG] Validando Doc BD: ID=${dbDoc.id}, Title='${title}'`);
+
+            // STRICT FILTER: Ignorar se não tiver titulo valido
+            // Check for at least one meaningful character (letters/numbers)
+            const hasContent = /[a-zA-Z0-9\u00C0-\u00FF]/.test(title);
+            if (!title || !title.trim() || title.trim() === '.' || !hasContent) {
+              console.log(`⛔ [DEBUG] REJEITADO (Título inválido/inútil): '${title}'`);
+              continue;
+            }
+            console.log(`✅ [DEBUG] APROVADO: '${title}'`);
+
+            const mime = dbDoc.mime_type || '';
+            let icon = '📄';
+            if (mime.includes('pdf')) icon = '📕';
+            else if (mime.includes('image')) icon = '🖼️';
+            else if (mime.includes('spreadsheet') || mime.includes('excel')) icon = '📊';
+            else if (mime.includes('word')) icon = '📝';
+
+            // Determinar folderName (pasta ou tipo de documento financeiro)
+            let folderName = null;
+            let serverMunicipalityCode = null;
+            if (dbDoc.server_id && serversMap[dbDoc.server_id]) {
+              folderName = serversMap[dbDoc.server_id].name;
+              serverMunicipalityCode = serversMap[dbDoc.server_id].municipality_code;
+            } else if (dbDoc.category === 'financeiro' && dbDoc.financial_document_type) {
+              folderName = dbDoc.financial_document_type;
+            }
+
+            // Determinar municipalityName - priorizar: documento > servidor > log
+            const municipalityCode = dbDoc.municipality_code || serverMunicipalityCode || log.municipality_code;
+            const municipalityName = municipalitiesMap[municipalityCode] || null;
+
+            console.log(`📄 [DEBUG] Doc ID=${dbDoc.id}: docMun=${dbDoc.municipality_code}, serverMun=${serverMunicipalityCode}, logMun=${log.municipality_code}`);
+            console.log(`   -> code=${municipalityCode}, name=${municipalityName}, folder=${folderName}`);
+
+            docItem = {
+              id: dbDoc.id,
+              title: title,
+              subTitle: folderName || (dbDoc.category === 'financeiro' ? (dbDoc.financial_document_type || 'Financeiro') : 'Documento'),
+              updatedAt: log.created_at,
+              lastAction: log.activity_type,
+              icon: icon,
+              fileSize: dbDoc.file_size,
+              filePath: dbDoc.file_path,
+              googleDriveId: dbDoc.google_drive_id,
+              municipalityName: municipalityName,
+              municipalityCode: municipalityCode,
+              folderName: folderName
+            };
+          }
+          // CASO 2: Documento apenas do Drive (via Metadata)
+          else if (log.metadata && (log.metadata.file_name || log.metadata.title)) {
+            // Tentar usar drive_file_id como chave unica
+            const driveId = log.metadata.drive_file_id || log.metadata.driveId;
+            if (!driveId) continue; // Sem ID, ignora
+
+            uniqueKey = `drive_${driveId}`;
+
+            const title = log.metadata.title || log.metadata.file_name;
+
+            // DEBUG EXTREMO
+            console.log(`🔍 [DEBUG] Validando Doc Drive: ID=${driveId}, Title='${title}'`);
+
+            // STRICT FILTER: Ignorar se não tiver titulo valido
+            // Check for at least one meaningful character (letters/numbers)
+            const hasContent = /[a-zA-Z0-9\u00C0-\u00FF]/.test(title);
+            if (!title || !title.trim() || title.trim() === '.' || !hasContent) {
+              console.log(`⛔ [DEBUG] REJEITADO (Título inválido/inútil): '${title}'`);
+              continue;
+            }
+            console.log(`✅ [DEBUG] APROVADO: '${title}'`);
+
+            const mime = log.metadata.mime_type || '';
+            let icon = '📄';
+            let typeLabel = 'Arquivo';
+
+            if (mime.includes('pdf')) { icon = '📕'; typeLabel = 'PDF'; }
+            else if (mime.includes('image')) { icon = '🖼️'; typeLabel = 'Imagem'; }
+            else if (mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('sheet')) { icon = '📊'; typeLabel = 'Planilha'; }
+            else if (mime.includes('word') || mime.includes('document')) { icon = '📝'; typeLabel = 'Documento'; }
+            else if (mime.includes('folder')) { icon = '📁'; typeLabel = 'Pasta'; }
+
+            // Determinar municipalityName para arquivos do Drive
+            const municipalityName = municipalitiesMap[log.municipality_code] || null;
+
+            docItem = {
+              id: uniqueKey, // ID Virtual
+              title: title,
+              subTitle: `${typeLabel} • Google Drive`, // Subtitulo mais descritivo
+              updatedAt: log.created_at,
+              lastAction: log.activity_type,
+              icon: icon,
+              fileSize: log.metadata.file_size || 0,
+              filePath: null, // Geralmente nulo para drive direto
+              googleDriveId: driveId,
+              // Novos campos para admin
+              municipalityName: municipalityName,
+              municipalityCode: log.municipality_code,
+              folderName: log.metadata.context_info || null
+            };
+          }
+
+          // Adicionar se válido e único
+          if (docItem && uniqueKey && !seenKeys.has(uniqueKey)) {
+            seenKeys.add(uniqueKey);
+            uniqueDocs.push(docItem);
+          }
+
+          if (uniqueDocs.length >= limit) break;
+        }
+      }
+
+      console.log(`✅ [DASHBOARD] Retornando ${uniqueDocs.length} documentos recentes`);
+
+      res.json({
+        success: true,
+        data: uniqueDocs,
+        // Informar ao frontend se é admin para exibição condicional
+        isAdmin: userRole === 'admin'
+      });
+
+    } catch (error) {
+      console.error('❌ [DASHBOARD] Erro ao buscar documentos recentes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar documentos recentes'
+      });
+    }
+  }
+
   static async getRecentActivities(req, res) {
     try {
       const userRole = req.user?.role;

@@ -493,6 +493,45 @@ class DocumentController {
   static async downloadDocument(req, res) {
     try {
       const { id } = req.params;
+
+      // Suporte para download direto do Drive (IDs virtuais)
+      if (id.startsWith('drive_')) {
+        const driveFileId = id.replace('drive_', '');
+
+        if (!googleDriveOAuthService.isInitialized()) {
+          await googleDriveOAuthService.initialize();
+        }
+
+        // 1. Buscar metadados do arquivo (nome, mimeType)
+        try {
+          const fileMetadata = await googleDriveOAuthService.drive.files.get({
+            fileId: driveFileId,
+            fields: 'name,mimeType,size'
+          });
+
+          const fileName = fileMetadata.data.name;
+          const mimeType = fileMetadata.data.mimeType;
+
+          // 2. Baixar stream
+          const fileStream = await googleDriveOAuthService.downloadFile(driveFileId);
+
+          // 3. Configurar headers
+          res.set({
+            'Content-Type': mimeType,
+            'Content-Disposition': `attachment; filename="${fileName}"`
+          });
+
+          return fileStream.pipe(res);
+
+        } catch (driveError) {
+          console.error('❌ Erro ao baixar arquivo do Drive (virtual):', driveError);
+          return res.status(404).json({
+            success: false,
+            message: 'Arquivo não encontrado no Google Drive'
+          });
+        }
+      }
+
       const document = await Document.findById(id);
 
       if (!document) {
@@ -534,6 +573,42 @@ class DocumentController {
         success: false,
         message: 'Erro interno do servidor'
       });
+    }
+  }
+
+  /**
+   * Deletar documento
+   * @route DELETE /api/documents/:id
+   */
+  /**
+   * Registrar visualização de documento
+   * @route POST /api/documents/log-view
+   */
+  static async logView(req, res) {
+    try {
+      const { documentId, driveFileId, fileName } = req.body;
+      const userId = req.user?.id;
+      const municipalityCode = req.user?.municipality_code;
+
+      console.log('👁️ Registrando visualização:', { documentId, driveFileId, fileName });
+
+      await ActivityLogService.logActivity({
+        activityType: 'view',
+        documentId: documentId || null, // Pode ser nulo para arquivos apenas do Drive
+        userId: userId || null,
+        municipalityCode: municipalityCode,
+        metadata: {
+          file_name: fileName || 'Documento',
+          drive_file_id: driveFileId // Importante para recuperar depois
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('❌ Erro ao registrar visualização:', error);
+      res.status(500).json({ success: false, message: 'Erro ao registrar visualização' });
     }
   }
 

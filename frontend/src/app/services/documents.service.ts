@@ -230,7 +230,7 @@ export class DocumentsService {
   /**
    * Download de documento
    */
-  downloadDocument(id: number): Observable<Blob> {
+  downloadDocument(id: number | string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/documents/${id}/download`, {
       responseType: 'blob'
     }).pipe(catchError(this.handleError));
@@ -357,6 +357,24 @@ export class DocumentsService {
     );
   }
 
+  /**
+   * Obter documentos acessados recentemente
+   */
+  getRecentDocuments(limit: number = 6): Observable<ApiResponse<any[]>> {
+    const url = `${environment.apiUrl}/dashboard/recent-documents?limit=${limit}`;
+    console.log('🔵 [DocumentsService] Chamando endpoint de documentos recentes:', url);
+
+    return this.http.get<ApiResponse<any[]>>(url, { headers: this.getAuthHeaders() }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Documentos recentes recebidos:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Erro ao buscar documentos recentes:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
 
 
   /**
@@ -424,9 +442,20 @@ export class DocumentsService {
   /**
    * Registrar visualização de documento
    */
-  logView(data: { documentId?: number; driveFileId?: string; fileName?: string; municipalityCode?: string }): Observable<any> {
-    const url = `${environment.apiUrl}/activities/view`;
+  logView(data: { documentId?: any; driveFileId?: string; fileName?: string; municipalityCode?: string }): Observable<any> {
+    const url = `${environment.apiUrl}/documents/log-view`;
     console.log('👁️ [Activity] Chamando logView:', url, data);
+
+    // Sanitize documentId for virtual drive files
+    let safeDocId = data.documentId;
+    if (typeof safeDocId === 'string' && safeDocId.startsWith('drive_')) {
+      safeDocId = null;
+    }
+
+    const payload = {
+      ...data,
+      documentId: safeDocId
+    };
 
     const token = this.authService.getToken();
     if (!token) {
@@ -439,7 +468,7 @@ export class DocumentsService {
       'Content-Type': 'application/json'
     });
 
-    return this.http.post<any>(url, data, { headers }).pipe(
+    return this.http.post<any>(url, payload, { headers }).pipe(
       tap((response) => console.log('📊 [Activity] Visualização registrada:', response)),
       catchError((error) => {
         console.error('❌ [Activity] Erro ao registrar visualização:', error);

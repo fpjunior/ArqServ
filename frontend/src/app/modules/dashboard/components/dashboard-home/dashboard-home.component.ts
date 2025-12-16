@@ -107,6 +107,7 @@ export class DashboardHomeComponent implements OnInit {
   ];
 
   recentActivities: RecentActivity[] = [];
+  recentDocuments: any[] = [];
 
   constructor(
     private documentsService: DocumentsService,
@@ -122,8 +123,91 @@ export class DashboardHomeComponent implements OnInit {
 
     this.loadDashboardStats();
     this.loadRecentActivities();
+    this.loadRecentDocuments();
     this.fetchStorageInfo();
     this.currentUser = this.authService.getCurrentUser();
+  }
+
+  loadRecentDocuments() {
+    console.log('🔵 [DASHBOARD] Carregando documentos recentes...');
+    this.documentsService.getRecentDocuments(6).subscribe({ // Requesting more to allow for filtering
+      next: (response: any) => {
+        if (response && response.success && response.data) {
+          const allDocs = response.data;
+
+          this.recentDocuments = allDocs
+            .filter((doc: any) => {
+              // 1. Basic Existence Check
+              if (!doc) return false;
+
+              // 2. Garbage Check (must have some ID or content)
+              const hasId = doc.id || doc.googleDriveId;
+              const hasContent = doc.title || doc.file_name || doc.fileName;
+              if (!hasId && !hasContent) return false;
+
+              return true;
+            })
+            .map((doc: any) => {
+              // 3. Normalization & Sanitization
+              let cleanTitle = doc.title || doc.fileName || doc.file_name || 'Documento Sem Título';
+              cleanTitle = cleanTitle.trim();
+
+              // Fix bad titles like "."
+              const validTitleRegex = /[a-zA-Z0-9\u00C0-\u00FF]/;
+              if (cleanTitle === '.' || cleanTitle.length < 2 || !validTitleRegex.test(cleanTitle)) {
+                cleanTitle = 'Documento Recuperado';
+              }
+
+              // Fix missing icon
+              let icon = doc.icon;
+              if (!icon || icon.trim() === '') {
+                const t = cleanTitle.toLowerCase();
+                if (t.endsWith('.pdf') || t.includes('pdf')) icon = '📕';
+                else if (t.endsWith('.jpg') || t.endsWith('.png') || t.includes('imagem')) icon = '🖼️';
+                else if (t.includes('xls') || t.includes('planilha')) icon = '📊';
+                else if (t.includes('doc') || t.includes('word')) icon = '📝';
+                else icon = '📄';
+              }
+
+              // Fix missing subtitles
+              let sub = doc.subTitle || 'Documento';
+              if (sub === '.' || !sub.trim()) sub = 'Google Drive';
+
+              // Ensure Drive ID availability
+              let gId = doc.googleDriveId;
+              if (!gId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
+                gId = doc.id.replace('drive_', '');
+              }
+
+              // Date Normalization
+              let timestampStr = doc.updatedAt;
+              if (timestampStr && !timestampStr.endsWith('Z')) {
+                timestampStr += 'Z';
+              }
+
+              return {
+                ...doc,
+                id: doc.id,
+                title: cleanTitle,
+                subTitle: sub, // Ensure subtitle is good
+                icon: icon,
+                googleDriveId: gId,
+                updatedAt: new Date(timestampStr),
+                // Novos campos para admin
+                municipalityName: doc.municipalityName || null,
+                municipalityCode: doc.municipalityCode || null,
+                folderName: doc.folderName || null
+              };
+            })
+            .slice(0, 3); // Take top 3 FINAL VALID documents
+
+          console.log('✅ [DASHBOARD] Documentos recentes processados:', this.recentDocuments);
+        }
+      },
+      error: (error) => {
+        console.error('❌ [DASHBOARD] Erro ao carregar documentos recentes:', error);
+      }
+    });
   }
 
   loadDashboardStats() {
@@ -261,7 +345,8 @@ export class DashboardHomeComponent implements OnInit {
     forkJoin({
       stats: this.documentsService.getDashboardStats(),
       activities: this.documentsService.getRecentActivities(10),
-      storage: this.documentsService.getDriveStorageInfo()
+      storage: this.documentsService.getDriveStorageInfo(),
+      recentDocs: this.documentsService.getRecentDocuments(6)
     }).pipe(
       finalize(() => this.isRefreshing = false)
     ).subscribe({
@@ -279,6 +364,11 @@ export class DashboardHomeComponent implements OnInit {
             viewsToday: data.activities.views_today || 0,
             downloadsToday: data.activities.downloads_today || 0
           };
+        }
+
+        // Update Recent Documents
+        if (results.recentDocs && results.recentDocs.success && results.recentDocs.data) {
+          this.recentDocuments = results.recentDocs.data;
         }
 
         // Update Activities
@@ -309,6 +399,73 @@ export class DashboardHomeComponent implements OnInit {
 
   navigateToServer(serverId: string) {
     this.router.navigate(['/servers', serverId]);
+  }
+
+  viewDocument(doc: any) {
+    console.log('👁️ [DASHBOARD] Visualizando documento:', doc);
+
+    // Fallback: Se não tiver googleDriveId mas o ID for 'drive_XXX', extrair
+    if (!doc.googleDriveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
+      doc.googleDriveId = doc.id.replace('drive_', '');
+    }
+
+    // Abrir URL do documento imediatamente para melhor UX
+    if (doc.filePath) {
+      window.open(doc.filePath, '_blank');
+    } else if (doc.googleDriveId) {
+      window.open(`https://drive.google.com/file/d/${doc.googleDriveId}/view`, '_blank');
+    } else if (doc.drive_url) {
+      window.open(doc.drive_url, '_blank');
+    } else {
+      alert('URL do documento não encontrada');
+    }
+
+    // Sanitizar nome do arquivo antes de logar
+    let logFileName = doc.title || doc.fileName || 'Documento';
+    if (logFileName.trim() === '.') logFileName = 'Documento Visualizado';
+
+    // Registrar visualização e atualizar lista
+    this.documentsService.logView({
+      documentId: doc.id,
+      driveFileId: doc.googleDriveId || doc.drive_file_id, // Fallback para diferentes formatos
+      fileName: logFileName
+    }).subscribe({
+      next: () => {
+        // Atualizar lista de recentes após o log ser confirmado
+        this.loadRecentDocuments();
+        this.loadRecentActivities(); // Atualizar atividades também
+      },
+      error: (err) => console.error('Erro ao registrar view:', err)
+    });
+  }
+
+  downloadDocument(doc: any) {
+    console.log('⬇️ [DASHBOARD] Baixando documento:', doc);
+
+    // Use correct ID for download (support virtual Drive IDs)
+    let downloadId = doc.id;
+    if (!downloadId && doc.googleDriveId) {
+      downloadId = `drive_${doc.googleDriveId}`;
+    }
+
+    this.documentsService.downloadDocument(downloadId).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.title || 'documento';
+        link.click();
+        window.URL.revokeObjectURL(url);
+
+        // Atualizar listas após download total
+        this.loadRecentDocuments();
+        this.loadRecentActivities();
+      },
+      error: (err: any) => {
+        console.error('Erro ao baixar', err);
+        alert('Erro ao baixar documento. Tente novamente.');
+      }
+    });
   }
 
   isAdmin(): boolean {

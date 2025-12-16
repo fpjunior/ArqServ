@@ -14,10 +14,7 @@
 
         <div class="flex items-center gap-4">
           <div class="relative flex-1 lg:w-80">
-            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-            <input type="text" placeholder="Buscar documentos, servidores..."
-              class="w-full pl-10 pr-4 py-3 bg-white/90 backdrop-blur-sm border-0 rounded-xl focus:ring-2 focus:ring-white/50 focus:bg-white transition-all shadow-lg"
-              [(ngModel)]="searchTerm" (input)="onSearch()">
+            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></span>
           </div>
 
           <button (click)="refreshData()"
@@ -224,63 +221,71 @@
       </div>
     </div>
 
-    <!-- Acesso Rápido a Servidores -->
-    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+    <!-- Acesso Rápido a Últimos Documentos -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100" *ngIf="recentDocuments.length > 0">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-blue-100 p-2 rounded-lg">
-          <span class="text-blue-600 text-xl">👥</span>
+          <span class="text-blue-600 text-xl">🕒</span>
         </div>
-        <h2 class="text-xl font-bold text-gray-800">Acesso Rápido</h2>
+        <h2 class="text-xl font-bold text-gray-800">Documentos Recentes</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Card Ana Maria -->
-        <div (click)="navigateToServer('65')"
-          class="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
-          <div class="flex items-center space-x-3">
-            <div class="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-              AM
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        *ngIf="recentDocuments.length > 0; else noRecentDocs">
+        <div *ngFor="let doc of recentDocuments"
+          class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+
+          <!-- Tipo de Arquivo (Icone) -->
+          <div class="flex items-start gap-4">
+            <div
+              class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+              {{ doc.icon }}
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-800">Ana Maria</h3>
-              <p class="text-sm text-gray-600">24 arquivos</p>
+
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-gray-800 truncate pr-2" title="{{ doc.title }}">{{ doc.title }}</h3>
+              <p class="text-sm text-gray-500 truncate mb-2"
+                [title]="isAdmin() && doc.municipalityName ? doc.municipalityName + (doc.folderName ? ' • ' + doc.folderName : '') + ' • ' + doc.subTitle : doc.subTitle">
+                <ng-container *ngIf="isAdmin() && doc.municipalityName">
+                  <span class="font-medium text-blue-600">{{ doc.municipalityName }}</span>
+                  <span *ngIf="doc.folderName"> • {{ doc.folderName }}</span>
+                  <span> • </span>
+                </ng-container>
+                {{ doc.subTitle }}
+              </p>
+
+              <div class="flex items-center gap-2 text-xs text-gray-400">
+                <span>{{ formatTime(doc.updatedAt) }}</span>
+                <span>•</span>
+                <span>{{ (doc.fileSize / 1024) | number:'1.0-0' }} KB</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Card João Santos -->
-        <div (click)="navigateToServer('74')"
-          class="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
-          <div class="flex items-center space-x-3">
-            <div class="bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-              JS
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-800">João Santos</h3>
-              <p class="text-sm text-gray-600">18 arquivos</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card Maria Silva -->
-        <div (click)="navigateToServer('77')"
-          class="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-all transform hover:-translate-y-1">
-          <div class="flex items-center space-x-3">
-            <div class="bg-purple-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-              MS
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-800">Maria Silva</h3>
-              <p class="text-sm text-gray-600">31 arquivos</p>
-            </div>
+          <!-- Ações (Overlay/Buttons) -->
+          <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
+            <button (click)="viewDocument(doc); $event.stopPropagation()"
+              class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
+              <span>👁️</span> Ver
+            </button>
+            <button (click)="downloadDocument(doc); $event.stopPropagation()"
+              class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <span>⬇️</span> Baixar
+            </button>
           </div>
         </div>
       </div>
+
+      <ng-template #noRecentDocs>
+        <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <p>Nenhum documento acessado recentemente.</p>
+        </div>
+      </ng-template>
 
       <div class="mt-4 text-center">
-        <button (click)="router.navigate(['/servers'])"
+        <button (click)="router.navigate(['/dashboard/financial-documents'])"
           class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
-          Ver todos os servidores →
+          Ver todos os documentos →
         </button>
       </div>
     </div>

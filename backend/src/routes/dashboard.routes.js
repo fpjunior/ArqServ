@@ -33,4 +33,12 @@ router.get('/stats', authenticate, DashboardController.getDashboardStats);
  */
 router.get('/recent-activities', authenticate, DashboardController.getRecentActivities);
 
+/**
+ * @route GET /api/dashboard/recent-documents
+ * @desc Obter documentos acessados recentemente (únicos)
+ * @access Private (Requer autenticação)
+ * @query limit - Número máximo de documentos (default: 6)
+ */
+router.get('/recent-documents', authenticate, DashboardController.getRecentDocuments);
+
 module.exports = router;
