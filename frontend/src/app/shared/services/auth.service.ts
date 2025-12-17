@@ -34,6 +34,10 @@ export class AuthService {
   public token$ = this.tokenSubject.asObservable();
 
   constructor(private http: HttpClient) {
+    // 1. Otimização Crítica: Tentar restaurar sessão do localStorage IMEDIATAMENTE (Síncrono)
+    // Isso garante que o token exista antes dos componentes (Dashboard) fazerem as primeiras chamadas API.
+    this.loadStoredAuth();
+
     // If using Supabase auth, initialize client and subscribe to supabase auth state
     if (environment.useSupabaseAuth) {
       const supabase = getSupabaseClient();
@@ -130,8 +134,6 @@ export class AuthService {
           localStorage.removeItem('arqserv_user');
         }
       });
-    } else {
-      this.loadStoredAuth();
     }
   }
 

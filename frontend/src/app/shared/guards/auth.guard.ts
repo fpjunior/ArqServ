@@ -33,13 +33,28 @@ export class AuthGuard implements CanActivate {
             console.log('🔐 [AUTH GUARD] Sessão Supabase válida encontrada');
             return true;
           } else {
-            console.log('🚫 [AUTH GUARD] Sem sessão - redirecionando para login');
+            // FALLBACK: Verificar se temos token no localStorage (login manual)
+            // Isso evita logout no refresh se o Supabase demorar ou falhar o restore
+            const localToken = localStorage.getItem('arqserv_token');
+            if (localToken) {
+              console.log('🔐 [AUTH GUARD] Token encontrado no localStorage (Fallback)');
+              return true;
+            }
+
+            console.log('🚫 [AUTH GUARD] Sem sessão e sem token local - redirecionando para login');
             this.router.navigate(['/login']);
             return false;
           }
         }),
         catchError((error) => {
           console.error('❌ [AUTH GUARD] Erro ao verificar sessão:', error);
+          // Mesmo no erro, tentar fallback local
+          const localToken = localStorage.getItem('arqserv_token');
+          if (localToken) {
+            console.log('🔐 [AUTH GUARD] Token encontrado no localStorage após erro (Fallback)');
+            return of(true);
+          }
+
           this.router.navigate(['/login']);
           return of(false);
         })
