@@ -196,6 +196,20 @@ class GoogleDriveOAuthService {
 
       const fileData = response.data;
 
+      // Tornar arquivo público para leitura (necessário para webViewLink funcionar para outros usuários)
+      try {
+        await this.drive.permissions.create({
+          fileId: fileData.id,
+          requestBody: {
+            role: 'reader',
+            type: 'anyone',
+          },
+        });
+        console.log(`Público setado para o arquivo: ${fileData.id}`);
+      } catch (permError) {
+        console.error('Erro ao definir permissões públicas:', permError);
+      }
+
       console.log(`✅ File uploaded successfully: ${fileData.name} (${fileData.id})`);
 
       return {
@@ -252,6 +266,20 @@ class GoogleDriveOAuthService {
       });
 
       const fileData = response.data;
+
+      // Tornar arquivo público para leitura
+      try {
+        await this.drive.permissions.create({
+          fileId: fileData.id,
+          requestBody: {
+            role: 'reader',
+            type: 'anyone',
+          },
+        });
+        console.log(`Público setado para documento financeiro: ${fileData.id}`);
+      } catch (permError) {
+        console.error('Erro ao definir permissões públicas:', permError);
+      }
 
       console.log(`✅ Financial document uploaded successfully: ${fileData.name} (${fileData.id})`);
 
