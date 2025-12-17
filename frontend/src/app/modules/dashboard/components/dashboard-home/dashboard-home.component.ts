@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
 import { forkJoin } from 'rxjs';
@@ -109,10 +110,17 @@ export class DashboardHomeComponent implements OnInit {
   recentActivities: RecentActivity[] = [];
   recentDocuments: any[] = [];
 
+  // Modal State
+  isModalVisible = false;
+  selectedFile: any | null = null;
+  modalViewerUrl: SafeResourceUrl | null = null;
+  modalIsLoading = false;
+
   constructor(
     private documentsService: DocumentsService,
     private authService: AuthService,
-    public router: Router
+    public router: Router,
+    private sanitizer: DomSanitizer
   ) { }
 
   ngOnInit() {
@@ -409,15 +417,30 @@ export class DashboardHomeComponent implements OnInit {
       doc.googleDriveId = doc.id.replace('drive_', '');
     }
 
-    // Abrir URL do documento imediatamente para melhor UX
-    if (doc.filePath) {
-      window.open(doc.filePath, '_blank');
-    } else if (doc.googleDriveId) {
-      window.open(`https://drive.google.com/file/d/${doc.googleDriveId}/view`, '_blank');
-    } else if (doc.drive_url) {
-      window.open(doc.drive_url, '_blank');
+    this.selectedFile = doc;
+    this.modalIsLoading = true;
+    this.isModalVisible = true;
+    this.modalViewerUrl = null;
+
+    let urlToUse = '';
+
+    if (doc.googleDriveId) {
+      // Usar embed link do Google Drive
+      urlToUse = `https://drive.google.com/file/d/${doc.googleDriveId}/preview`;
+    } else if (doc.webViewLink) {
+      urlToUse = doc.webViewLink.replace('/view', '/preview'); // Forçar modo preview se possível
+    } else if (doc.webViewLink) {
+      urlToUse = doc.webViewLink;
+    } else if (doc.filePath) {
+      // Arquivo local (menos comum em prod, mas existe)
+      urlToUse = doc.filePath;
+    }
+
+    if (urlToUse) {
+      this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(urlToUse);
     } else {
-      alert('URL do documento não encontrada');
+      this.modalIsLoading = false;
+      console.error('Nenhuma URL de visualização encontrada para o documento');
     }
 
     // Sanitizar nome do arquivo antes de logar
@@ -437,6 +460,27 @@ export class DashboardHomeComponent implements OnInit {
       },
       error: (err) => console.error('Erro ao registrar view:', err)
     });
+  }
+
+  closeModal() {
+    this.isModalVisible = false;
+    this.selectedFile = null;
+    this.modalViewerUrl = null;
+  }
+
+  modalIoLoaded() {
+    this.modalIsLoading = false;
+  }
+
+  getFileIcon(file: any): string {
+    if (file.icon) return file.icon;
+    // Fallback caso não tenha ícone definido
+    const name = (file.title || file.name || '').toLowerCase();
+    if (name.includes('pdf')) return '📕';
+    if (name.includes('xls') || name.includes('sheet')) return '📊';
+    if (name.includes('doc') || name.includes('word')) return '📝';
+    if (name.includes('jpg') || name.includes('png') || name.includes('img')) return '🖼️';
+    return '📄';
   }
 
   downloadDocument(doc: any) {
