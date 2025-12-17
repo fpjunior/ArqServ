@@ -199,7 +199,7 @@ export class DashboardHomeComponent implements OnInit {
                 folderName: doc.folderName || null
               };
             })
-            .slice(0, 3); // Take top 3 FINAL VALID documents
+            .slice(0, 4); // Take top 4 FINAL VALID documents
 
           console.log('✅ [DASHBOARD] Documentos recentes processados:', this.recentDocuments);
         }

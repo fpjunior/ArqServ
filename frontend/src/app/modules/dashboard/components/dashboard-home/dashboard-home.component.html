@@ -137,37 +137,78 @@
     <!-- Seção Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-      <!-- Ações Rápidas -->
+      <!-- Documentos Recentes (Moved to Top) -->
       <div class="lg:col-span-2">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="bg-yellow-100 p-2 rounded-lg">
-            <span class="text-yellow-600 text-xl">⚡</span>
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-full">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="bg-blue-100 p-2 rounded-lg">
+              <span class="text-blue-600 text-xl">🕒</span>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800">Documentos Recentes</h2>
           </div>
-          <h2 class="text-2xl font-bold text-gray-800">Ações Rápidas</h2>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngFor="let action of getFilteredQuickActions()" (click)="executeQuickAction(action)"
-            class="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group transform hover:-translate-y-1">
-            <div class="flex items-center gap-4">
-              <div
-                class="bg-gradient-to-br from-gray-50 to-gray-100 w-12 h-12 rounded-xl flex items-center justify-center text-xl group-hover:from-blue-50 group-hover:to-blue-100 transition-colors">
-                {{ action.icon }}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="recentDocuments.length > 0; else noRecentDocs">
+            <div *ngFor="let doc of recentDocuments.slice(0, 4)"
+              class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+
+              <!-- Tipo de Arquivo (Icone) -->
+              <div class="flex items-start gap-4">
+                <div
+                  class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                  {{ doc.icon }}
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-semibold text-gray-800 truncate pr-2" title="{{ doc.title }}">{{ doc.title }}</h3>
+                  <p class="text-sm text-gray-500 truncate mb-2"
+                    [title]="isAdmin() && doc.municipalityName ? doc.municipalityName + (doc.folderName ? ' • ' + doc.folderName : '') + ' • ' + doc.subTitle : doc.subTitle">
+                    <ng-container *ngIf="isAdmin() && doc.municipalityName">
+                      <span class="font-medium text-blue-600">{{ doc.municipalityName }}</span>
+                      <span *ngIf="doc.folderName"> • {{ doc.folderName }}</span>
+                      <span> • </span>
+                    </ng-container>
+                    {{ doc.subTitle }}
+                  </p>
+
+                  <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <span>{{ formatTime(doc.updatedAt) }}</span>
+                    <span>•</span>
+                    <span>{{ (doc.fileSize / 1024) | number:'1.0-0' }} KB</span>
+                  </div>
+                </div>
               </div>
-              <div class="flex-1">
-                <h3 class="font-semibold text-gray-900 mb-1">{{ action.title }}</h3>
-                <p class="text-gray-600 text-sm">{{ action.description }}</p>
-              </div>
-              <div class="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-2 transition-all">
-                →
+
+              <!-- Ações (Overlay/Buttons) -->
+              <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
+                <button (click)="viewDocument(doc); $event.stopPropagation()"
+                  class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
+                  <span>👁️</span> Ver
+                </button>
+                <button (click)="downloadDocument(doc); $event.stopPropagation()"
+                  class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <span>⬇️</span> Baixar
+                </button>
               </div>
             </div>
+          </div>
+
+          <ng-template #noRecentDocs>
+            <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              <p>Nenhum documento acessado recentemente.</p>
+            </div>
+          </ng-template>
+
+          <div class="mt-4 text-center">
+            <button (click)="router.navigate(['/dashboard/financial-documents'])"
+              class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+              Ver todos os documentos →
+            </button>
           </div>
         </div>
       </div>
 
       <!-- Atividades Recentes -->
-      <div class="lg:col-span-1 h-full" style="height: 380px; margin-top: 56px;">
+      <div class="lg:col-span-1" style="height: 560px;">
         <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-full flex flex-col">
           <div class="flex items-center gap-3 mb-6 shrink-0">
             <div class="bg-indigo-100 p-2 rounded-lg">
@@ -221,72 +262,29 @@
       </div>
     </div>
 
-    <!-- Acesso Rápido a Últimos Documentos -->
-    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100" *ngIf="recentDocuments.length > 0">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="bg-blue-100 p-2 rounded-lg">
-          <span class="text-blue-600 text-xl">🕒</span>
+    <!-- Ações Rápidas (Moved to Bottom) -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="bg-yellow-100 p-2 rounded-lg">
+          <span class="text-yellow-600 text-xl">⚡</span>
         </div>
-        <h2 class="text-xl font-bold text-gray-800">Documentos Recentes</h2>
+        <h2 class="text-2xl font-bold text-gray-800">Ações Rápidas</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-        *ngIf="recentDocuments.length > 0; else noRecentDocs">
-        <div *ngFor="let doc of recentDocuments"
-          class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-
-          <!-- Tipo de Arquivo (Icone) -->
-          <div class="flex items-start gap-4">
-            <div
-              class="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
-              {{ doc.icon }}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div *ngFor="let action of getFilteredQuickActions()" title="Em desenvolvimento"
+          class="bg-white/50 rounded-xl p-6 border border-gray-100 opacity-60 cursor-not-allowed contrast-75 grayscale-[0.5] hover:grayscale-0 transition-all">
+          <div class="flex items-center gap-4">
+            <div class="bg-gray-100 w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400">
+              {{ action.icon }}
             </div>
-
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold text-gray-800 truncate pr-2" title="{{ doc.title }}">{{ doc.title }}</h3>
-              <p class="text-sm text-gray-500 truncate mb-2"
-                [title]="isAdmin() && doc.municipalityName ? doc.municipalityName + (doc.folderName ? ' • ' + doc.folderName : '') + ' • ' + doc.subTitle : doc.subTitle">
-                <ng-container *ngIf="isAdmin() && doc.municipalityName">
-                  <span class="font-medium text-blue-600">{{ doc.municipalityName }}</span>
-                  <span *ngIf="doc.folderName"> • {{ doc.folderName }}</span>
-                  <span> • </span>
-                </ng-container>
-                {{ doc.subTitle }}
-              </p>
-
-              <div class="flex items-center gap-2 text-xs text-gray-400">
-                <span>{{ formatTime(doc.updatedAt) }}</span>
-                <span>•</span>
-                <span>{{ (doc.fileSize / 1024) | number:'1.0-0' }} KB</span>
-              </div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-600 mb-1">{{ action.title }}</h3>
+              <p class="text-gray-500 text-sm">{{ action.description }}</p>
             </div>
-          </div>
-
-          <!-- Ações (Overlay/Buttons) -->
-          <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
-            <button (click)="viewDocument(doc); $event.stopPropagation()"
-              class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors">
-              <span>👁️</span> Ver
-            </button>
-            <button (click)="downloadDocument(doc); $event.stopPropagation()"
-              class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">
-              <span>⬇️</span> Baixar
-            </button>
+            <!-- Seta removida para indicar inatividade -->
           </div>
         </div>
-      </div>
-
-      <ng-template #noRecentDocs>
-        <div class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p>Nenhum documento acessado recentemente.</p>
-        </div>
-      </ng-template>
-
-      <div class="mt-4 text-center">
-        <button (click)="router.navigate(['/dashboard/financial-documents'])"
-          class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
-          Ver todos os documentos →
-        </button>
       </div>
     </div>
   </div>
