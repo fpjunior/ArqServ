@@ -417,24 +417,23 @@ export class DashboardHomeComponent implements OnInit {
       doc.googleDriveId = doc.id.replace('drive_', '');
     }
 
+    // Calcular URL
+    let urlToUse = '';
+    if (doc.googleDriveId) {
+      urlToUse = `https://drive.google.com/file/d/${doc.googleDriveId}/preview`;
+    } else if (doc.webViewLink) {
+      urlToUse = doc.webViewLink.replace('/view', '/preview');
+    } else if (doc.filePath) {
+      urlToUse = doc.filePath;
+    }
+
+    // 📱 MOBILE & DESKTOP: Abrir em Modal
+    // O usuário relatou preferência pelo modal. 
+    // Para evitar memory leaks no mobile, focamos em destruir o iframe no closeModal.
     this.selectedFile = doc;
     this.modalIsLoading = true;
     this.isModalVisible = true;
     this.modalViewerUrl = null;
-
-    let urlToUse = '';
-
-    if (doc.googleDriveId) {
-      // Usar embed link do Google Drive
-      urlToUse = `https://drive.google.com/file/d/${doc.googleDriveId}/preview`;
-    } else if (doc.webViewLink) {
-      urlToUse = doc.webViewLink.replace('/view', '/preview'); // Forçar modo preview se possível
-    } else if (doc.webViewLink) {
-      urlToUse = doc.webViewLink;
-    } else if (doc.filePath) {
-      // Arquivo local (menos comum em prod, mas existe)
-      urlToUse = doc.filePath;
-    }
 
     if (urlToUse) {
       this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(urlToUse);
@@ -443,6 +442,11 @@ export class DashboardHomeComponent implements OnInit {
       console.error('Nenhuma URL de visualização encontrada para o documento');
     }
 
+    this.logView(doc);
+  }
+
+  // Extrair lógica de registro para reutilizar
+  private logView(doc: any) {
     // Sanitizar nome do arquivo antes de logar
     let logFileName = doc.title || doc.fileName || 'Documento';
     if (logFileName.trim() === '.') logFileName = 'Documento Visualizado';
@@ -450,23 +454,26 @@ export class DashboardHomeComponent implements OnInit {
     // Registrar visualização e atualizar lista
     this.documentsService.logView({
       documentId: doc.id,
-      driveFileId: doc.googleDriveId || doc.drive_file_id, // Fallback para diferentes formatos
+      driveFileId: doc.googleDriveId || doc.drive_file_id,
       fileName: logFileName
     }).subscribe({
       next: () => {
-        // Atualizar lista de recentes após o log ser confirmado
         this.loadRecentDocuments();
-        this.loadRecentActivities(); // Atualizar atividades também
+        this.loadRecentActivities();
       },
       error: (err) => console.error('Erro ao registrar view:', err)
     });
   }
 
   closeModal() {
-    this.isModalVisible = false;
-    this.selectedFile = null;
+    // Limpeza explícita para ajudar o Garbage Collector do navegador mobile
     this.modalViewerUrl = null;
+    this.selectedFile = null;
+    this.isModalVisible = false;
+    this.modalIsLoading = false;
   }
+
+
 
   modalIoLoaded() {
     this.modalIsLoading = false;
@@ -486,18 +493,56 @@ export class DashboardHomeComponent implements OnInit {
   downloadDocument(doc: any) {
     console.log('⬇️ [DASHBOARD] Baixando documento:', doc);
 
-    // Use correct ID for download (support virtual Drive IDs)
-    let downloadId = doc.id;
-    if (!downloadId && doc.googleDriveId) {
-      downloadId = `drive_${doc.googleDriveId}`;
+    // Normalizar ID do Google Drive
+    let driveId = doc.googleDriveId;
+    if (!driveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
+      driveId = doc.id.replace('drive_', '');
     }
 
+
+    // 1. Prioridade: Download direto do Google Drive (mais rápido e garantido)
+    if (driveId) {
+      const downloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+      console.log('🔗 Iniciando download direto do Drive:', downloadUrl);
+
+      // Usar link oculto para download direto sem abrir nova aba
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = doc.title || doc.name || 'documento';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Registrar log de download
+      this.documentsService.logDownload(doc.id).subscribe({
+        next: () => console.log('✅ Log de download registrado'),
+        error: err => console.warn('⚠️ Falha ao logar download:', err)
+      });
+      return;
+    }
+
+    // 2. Fallback: Se tiver link de conteúdo web (comum na API do Drive)
+    if (doc.webContentLink) {
+      const link = document.createElement('a');
+      link.href = doc.webContentLink;
+      link.download = doc.title || doc.name || 'documento';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      this.documentsService.logDownload(doc.id).subscribe();
+      return;
+    }
+
+    // 3. Legado: Download via Proxy do Backend (para arquivos locais ou antigos)
+    let downloadId = doc.id;
     this.documentsService.downloadDocument(downloadId).subscribe({
       next: (blob: Blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = doc.title || 'documento';
+        link.download = doc.title || doc.name || 'documento';
         link.click();
         window.URL.revokeObjectURL(url);
 
