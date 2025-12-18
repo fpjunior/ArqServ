@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -77,7 +77,8 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
-    private location: Location
+    private location: Location,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -335,17 +336,23 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   closeModal(): void {
     console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
 
-    // IMPORTANTE: Destruir iframe primeiro (antes de esconder o modal)
-    // Isso força o navegador a liberar memória do Google Drive viewer
+    // PASSO 1: Limpar URL do iframe IMEDIATAMENTE
     this.modalViewerUrl = null;
+    this.modalIsLoading = false;
 
-    // Pequeno delay para garantir que o iframe foi destruído antes de resetar o resto
+    // PASSO 2: Forçar detecção de mudanças para remover iframe do DOM AGORA
+    this.cdr.detectChanges();
+
+    // PASSO 3: Aguardar um ciclo de renderização para garantir remoção do DOM
     setTimeout(() => {
       this.selectedFile = null;
       this.isModalVisible = false;
-      this.modalIsLoading = false;
-      console.log('✅ [MOBILE-FIX] Memória liberada');
-    }, 50);
+
+      // PASSO 4: Forçar outra detecção para garantir que o modal foi removido
+      this.cdr.detectChanges();
+
+      console.log('✅ [MOBILE-FIX] Modal completamente removido do DOM');
+    }, 100);
   }
 
   ngOnDestroy(): void {
