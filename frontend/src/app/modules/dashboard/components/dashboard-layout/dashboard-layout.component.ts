@@ -189,7 +189,7 @@ export class DashboardLayoutComponent implements OnInit {
 
     switch (this.currentRoute) {
       case '/dashboard':
-        return 'Gestão Compartilhada de Arquivos1234';
+        return 'Gestão Compartilhada de Arquivos12AB';
       case '/servers':
         return 'Organize servidores por grupos alfabéticos';
       case '/upload':

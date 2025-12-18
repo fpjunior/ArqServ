@@ -190,7 +190,7 @@
         <p class="text-gray-500">Carregando documento...</p>
       </div>
       <!-- Document Iframe - Destruído completamente ao fechar para liberar memória -->
-      <iframe *ngIf="modalViewerUrl && !modalIsLoading" [src]="modalViewerUrl" class="w-full h-96 border rounded"
+      <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-96 border rounded"
         (load)="modalIsLoading = false">
       </iframe>
       <p *ngIf="!modalIsLoading && !modalViewerUrl" class="text-center text-red-500">Erro ao carregar documento</p>

@@ -179,7 +179,7 @@
       </div>
 
       <!-- Document Iframe - Destruído completamente ao fechar para liberar memória -->
-      <iframe *ngIf="modalViewerUrl && !modalIsLoading" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
+      <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
         style="z-index: 1 !important; pointer-events: auto;" (load)="modalIsLoading = false">
       </iframe>
 
