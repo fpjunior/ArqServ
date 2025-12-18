@@ -47,7 +47,7 @@ interface ApiResponse {
   templateUrl: './server-details.component.html',
   styleUrls: ['./server-details.component.scss']
 })
-export class ServerDetailsComponent implements OnInit {
+export class ServerDetailsComponent implements OnInit, OnDestroy {
   server: Server | null = null;
   files: ServerFile[] = [];
   searchTerm: string = '';
@@ -333,10 +333,25 @@ export class ServerDetailsComponent implements OnInit {
   }
 
   closeModal(): void {
-    console.log('❌ Fechando modal');
-    this.isModalVisible = false;
-    this.selectedFile = null;
+    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
+
+    // IMPORTANTE: Destruir iframe primeiro (antes de esconder o modal)
+    // Isso força o navegador a liberar memória do Google Drive viewer
     this.modalViewerUrl = null;
-    this.modalIsLoading = false;
+
+    // Pequeno delay para garantir que o iframe foi destruído antes de resetar o resto
+    setTimeout(() => {
+      this.selectedFile = null;
+      this.isModalVisible = false;
+      this.modalIsLoading = false;
+      console.log('✅ [MOBILE-FIX] Memória liberada');
+    }, 50);
+  }
+
+  ngOnDestroy(): void {
+    console.log('🗑️ [SERVER-DETAILS] ngOnDestroy - Limpando memória');
+    // Garantir que modal está fechado e memória liberada
+    this.modalViewerUrl = null;
+    this.selectedFile = null;
   }
 }

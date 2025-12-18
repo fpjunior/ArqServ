@@ -189,7 +189,9 @@
         <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
         <p class="text-gray-500">Carregando documento...</p>
       </div>
-      <iframe *ngIf="!modalIsLoading && modalViewerUrl" [src]="modalViewerUrl" class="w-full h-96 border rounded">
+      <!-- Document Iframe - Destruído completamente ao fechar para liberar memória -->
+      <iframe *ngIf="modalViewerUrl && !modalIsLoading" [src]="modalViewerUrl" class="w-full h-96 border rounded"
+        (load)="modalIsLoading = false">
       </iframe>
       <p *ngIf="!modalIsLoading && !modalViewerUrl" class="text-center text-red-500">Erro ao carregar documento</p>
     </div>

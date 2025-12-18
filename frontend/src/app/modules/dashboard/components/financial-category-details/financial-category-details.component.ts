@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
@@ -39,7 +39,7 @@ interface FinancialCategory {
   templateUrl: './financial-category-details.component.html',
   styleUrls: ['./financial-category-details.component.scss']
 })
-export class FinancialCategoryDetailsComponent implements OnInit {
+export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   categoryId: string = '';
   municipalityCode: string = '';
   category: FinancialCategory | null = null;
@@ -577,11 +577,26 @@ export class FinancialCategoryDetailsComponent implements OnInit {
   }
 
   closeModal(): void {
-    console.log('❌ Fechando modal');
-    this.isModalVisible = false;
-    this.selectedDocumentId = '';
+    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
+
+    // IMPORTANTE: Destruir iframe primeiro (antes de esconder o modal)
+    // Isso força o navegador a liberar memória do Google Drive viewer
     this.modalViewerUrl = null;
-    this.modalIsLoading = false;
+
+    // Pequeno delay para garantir que o iframe foi destruído antes de resetar o resto
+    setTimeout(() => {
+      this.selectedDocumentId = '';
+      this.isModalVisible = false;
+      this.modalIsLoading = false;
+      console.log('✅ [MOBILE-FIX] Memória liberada');
+    }, 50);
+  }
+
+  ngOnDestroy(): void {
+    console.log('🗑️ [FINANCIAL-CATEGORY] ngOnDestroy - Limpando memória');
+    // Garantir que modal está fechado e memória liberada
+    this.modalViewerUrl = null;
+    this.selectedDocumentId = '';
   }
 
   loadCategoryMetadata(): void {
