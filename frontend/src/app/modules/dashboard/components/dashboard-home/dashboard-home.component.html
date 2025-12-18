@@ -332,9 +332,9 @@
         </div>
       </div>
 
-      <!-- Document Iframe -->
-      <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
-        [class.hidden]="modalIsLoading" style="z-index: 1 !important; pointer-events: auto;" (load)="modalIoLoaded()">
+      <!-- Document Iframe - Destruído completamente ao fechar para liberar memória -->
+      <iframe *ngIf="modalViewerUrl && !modalIsLoading" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
+        style="z-index: 1 !important; pointer-events: auto;" (load)="modalIoLoaded()">
       </iframe>
 
       <!-- Error State -->

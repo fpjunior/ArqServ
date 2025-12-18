@@ -1,12 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
-import { forkJoin } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { forkJoin, Subject } from 'rxjs';
+import { finalize, takeUntil } from 'rxjs/operators';
 
 interface QuickAction {
   id: string;
@@ -46,7 +46,8 @@ interface LocalDashboardStats {
   templateUrl: './dashboard-home.component.html',
   styleUrls: ['./dashboard-home.component.scss']
 })
-export class DashboardHomeComponent implements OnInit {
+export class DashboardHomeComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   currentUser: User | null = null;
   searchTerm = '';
   isRefreshing = false;
@@ -125,7 +126,7 @@ export class DashboardHomeComponent implements OnInit {
 
   ngOnInit() {
     console.log('🔵 [DASHBOARD-HOME] ngOnInit chamado');
-    this.authService.currentUser$.subscribe(user => {
+    this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
       this.currentUser = user;
     });
 
@@ -138,7 +139,7 @@ export class DashboardHomeComponent implements OnInit {
 
   loadRecentDocuments() {
     console.log('🔵 [DASHBOARD] Carregando documentos recentes...');
-    this.documentsService.getRecentDocuments(6).subscribe({ // Requesting more to allow for filtering
+    this.documentsService.getRecentDocuments(6).pipe(takeUntil(this.destroy$)).subscribe({ // Requesting more to allow for filtering
       next: (response: any) => {
         if (response && response.success && response.data) {
           const allDocs = response.data;
@@ -222,7 +223,7 @@ export class DashboardHomeComponent implements OnInit {
     console.log('🟢 [DASHBOARD] Iniciando carregamento de estatísticas...');
     console.log('🟢 [DASHBOARD] URL da API:', 'http://localhost:3005/api/dashboard/stats');
 
-    this.documentsService.getDashboardStats().subscribe(
+    this.documentsService.getDashboardStats().pipe(takeUntil(this.destroy$)).subscribe(
       (response: any) => {
         console.log('🟢 [DASHBOARD] Resposta recebida:', response);
 
@@ -261,7 +262,7 @@ export class DashboardHomeComponent implements OnInit {
   loadRecentActivities() {
     console.log('🔵 [DASHBOARD] Carregando atividades recentes...');
 
-    this.documentsService.getRecentActivities(10).subscribe({
+    this.documentsService.getRecentActivities(10).pipe(takeUntil(this.destroy$)).subscribe({
       next: (response: any) => {
         console.log('🟢 [DASHBOARD] Atividades recebidas:', response);
 
@@ -451,26 +452,41 @@ export class DashboardHomeComponent implements OnInit {
     let logFileName = doc.title || doc.fileName || 'Documento';
     if (logFileName.trim() === '.') logFileName = 'Documento Visualizado';
 
-    // Registrar visualização e atualizar lista
+    // Registrar visualização (sem recarregar listas para economizar memória no mobile)
     this.documentsService.logView({
       documentId: doc.id,
       driveFileId: doc.googleDriveId || doc.drive_file_id,
       fileName: logFileName
-    }).subscribe({
-      next: () => {
-        this.loadRecentDocuments();
-        this.loadRecentActivities();
-      },
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => console.log('✅ View registrada com sucesso'),
       error: (err) => console.error('Erro ao registrar view:', err)
     });
   }
 
   closeModal() {
-    // Limpeza explícita para ajudar o Garbage Collector do navegador mobile
+    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
+
+    // IMPORTANTE: Destruir iframe primeiro (antes de esconder o modal)
+    // Isso força o navegador a liberar memória do Google Drive viewer
+    this.modalViewerUrl = null;
+
+    // Pequeno delay para garantir que o iframe foi destruído antes de resetar o resto
+    setTimeout(() => {
+      this.selectedFile = null;
+      this.isModalVisible = false;
+      this.modalIsLoading = false;
+      console.log('✅ [MOBILE-FIX] Memória liberada');
+    }, 50);
+  }
+
+  ngOnDestroy() {
+    console.log('🗑️ [DASHBOARD-HOME] ngOnDestroy - Limpando subscriptions');
+    this.destroy$.next();
+    this.destroy$.complete();
+
+    // Garantir que modal está fechado e memória liberada
     this.modalViewerUrl = null;
     this.selectedFile = null;
-    this.isModalVisible = false;
-    this.modalIsLoading = false;
   }
 
 
@@ -563,7 +579,7 @@ export class DashboardHomeComponent implements OnInit {
 
   private fetchStorageInfo(): void {
     console.log('🚀 fetchStorageInfo iniciado');
-    this.documentsService.getDriveStorageInfo().subscribe({
+    this.documentsService.getDriveStorageInfo().pipe(takeUntil(this.destroy$)).subscribe({
       next: (response) => {
         console.log('✅ Resposta recebida do armazenamento:', response);
         if (response.success && response.data) {
