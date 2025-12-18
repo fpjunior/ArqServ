@@ -24,15 +24,7 @@
       </button>
     </div>
 
-    <!-- Seção de busca -->
-    <div class="mb-8">
-      <div class="relative max-w-md">
-        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">🔍</span>
-        <input type="text" placeholder="Buscar servidores"
-          class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors shadow-sm"
-          [(ngModel)]="searchTerm" (input)="onSearch()">
-      </div>
-    </div>
+    <!-- Seção de busca removida -->
 
     <!-- Loading Indicator -->
     <div *ngIf="loading" class="flex justify-center items-center py-12">
