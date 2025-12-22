@@ -512,9 +512,8 @@ class DashboardController {
       // Contar total de servidores (usuários com role 'user')
       console.log('🔄 [DASHBOARD] Buscando servidores...');
       let serversQuery = pool.supabase
-        .from('users')
-        .select('id, created_at, municipality_code', { count: 'exact' })
-        .eq('role', 'user');
+        .from('servers')
+        .select('id, created_at, municipality_code', { count: 'exact' });
 
       // Filtrar por município se for user (não admin)
       if (userRole !== 'admin' && userMunicipality) {
@@ -537,9 +536,8 @@ class DashboardController {
       console.log('🔄 [DASHBOARD] Primeiro dia do mês:', firstDayOfMonth.toISOString());
 
       let serversMonthQuery = pool.supabase
-        .from('users')
+        .from('servers')
         .select('id', { count: 'exact' })
-        .eq('role', 'user')
         .gte('created_at', firstDayOfMonth.toISOString());
 
       // Filtrar por município se for user (não admin)
