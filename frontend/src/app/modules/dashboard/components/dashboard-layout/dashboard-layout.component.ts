@@ -159,7 +159,7 @@ export class DashboardLayoutComponent implements OnInit {
 
     switch (this.currentRoute) {
       case '/dashboard':
-        return 'Bem-vindo ao ArqServ';
+        return `Bem-vindo, ${this.currentUser?.name || 'Usuário'}!`;
       case '/servers':
         return 'Gerenciar Servidores';
       case '/upload':
@@ -189,7 +189,7 @@ export class DashboardLayoutComponent implements OnInit {
 
     switch (this.currentRoute) {
       case '/dashboard':
-        return 'Gestão Compartilhada de Arquivos12ABC';
+        return 'Gerencie seus documentos e servidores de forma eficiente';
       case '/servers':
         return 'Organize servidores por grupos alfabéticos';
       case '/upload':
