@@ -19,6 +19,20 @@ router.post('/login', authController.login);
 router.get('/me', authenticate, authController.me);
 
 /**
+ * @route POST /api/auth/verify-password
+ * @desc Verificar senha atual
+ * @access Private
+ */
+router.post('/verify-password', authenticate, authController.verifyPassword);
+
+/**
+ * @route POST /api/auth/change-password
+ * @desc Alterar senha do usuário
+ * @access Private
+ */
+router.post('/change-password', authenticate, authController.changePassword);
+
+/**
  * @route POST /api/auth/register
  * @desc Cadastro de usuário
  * @access Public (pode ser mudado para Private posteriormente)
@@ -40,9 +54,9 @@ router.get('/users', authController.getUsers);
  * @access Public
  */
 router.get('/test', (req, res) => {
-  res.json({ 
-    message: 'Rota de autenticação funcionando!', 
-    timestamp: new Date().toISOString() 
+  res.json({
+    message: 'Rota de autenticação funcionando!',
+    timestamp: new Date().toISOString()
   });
 });
 

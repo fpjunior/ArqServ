@@ -16,12 +16,19 @@ export class ChangePasswordModalComponent {
     isLoading = false;
     successMessage = '';
     errorMessage = '';
+    isVerified = false;
+    isVerifying = false;
+
+    showCurrentPassword = false;
+    showNewPassword = false;
+    showConfirmPassword = false;
 
     constructor(
         private fb: FormBuilder,
         private authService: AuthService
     ) {
         this.changePasswordForm = this.fb.group({
+            currentPassword: ['', [Validators.required]],
             password: ['', [Validators.required, Validators.minLength(6)]],
             confirmPassword: ['', [Validators.required]]
         }, { validators: this.passwordMatchValidator });
@@ -32,8 +39,43 @@ export class ChangePasswordModalComponent {
             ? null : { mismatch: true };
     }
 
+    verifyCurrentPassword() {
+        const currentPassword = this.changePasswordForm.get('currentPassword')?.value;
+        if (!currentPassword) return;
+
+        this.isVerifying = true;
+        this.errorMessage = '';
+
+        this.authService.verifyCurrentPassword(currentPassword).subscribe({
+            next: (isValid) => {
+                this.isVerifying = false;
+                if (isValid) {
+                    this.isVerified = true;
+                    this.changePasswordForm.get('currentPassword')?.disable();
+                } else {
+                    this.errorMessage = 'Senha atual incorreta.';
+                    this.changePasswordForm.get('currentPassword')?.setErrors({ invalid: true });
+                }
+            },
+            error: () => {
+                this.isVerifying = false;
+                this.errorMessage = 'Erro ao verificar senha.';
+            }
+        });
+    }
+
+    togglePasswordVisibility(field: 'current' | 'new' | 'confirm') {
+        if (field === 'current') {
+            this.showCurrentPassword = !this.showCurrentPassword;
+        } else if (field === 'new') {
+            this.showNewPassword = !this.showNewPassword;
+        } else if (field === 'confirm') {
+            this.showConfirmPassword = !this.showConfirmPassword;
+        }
+    }
+
     onSubmit() {
-        if (this.changePasswordForm.valid) {
+        if (this.changePasswordForm.valid && this.isVerified) {
             this.isLoading = true;
             this.errorMessage = '';
             this.successMessage = '';
@@ -45,6 +87,9 @@ export class ChangePasswordModalComponent {
                     this.isLoading = false;
                     this.successMessage = 'Senha alterada com sucesso!';
                     this.changePasswordForm.reset();
+                    this.isVerified = false;
+                    this.changePasswordForm.get('currentPassword')?.enable();
+
                     // Fechar modal após 2 segundos
                     setTimeout(() => {
                         this.close.emit();

@@ -433,21 +433,30 @@ export class AuthService {
   }
 
   updatePassword(password: string): Observable<any> {
-    const useSupabase = environment.useSupabaseAuth || (environment.supabaseUrl && environment.supabaseAnonKey) ? true : false;
-
-    if (useSupabase) {
-      const supabase = getSupabaseClient();
-      return from(supabase.auth.updateUser({ password })).pipe(
-        map((response: any) => {
-          if (response.error) throw response.error;
-          return response.data;
-        })
-      );
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Fallback for legacy backend if needed, though primarily we use Supabase for auth now
-    return this.http.post(`${this.apiUrl}/auth/change-password`, { password }).pipe(
+    return this.http.post(`${this.apiUrl}/auth/change-password`, { password }, { headers }).pipe(
       catchError(this.handleError)
+    );
+  }
+
+  verifyCurrentPassword(currentPassword: string): Observable<boolean> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return this.http.post<any>(`${this.apiUrl}/auth/verify-password`, { currentPassword }, { headers }).pipe(
+      map(response => response.status === 'SUCCESS' && response.valid),
+      catchError(error => {
+        console.error('Erro ao verificar senha atual:', error);
+        return of(false);
+      })
     );
   }
 

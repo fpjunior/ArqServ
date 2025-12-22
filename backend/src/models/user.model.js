@@ -16,7 +16,7 @@ class User {
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       return data || null;
     } catch (error) {
       console.error('❌ Erro ao buscar usuário por email:', error.message);
@@ -47,10 +47,33 @@ class User {
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       return data || null;
     } catch (error) {
       console.error('❌ Erro ao buscar usuário por ID:', error.message);
+      throw error;
+    }
+  }
+
+
+  /**
+   * Busca usuário por ID INCLUINDO o hash da senha (uso interno para verificação)
+   */
+  static async findByIdWithPassword(id) {
+    try {
+      const { data, error } = await pool.supabase
+        .from('users')
+        .select('*') // Seleciona tudo, incluindo password
+        .eq('id', id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error('❌ Erro ao buscar usuário com senha por ID:', error.message);
       throw error;
     }
   }
@@ -65,7 +88,7 @@ class User {
       'manager': ['documents.read', 'documents.upload', 'servers.read'],
       'user': ['documents.read']
     };
-    
+
     return permissions[role] || [];
   }
 
@@ -87,10 +110,10 @@ class User {
   static async create(userData) {
     try {
       const { name, email, password, role = 'user', municipality_code = null } = userData;
-      
+
       // Hash da senha
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       const { data, error } = await pool.supabase
         .from('users')
         .insert([{
@@ -109,7 +132,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('❌ Erro ao criar usuário:', error.message);
@@ -124,9 +147,9 @@ class User {
   static async createWithAuth(userInput) {
     try {
       const { name, email, password, role = 'user', municipality_code = null } = userInput;
-      
+
       console.log(`📝 Criando usuário: ${email} com role: ${role}`);
-      
+
       // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await pool.supabase.auth.admin.createUser({
         email,
@@ -148,7 +171,7 @@ class User {
 
       // 2. Hash da senha para salvar na tabela users
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       // 3. Criar registro na tabela users
       const { data: dbUser, error: dbError } = await pool.supabase
         .from('users')
@@ -211,7 +234,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data || [];
     } catch (error) {
       console.error('❌ Erro ao buscar usuários:', error.message);
@@ -234,7 +257,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('❌ Erro ao atualizar role:', error.message);
@@ -257,7 +280,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('❌ Erro ao ativar/desativar usuário:', error.message);
@@ -280,7 +303,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('❌ Erro ao atualizar município do usuário:', error.message);
@@ -312,7 +335,7 @@ class User {
       if (error) {
         throw error;
       }
-      
+
       return data || [];
     } catch (error) {
       console.error('❌ Erro ao buscar usuários por município:', error.message);
@@ -326,7 +349,7 @@ class User {
   static async hasAccessToMunicipality(userId, municipalityCode) {
     try {
       const user = await this.findById(userId);
-      
+
       if (!user) {
         return false;
       }
