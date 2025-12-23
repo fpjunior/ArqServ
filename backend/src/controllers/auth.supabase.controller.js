@@ -123,12 +123,22 @@ exports.syncSupabaseUser = async (req, res) => {
     if (user && user.role) {
       role = user.role;
       user_type = user.user_type || user_type;
-      
+
       // Atualizar Supabase metadata se role for diferente
       if (supabaseUser.user_metadata?.role !== role) {
         console.log(`🔄 [AUTH/SUPABASE] Role inconsistente - Supabase: ${supabaseUser.user_metadata?.role}, DB: ${role}`);
         // TODO: Atualizar metadata do Supabase se necessário
       }
+    }
+
+    // IMPORTANTE: Verificar se o usuário está ativo antes de permitir o login
+    if (user && user.active === false) {
+      console.warn(`🚫 [AUTH/SUPABASE] Usuário inativo tentando fazer login: ${email}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Usuário inativo',
+        code: 'USER_INACTIVE'
+      });
     }
 
     console.log(`[AUTH/SUPABASE] Syncing user '${email}'; final role: ${role}, user_type: ${user_type}, municipality_code: ${user.municipality_code}`);
@@ -148,13 +158,13 @@ exports.syncSupabaseUser = async (req, res) => {
     // Generate backend token
     const token = generateToken(userResponse);
 
-    res.json({ 
-      success: true, 
-      message: 'User synced', 
-      data: { 
-        token, 
-        user: userResponse 
-      } 
+    res.json({
+      success: true,
+      message: 'User synced',
+      data: {
+        token,
+        user: userResponse
+      }
     });
   } catch (error) {
     console.error('❌ [AUTH/SUPABASE] Error syncing user:', error);

@@ -47,7 +47,18 @@ export class LoginSimpleComponent {
         error: (error) => {
           this.loading = false;
           console.error('Erro ao fazer login:', error);
-          this.errorMessage = 'Erro ao fazer login. Verifique suas credenciais.';
+
+          // Verificar se é um erro de usuário inativo
+          const errorCode = error?.error?.code || error?.code;
+          const errorMessage = error?.error?.message || error?.message;
+
+          if (errorCode === 'USER_INACTIVE' || errorMessage?.includes('inativo')) {
+            this.errorMessage = 'Login bloqueado, contate um admin do sistema para liberar o acesso.';
+          } else if (errorCode === 'INVALID_CREDENTIALS' || error?.status === 401) {
+            this.errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
+          } else {
+            this.errorMessage = errorMessage || 'Erro ao fazer login. Verifique suas credenciais.';
+          }
         }
       });
     } else {
@@ -64,19 +75,19 @@ export class LoginSimpleComponent {
 
   getErrorMessage(fieldName: string): string {
     const field = this.loginForm.get(fieldName);
-    
+
     if (field?.hasError('required')) {
       return `${fieldName === 'email' ? 'E-mail' : 'Senha'} é obrigatório`;
     }
-    
+
     if (field?.hasError('email')) {
       return 'E-mail inválido';
     }
-    
+
     if (field?.hasError('minlength')) {
       return 'Senha deve ter pelo menos 6 caracteres';
     }
-    
+
     return '';
   }
 

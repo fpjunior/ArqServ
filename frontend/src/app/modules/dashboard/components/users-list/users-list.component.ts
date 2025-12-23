@@ -339,28 +339,29 @@ export class UsersListComponent implements OnInit {
     });
   }
 
-  toggleUserStatus(user: User): void {
-    const action = user.active ? 'desativar' : 'ativar';
-    if (!confirm(`Tem certeza que deseja ${action} o usuário "${user.name}"?`)) {
-      return;
-    }
-
+  toggleUserAccess(user: User): void {
     const token = localStorage.getItem('arqserv_token');
     if (!token) {
       this.router.navigate(['/auth/login']);
       return;
     }
 
-    this.http.patch<any>(`${environment.apiUrl}/admin/users/${user.id}/toggle-active`, {}, {
+    // Atualização otimista da UI
+    const previousState = user.active;
+    user.active = !user.active;
+
+    this.http.patch<any>(`${environment.apiUrl}/admin/users/${user.id}/toggle-active`, { is_active: user.active }, {
       headers: { 'Authorization': `Bearer ${token}` }
     }).subscribe({
       next: (response) => {
-        console.log('✅ Status do usuário alterado:', response);
-        this.loadUsers(); // Recarregar lista para refletir mudança
+        console.log('✅ Acesso do usuário alterado:', response);
+        // UI já foi atualizada otimisticamente
       },
       error: (error) => {
-        console.error('❌ Erro ao alterar status:', error);
-        this.showError('Erro ao Alterar Status', error.error?.message || 'Falha ao alterar status do usuário.');
+        console.error('❌ Erro ao alterar acesso:', error);
+        // Reverter atualização otimista em caso de erro
+        user.active = previousState;
+        this.showError('Erro ao Alterar Acesso', error.error?.message || 'Falha ao alterar acesso do usuário.');
       }
     });
   }

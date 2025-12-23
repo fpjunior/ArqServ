@@ -249,21 +249,71 @@ export class AuthService {
           }
           const session = result.data?.session;
           const user = result.data?.user;
-          // Normalize result to previous API response format for compatibility
-          const loginResponse: any = {
-            status: 'SUCCESS',
-            message: 'Login via Supabase OK',
-            data: {
-              token: session.access_token,
-              user: {
-                id: user.id as unknown as number,
-                email: user.email || '',
-                name: user.user_metadata?.name || user.email || '',
-                role: user.user_metadata?.role || 'user'
+
+          // IMPORTANTE: Após login bem-sucedido no Supabase, verificar se usuário está ativo no backend
+          console.log('🔐 [AUTH] Supabase login OK, verificando status no backend...');
+
+          // Fazer chamada ao backend para verificar status e sincronizar
+          const headers = { Authorization: `Bearer ${session.access_token}` };
+          return this.http.post<any>(`${this.apiUrl}/auth/supabase/sync`, {}, { headers }).pipe(
+            switchMap((syncResponse: any) => {
+              // Se sincronização retornou e o usuário está ativo
+              if (syncResponse?.data?.user) {
+                const backendUser = syncResponse.data.user;
+
+                // Verificar se usuário está ativo
+                if (backendUser.active === false) {
+                  console.warn('❌ [AUTH] Usuário inativo no backend - bloqueando acesso');
+                  // Fazer logout do Supabase
+                  supabase.auth.signOut();
+                  return throwError(() => ({
+                    error: { code: 'USER_INACTIVE', message: 'Usuário inativo' },
+                    status: 403
+                  }));
+                }
+
+                console.log('✅ [AUTH] Usuário ativo no backend:', backendUser.email);
+
+                // Usar token e dados do backend
+                const loginResponse: any = {
+                  status: 'SUCCESS',
+                  message: 'Login via Supabase OK',
+                  data: {
+                    token: syncResponse.data.token || session.access_token,
+                    user: backendUser
+                  }
+                };
+                return of({ origin: 'supabase', response: loginResponse });
               }
-            }
-          };
-          return of({ origin: 'supabase', response: loginResponse });
+
+              // Fallback se sync não retornou dados - verificar via backend login
+              console.warn('⚠️ [AUTH] Sync não retornou dados, tentando backend direto');
+              return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password }).pipe(
+                map(response => ({ origin: 'backend', response }))
+              );
+            }),
+            catchError((syncError) => {
+              console.warn('⚠️ [AUTH] Erro no sync:', syncError);
+
+              // Se for erro de usuário inativo, não tentar fallback, apenas lançar erro
+              const isInactive = syncError?.error?.code === 'USER_INACTIVE' ||
+                syncError?.status === 403 ||
+                (syncError?.error?.message && syncError.error.message.includes('inativo'));
+
+              if (isInactive) {
+                console.warn('🚫 [AUTH] Bloqueando fallback pois usuário está inativo');
+                // Garantir logout do supabase caso não tenha sido feito
+                supabase.auth.signOut();
+                return throwError(() => syncError);
+              }
+
+              console.warn('⚠️ [AUTH] Erro genérico no sync, tentando backend login fallback');
+              // Se sync falhou por outro motivo (ex: rede), tentar login direto no backend
+              return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password }).pipe(
+                map(response => ({ origin: 'backend', response }))
+              );
+            })
+          );
         }),
         // If request failed due to network or timeout, try the legacy backend login
         catchError((err) => {
@@ -276,15 +326,10 @@ export class AuthService {
             })
           );
         }),
-        // Handle both origins and optionally sync only when origin is supabase
-        map((payload: any) => payload),
+        // Handle both origins
         tap((payload: any) => {
           const response = payload.response || payload;
           this.handleAuthResponse(response);
-          if (payload.origin === 'supabase') {
-            // Sync with backend (create user in backend if needed and get backend token)
-            this.syncWithBackend().subscribe({ next: () => { }, error: () => { } });
-          }
         }),
         // finally map back to original LoginResponse for consumers
         map((payload: any) => payload.response || payload)
