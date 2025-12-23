@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
@@ -57,6 +57,7 @@ interface Server {
 })
 export class UploadDocumentsComponent implements OnInit {
   uploadForm!: FormGroup;
+  @ViewChild('fileInput') fileInputRef!: ElementRef;
   selectedFile: File | null = null;
   isDragOver = false;
   isUploading = false;
@@ -228,6 +229,9 @@ export class UploadDocumentsComponent implements OnInit {
     event.stopPropagation();
     this.selectedFile = null;
     this.uploadProgress = 0;
+    if (this.fileInputRef) {
+      this.fileInputRef.nativeElement.value = '';
+    }
   }
 
   // Método para carregar servidores quando município for selecionado
@@ -317,6 +321,9 @@ export class UploadDocumentsComponent implements OnInit {
   resetForm(): void {
     this.uploadForm.reset();
     this.selectedFile = null;
+    if (this.fileInputRef) {
+      this.fileInputRef.nativeElement.value = '';
+    }
     this.uploadProgress = 0;
     this.isDragOver = false;
   }
@@ -662,6 +669,9 @@ export class UploadDocumentsComponent implements OnInit {
 
     this.uploadForm.reset();
     this.selectedFile = null;
+    if (this.fileInputRef) {
+      this.fileInputRef.nativeElement.value = '';
+    }
     this.uploadProgress = 0;
     this.isUploading = false;
     this.isDragOver = false;
