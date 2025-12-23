@@ -252,31 +252,6 @@
       </div>
     </div>
 
-    <!-- Ações Rápidas (Moved to Bottom) -->
-    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="bg-yellow-100 p-2 rounded-lg">
-          <span class="text-yellow-600 text-xl">⚡</span>
-        </div>
-        <h2 class="text-2xl font-bold text-gray-800">Ações Rápidas</h2>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div *ngFor="let action of getFilteredQuickActions()" title="Em desenvolvimento"
-          class="bg-white/50 rounded-xl p-6 border border-gray-100 opacity-60 cursor-not-allowed contrast-75 grayscale-[0.5] hover:grayscale-0 transition-all">
-          <div class="flex items-center gap-4">
-            <div class="bg-gray-100 w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400">
-              {{ action.icon }}
-            </div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-gray-600 mb-1">{{ action.title }}</h3>
-              <p class="text-gray-500 text-sm">{{ action.description }}</p>
-            </div>
-            <!-- Seta removida para indicar inatividade -->
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
