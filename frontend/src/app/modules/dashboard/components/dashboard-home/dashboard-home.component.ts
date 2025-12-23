@@ -116,6 +116,8 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   selectedFile: any | null = null;
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
+  private isIframeDestroying = false;
+  private readonly BLANK_URL = 'about:blank';
 
   constructor(
     private documentsService: DocumentsService,
@@ -414,6 +416,64 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   viewDocument(doc: any) {
     console.log('👁️ [DASHBOARD] Visualizando documento:', doc);
 
+    // 🚨 CRITICAL MOBILE FIX: Destruir iframe anterior ANTES de carregar novo
+    if (this.isModalVisible || this.modalViewerUrl) {
+      console.log('🧹 [MOBILE-FIX] Limpando iframe anterior antes de carregar novo documento...');
+      this.destroyIframeCompletely(() => {
+        // Callback: Após destruição completa, carregar novo documento
+        this.loadDocumentInModal(doc);
+      });
+      return;
+    }
+
+    // Se não há iframe anterior, carregar diretamente
+    this.loadDocumentInModal(doc);
+  }
+
+  /**
+   * 🧹 MOBILE OPTIMIZATION: Destrói completamente o iframe anterior
+   * Libera memória antes de carregar novo documento
+   */
+  private destroyIframeCompletely(callback?: () => void) {
+    if (this.isIframeDestroying) {
+      console.warn('⚠️ [MOBILE-FIX] Destruição já em andamento, aguardando...');
+      setTimeout(() => callback?.(), 200);
+      return;
+    }
+
+    this.isIframeDestroying = true;
+    console.log('🗑️ [MOBILE-FIX] Iniciando destruição completa do iframe...');
+
+    // PASSO 1: Substituir URL por about:blank para liberar recursos
+    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.BLANK_URL);
+    this.modalIsLoading = false;
+
+    // PASSO 2: Forçar detecção de mudanças
+    this.cdr.detectChanges();
+
+    // PASSO 3: Aguardar navegador processar about:blank (crítico para mobile)
+    setTimeout(() => {
+      // PASSO 4: Remover iframe do DOM
+      this.modalViewerUrl = null;
+      this.selectedFile = null;
+      this.isModalVisible = false;
+
+      // PASSO 5: Forçar detecção novamente
+      this.cdr.detectChanges();
+
+      // PASSO 6: Aguardar garbage collection do navegador
+      setTimeout(() => {
+        this.isIframeDestroying = false;
+        console.log('✅ [MOBILE-FIX] Iframe completamente destruído e memória liberada');
+        callback?.();
+      }, 150);
+    }, 100);
+  }
+
+  /**
+   * Carrega documento no modal (método auxiliar)
+   */
+  private loadDocumentInModal(doc: any) {
     // Fallback: Se não tiver googleDriveId mas o ID for 'drive_XXX', extrair
     if (!doc.googleDriveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
       doc.googleDriveId = doc.id.replace('drive_', '');
@@ -429,16 +489,18 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       urlToUse = doc.filePath;
     }
 
-    // 📱 MOBILE & DESKTOP: Abrir em Modal
-    // O usuário relatou preferência pelo modal. 
-    // Para evitar memory leaks no mobile, focamos em destruir o iframe no closeModal.
+    // Configurar modal
     this.selectedFile = doc;
     this.modalIsLoading = true;
     this.isModalVisible = true;
     this.modalViewerUrl = null;
 
     if (urlToUse) {
-      this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(urlToUse);
+      // Pequeno delay para garantir que o DOM está pronto (especialmente após destruição)
+      setTimeout(() => {
+        this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(urlToUse);
+        this.cdr.detectChanges();
+      }, 50);
     } else {
       this.modalIsLoading = false;
       console.error('Nenhuma URL de visualização encontrada para o documento');
@@ -465,25 +527,8 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   closeModal() {
-    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
-
-    // PASSO 1: Limpar URL do iframe IMEDIATAMENTE
-    this.modalViewerUrl = null;
-    this.modalIsLoading = false;
-
-    // PASSO 2: Forçar detecção de mudanças para remover iframe do DOM AGORA
-    this.cdr.detectChanges();
-
-    // PASSO 3: Aguardar um ciclo de renderização para garantir remoção do DOM
-    setTimeout(() => {
-      this.selectedFile = null;
-      this.isModalVisible = false;
-
-      // PASSO 4: Forçar outra detecção para garantir que o modal foi removido
-      this.cdr.detectChanges();
-
-      console.log('✅ [MOBILE-FIX] Modal completamente removido do DOM');
-    }, 100);
+    console.log('🔒 [MOBILE-FIX] Usuário fechou modal, limpando memória...');
+    this.destroyIframeCompletely();
   }
 
   ngOnDestroy() {
