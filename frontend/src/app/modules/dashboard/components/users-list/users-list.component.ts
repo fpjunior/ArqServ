@@ -45,13 +45,13 @@ export class UsersListComponent implements OnInit {
   isLoading = true;
   searchTerm = '';
   selectedFilter = 'all';
-  
+
   // Paginação
   currentPage = 1;
   itemsPerPage = 10;
   totalPages = 0;
   totalItems = 0;
-  
+
   // Municípios
   municipalities: Municipality[] = [];
   loadingMunicipalities = false;
@@ -62,7 +62,7 @@ export class UsersListComponent implements OnInit {
   // Modal de criação de usuário
   showCreateModal = false;
   isCreating = false;
-  
+
   // Modal de sucesso
   showSuccessModal = false;
   successModalData: {
@@ -71,17 +71,17 @@ export class UsersListComponent implements OnInit {
     userRole: string;
     userMunicipality?: string;
   } = {
-    userName: '',
-    userEmail: '',
-    userRole: '',
-    userMunicipality: ''
-  };
-  
+      userName: '',
+      userEmail: '',
+      userRole: '',
+      userMunicipality: ''
+    };
+
   // Modal de erro
   showErrorModal = false;
   errorMessage = '';
   errorTitle = 'Erro';
-  
+
   createUserForm: CreateUserForm = {
     name: '',
     email: '',
@@ -91,11 +91,29 @@ export class UsersListComponent implements OnInit {
     municipality_code: ''
   };
 
+  // Modal de Edição
+  showEditModal = false;
+  isEditing = false;
+  editUserForm: CreateUserForm = {
+    name: '',
+    email: '',
+    password: '', // Não usado na edição por enquanto
+    confirmPassword: '', // Não usado na edição por enquanto
+    role: '',
+    municipality_code: ''
+  };
+  editingUserId: number | null = null;
+
+  // Modal de Deleção
+  showDeleteModal = false;
+  isDeleting = false;
+  userToDelete: User | null = null;
+
   constructor(
     private router: Router,
     private http: HttpClient
     , private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -107,10 +125,10 @@ export class UsersListComponent implements OnInit {
 
   loadUsers(): void {
     this.isLoading = true;
-    
+
     // Pegar token do localStorage
     const token = localStorage.getItem('arqserv_token');
-    
+
     if (!token) {
       console.error('❌ Token não encontrado');
       this.isLoading = false;
@@ -118,7 +136,7 @@ export class UsersListComponent implements OnInit {
       this.router.navigate(['/auth/login']);
       return;
     }
-    
+
     // Buscar usuários do endpoint admin
     this.http.get<any>(`${environment.apiUrl}/admin/users`, {
       headers: {
@@ -135,7 +153,7 @@ export class UsersListComponent implements OnInit {
       error: (error) => {
         console.error('❌ Erro ao carregar usuários:', error);
         this.isLoading = false;
-        
+
         if (error.status === 401 || error.status === 403) {
           this.showError('Sem Permissão', 'Você não tem permissão para acessar esta página.');
           this.router.navigate(['/dashboard']);
@@ -158,12 +176,12 @@ export class UsersListComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredUsers = this.users.filter(user => {
-      const matchesSearch = 
+      const matchesSearch =
         user.name.toLowerCase().includes(this.searchTerm) ||
         user.email.toLowerCase().includes(this.searchTerm) ||
         user.role.toLowerCase().includes(this.searchTerm);
 
-      const matchesFilter = 
+      const matchesFilter =
         this.selectedFilter === 'all' ||
         this.selectedFilter === user.role ||
         (this.selectedFilter === 'active' && user.active) ||
@@ -171,7 +189,7 @@ export class UsersListComponent implements OnInit {
 
       return matchesSearch && matchesFilter;
     });
-    
+
     this.currentPage = 1; // Reset para primeira página ao filtrar
     this.updatePagination();
   }
@@ -202,21 +220,149 @@ export class UsersListComponent implements OnInit {
     });
   }
 
+
+
   editUser(user: User): void {
     console.log('Editar usuário:', user);
-    // TODO: Implementar edição
+    this.editingUserId = user.id;
+    this.editUserForm = {
+      name: user.name,
+      email: user.email,
+      password: '',
+      confirmPassword: '',
+      role: user.role,
+      municipality_code: (user as any).municipality_code || ''
+    };
+
+    // Carregar municípios se necessário
+    if (this.municipalities.length === 0) {
+      this.loadMunicipalities();
+    }
+
+    this.showEditModal = true;
+  }
+
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.editingUserId = null;
+    this.resetCreateForm(); // Reusa lógica de reset
+  }
+
+  updateUser(): void {
+    if (!this.editingUserId) return;
+
+    // Validações básicas
+    if (!this.editUserForm.name || !this.editUserForm.email || !this.editUserForm.role) {
+      this.showError('Campos Obrigatórios', 'Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (this.editUserForm.role === 'user' && !this.editUserForm.municipality_code) {
+      this.showError('Município Obrigatório', 'Por favor, selecione um município para usuários do tipo "Usuário".');
+      return;
+    }
+
+    this.isEditing = true;
+    const token = localStorage.getItem('arqserv_token');
+
+    if (!token) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    const updateData = {
+      name: this.editUserForm.name,
+      email: this.editUserForm.email,
+      role: this.editUserForm.role,
+      municipality_code: this.editUserForm.municipality_code
+    };
+
+    this.http.put<any>(`${environment.apiUrl}/admin/users/${this.editingUserId}`, updateData, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Usuário atualizado:', response);
+        this.isEditing = false;
+        this.closeEditModal();
+        this.loadUsers(); // Recarregar lista
+
+        // Mostrar sucesso (opcional, usando snackbar seria melhor, mas vamos usar o modal de sucesso existente)
+        this.successModalData = {
+          userName: this.editUserForm.name,
+          userEmail: this.editUserForm.email,
+          userRole: this.editUserForm.role === 'admin' ? 'Administrador' : 'Usuário',
+          userMunicipality: 'Atualizado com Sucesso'
+        };
+        this.showSuccessModal = true;
+      },
+      error: (error) => {
+        console.error('❌ Erro ao atualizar:', error);
+        this.isEditing = false;
+        this.showError('Erro na Atualização', error.error?.message || 'Falha ao atualizar usuário.');
+      }
+    });
+  }
+
+
+
+  deleteUser(user: User): void {
+    this.userToDelete = user;
+    this.showDeleteModal = true;
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.userToDelete = null;
+  }
+
+  confirmDeleteUser(): void {
+    if (!this.userToDelete) return;
+
+    this.isDeleting = true;
+    const token = localStorage.getItem('arqserv_token');
+
+    this.http.delete<any>(`${environment.apiUrl}/admin/users/${this.userToDelete.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Usuário excluído:', response);
+        this.isDeleting = false;
+        this.closeDeleteModal();
+        this.loadUsers();
+      },
+      error: (error) => {
+        console.error('❌ Erro ao excluir:', error);
+        this.isDeleting = false;
+        this.closeDeleteModal(); // Fecha modal de confirmação para mostrar o erro
+        this.showError('Erro na Exclusão', error.error?.message || 'Falha ao excluir usuário.');
+      }
+    });
   }
 
   toggleUserStatus(user: User): void {
-    console.log('Alterar status do usuário:', user);
-    // TODO: Implementar ativação/desativação
-  }
-
-  deleteUser(user: User): void {
-    if (confirm(`Tem certeza que deseja excluir o usuário "${user.name}"?`)) {
-      console.log('Excluir usuário:', user);
-      // TODO: Implementar exclusão
+    const action = user.active ? 'desativar' : 'ativar';
+    if (!confirm(`Tem certeza que deseja ${action} o usuário "${user.name}"?`)) {
+      return;
     }
+
+    const token = localStorage.getItem('arqserv_token');
+    if (!token) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    this.http.patch<any>(`${environment.apiUrl}/admin/users/${user.id}/toggle-active`, {}, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Status do usuário alterado:', response);
+        this.loadUsers(); // Recarregar lista para refletir mudança
+      },
+      error: (error) => {
+        console.error('❌ Erro ao alterar status:', error);
+        this.showError('Erro ao Alterar Status', error.error?.message || 'Falha ao alterar status do usuário.');
+      }
+    });
   }
 
   getRoleLabel(role: string): string {
@@ -269,11 +415,11 @@ export class UsersListComponent implements OnInit {
   updatePagination(): void {
     this.totalItems = this.filteredUsers.length;
     this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
-    
+
     if (this.currentPage > this.totalPages) {
       this.currentPage = 1;
     }
-    
+
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     this.paginatedUsers = this.filteredUsers.slice(startIndex, endIndex);
@@ -297,18 +443,18 @@ export class UsersListComponent implements OnInit {
   getPageNumbers(): number[] {
     const pages: number[] = [];
     const maxVisiblePages = 5;
-    
+
     let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     return pages;
   }
 
@@ -388,9 +534,9 @@ export class UsersListComponent implements OnInit {
     }
 
     this.isCreating = true;
-    
+
     const token = localStorage.getItem('arqserv_token');
-    
+
     if (!token) {
       this.showError('Login Necessário', 'Você precisa estar logado para realizar esta ação.');
       this.router.navigate(['/auth/login']);
@@ -418,21 +564,21 @@ export class UsersListComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('✅ Usuário criado:', response);
-        
+
         // Preencher dados do modal de sucesso
         this.successModalData = {
           userName: this.createUserForm.name,
           userEmail: this.createUserForm.email,
           userRole: this.createUserForm.role === 'admin' ? 'Administrador' : 'Usuário',
-          userMunicipality: this.createUserForm.role === 'user' 
+          userMunicipality: this.createUserForm.role === 'user'
             ? this.municipalities.find(m => m.code === this.createUserForm.municipality_code)?.name || 'N/A'
             : undefined
         };
-        
+
         // Fechar modal de criação e mostrar modal de sucesso
         this.closeCreateModal();
         this.showSuccessModal = true;
-        
+
         // Recarregar lista
         this.loadUsers();
         this.isCreating = false;
@@ -440,7 +586,7 @@ export class UsersListComponent implements OnInit {
       error: (error) => {
         console.error('❌ Erro ao criar usuário:', error);
         this.isCreating = false;
-        
+
         // Determinar título e mensagem do erro
         if (error.error?.code === 'EMAIL_EXISTS') {
           this.errorTitle = 'Email já Cadastrado';
@@ -458,7 +604,7 @@ export class UsersListComponent implements OnInit {
           this.errorTitle = 'Erro Inesperado';
           this.errorMessage = 'Ocorreu um erro ao tentar criar o usuário. Tente novamente.';
         }
-        
+
         // Mostrar modal de erro
         this.showErrorModal = true;
       }
@@ -468,7 +614,7 @@ export class UsersListComponent implements OnInit {
   loadMunicipalities(): void {
     this.loadingMunicipalities = true;
     console.log('🏛️ Carregando municípios da API...');
-    
+
     this.http.get<any>(`${environment.apiUrl}/municipalities`).subscribe({
       next: (response) => {
         if (response.success && response.data) {
@@ -478,7 +624,7 @@ export class UsersListComponent implements OnInit {
             name: municipality.name,
             state: municipality.state
           })).sort((a: any, b: any) => a.name.localeCompare(b.name));
-          
+
           console.log(`✅ ${this.municipalities.length} municípios carregados da API`);
         } else {
           console.warn('⚠️ API retornou resposta sem dados, usando lista mockada');

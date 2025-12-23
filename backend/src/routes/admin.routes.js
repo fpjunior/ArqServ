@@ -146,6 +146,90 @@ router.patch('/users/:userId/role', authenticate, requireAdmin, async (req, res)
 });
 
 /**
+ * PUT /api/admin/users/:userId
+ * Atualiza dados do usuário
+ */
+router.put('/users/:userId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, email, role, municipality_code } = req.body;
+
+    // Validação básica
+    if (!name || !email || !role) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Nome, email e nível de acesso são obrigatórios',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    if (!['admin', 'user', 'manager'].includes(role)) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Role inválida',
+        code: 'INVALID_ROLE'
+      });
+    }
+
+    if (role === 'user' && !municipality_code) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Município é obrigatório para usuários comuns',
+        code: 'MISSING_MUNICIPALITY'
+      });
+    }
+
+    const updatedUser = await User.update(userId, { name, email, role, municipality_code });
+
+    res.json({
+      status: 'SUCCESS',
+      message: 'Usuário atualizado com sucesso',
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar usuário:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro ao atualizar usuário',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:userId
+ * Remove um usuário
+ */
+router.delete('/users/:userId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Evitar que admin se delete (opcional, mas recomendado)
+    if (req.user.id == userId) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Você não pode excluir sua própria conta',
+        code: 'SELF_DELETION'
+      });
+    }
+
+    await User.delete(userId);
+
+    res.json({
+      status: 'SUCCESS',
+      message: 'Usuário excluído com sucesso'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao excluir usuário:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erro ao excluir usuário',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
  * PATCH /api/admin/users/:userId/toggle-active
  * Ativa/desativa um usuário
  */
