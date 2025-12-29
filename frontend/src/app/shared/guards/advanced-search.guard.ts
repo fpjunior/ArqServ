@@ -1,0 +1,38 @@
+import { Injectable } from '@angular/core';
+import { CanActivate, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+
+@Injectable({ providedIn: 'root' })
+export class AdvancedSearchGuard implements CanActivate {
+    constructor(private authService: AuthService, private router: Router) { }
+
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+        const user = this.authService.getCurrentUser();
+        console.log('🔐 [AdvancedSearchGuard] Verificando acesso - Usuário:', user);
+
+        if (!user) {
+            console.log('❌ [AdvancedSearchGuard] Usuário não logado, redirecionando para login');
+            this.router.navigate(['/auth/login']);
+            return false;
+        }
+
+        // Se for admin, permite acessar o seletor de municípios
+        if (user.role === 'admin') {
+            console.log('✅ [AdvancedSearchGuard] Admin acessando seletor de municípios');
+            return true;
+        }
+
+        // Se for user, redireciona direto para a busca do seu município
+        if (user.role === 'user' && user.municipality_code) {
+            console.log(`🏢 [AdvancedSearchGuard] User redirecionando para município: ${user.municipality_code}`);
+            this.router.navigate(['/busca-avancada/municipality', user.municipality_code]);
+            return false;
+        }
+
+        // Se for user sem município vinculado, redireciona para dashboard
+        console.log('⚠️ [AdvancedSearchGuard] Usuário sem município vinculado');
+        this.router.navigate(['/dashboard']);
+        return false;
+    }
+}

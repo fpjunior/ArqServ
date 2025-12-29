@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './shared/guards/auth.guard';
 import { AdminGuard } from './shared/guards/admin.guard';
 import { FinancialDocumentsGuard } from './shared/guards/financial-documents.guard';
+import { AdvancedSearchGuard } from './shared/guards/advanced-search.guard';
 
 export const routes: Routes = [
   {
@@ -60,7 +61,8 @@ export const routes: Routes = [
         path: 'documentacoes-financeiras',
         loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component')
           .then(m => m.MunicipalitySelectorComponent),
-        canActivate: [FinancialDocumentsGuard]
+        canActivate: [FinancialDocumentsGuard],
+        data: { context: 'financial' }
       },
       {
         path: 'documentacoes-financeiras/municipality/:municipalityCode',
@@ -88,9 +90,22 @@ export const routes: Routes = [
           .then(m => m.UserRegistrationComponent)
       },
       {
+        path: 'busca-avancada',
+        loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component')
+          .then(m => m.MunicipalitySelectorComponent),
+        canActivate: [AdvancedSearchGuard],
+        data: { context: 'search' }
+      },
+      {
+        path: 'busca-avancada/municipality/:municipalityCode',
+        loadComponent: () => import('./modules/dashboard/components/advanced-search/advanced-search.component')
+          .then(m => m.AdvancedSearchComponent)
+      },
+      {
         path: 'admin/municipalities',
         loadComponent: () => import('./modules/admin/components/municipality-selector/municipality-selector.component').then(m => m.MunicipalitySelectorComponent),
-        canActivate: [AdminGuard]
+        canActivate: [AdminGuard],
+        data: { context: 'servers' }
       }
     ]
   },

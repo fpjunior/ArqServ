@@ -1,0 +1,279 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <!-- Header -->
+    <div class="mb-8 pt-6 px-6">
+        <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <button (click)="navigateBack()"
+                    class="p-2 hover:bg-white/80 rounded-xl transition-colors shadow-sm border border-gray-200">
+                    <span class="text-xl">←</span>
+                </button>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Busca Avançada</h1>
+                    <p class="text-gray-600 mt-1 text-sm md:text-base">
+                        {{ municipalityName || 'Carregando...' }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200 w-full md:w-auto">
+                <div class="text-center md:text-right">
+                    <div class="text-2xl font-bold text-gray-900">{{ searchResults.length }}</div>
+                    <div class="text-sm text-gray-500">Resultados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Filters -->
+    <div class="px-6 mb-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <mat-icon class="text-blue-600">filter_list</mat-icon>
+                Filtros de Busca
+            </h2>
+
+            <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="space-y-4">
+                <!-- Search Query -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar por nome ou título</label>
+                    <input type="text" formControlName="query" placeholder="Digite o nome do documento ou servidor..."
+                        class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Filters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Year -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ano</label>
+                        <select formControlName="year"
+                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                            <option value="all">Todos os anos</option>
+                            <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Document Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento</label>
+                        <select formControlName="documentType"
+                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                            <option *ngFor="let type of documentTypes" [value]="type.value">{{ type.label }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Gender (for servers) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gênero</label>
+                        <select formControlName="gender"
+                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                            <option *ngFor="let gender of genderOptions" [value]="gender.value">{{ gender.label }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Date From -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Inicial</label>
+                        <input type="date" formControlName="dateFrom"
+                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Date To (full width) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Final</label>
+                        <input type="date" formControlName="dateTo"
+                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button type="button" (click)="clearFilters()"
+                        class="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors">
+                        Limpar Filtros
+                    </button>
+                    <button type="submit" [disabled]="isLoading"
+                        class="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none flex items-center gap-2">
+                        <mat-spinner *ngIf="isLoading" diameter="20" class="brightness-0 invert"></mat-spinner>
+                        <mat-icon *ngIf="!isLoading">search</mat-icon>
+                        <span>{{ isLoading ? 'Buscando...' : 'Buscar' }}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="px-6 pb-6">
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="text-center py-12">
+            <div class="inline-block">
+                <div class="animate-spin">
+                    <div class="h-12 w-12 border-4 border-gray-300 border-t-blue-600 rounded-full"></div>
+                </div>
+                <p class="mt-4 text-gray-600 font-medium">Buscando documentos...</p>
+            </div>
+        </div>
+
+        <!-- Empty State - No Search Yet -->
+        <div *ngIf="!isLoading && !hasSearched"
+            class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <mat-icon class="text-blue-600 text-4xl">search</mat-icon>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Pronto para buscar</h3>
+            <p class="text-gray-600">Use os filtros acima para encontrar documentos e servidores</p>
+        </div>
+
+        <!-- Empty State - No Results -->
+        <div *ngIf="!isLoading && hasSearched && searchResults.length === 0"
+            class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <mat-icon class="text-gray-400 text-4xl">search_off</mat-icon>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum resultado encontrado</h3>
+            <p class="text-gray-600">Tente ajustar os filtros de busca</p>
+        </div>
+
+        <!-- Results Grid -->
+        <div *ngIf="!isLoading && searchResults.length > 0"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div *ngFor="let result of searchResults"
+                class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 overflow-hidden group">
+
+                <!-- Document Header -->
+                <div class="p-6 border-b border-gray-100">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                                [class.bg-blue-100]="result.type === 'server'"
+                                [class.bg-green-100]="result.type === 'financial'">
+                                <mat-icon [class.text-blue-600]="result.type === 'server'"
+                                    [class.text-green-600]="result.type === 'financial'">
+                                    {{ getDocumentIcon(result.type) }}
+                                </mat-icon>
+                            </div>
+                            <div>
+                                <span class="text-xs font-semibold px-2 py-1 rounded-full"
+                                    [class.bg-blue-100]="result.type === 'server'"
+                                    [class.text-blue-700]="result.type === 'server'"
+                                    [class.bg-green-100]="result.type === 'financial'"
+                                    [class.text-green-700]="result.type === 'financial'">
+                                    {{ getDocumentTypeLabel(result.type) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">{{ result.title }}</h3>
+
+                    <!-- Server Name Display -->
+                    <div *ngIf="result.server_name" class="flex items-center gap-1.5 mb-3 text-gray-600">
+                        <mat-icon
+                            class="text-sm w-4 h-4 text-gray-400 flex items-center justify-center">person_outline</mat-icon>
+                        <span class="text-sm font-medium">{{ result.server_name }}</span>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 text-sm text-gray-600">
+                        <span *ngIf="result.year" class="flex items-center gap-1">
+                            <mat-icon class="text-base">calendar_today</mat-icon>
+                            {{ result.year }}
+                        </span>
+                        <span *ngIf="result.gender" class="flex items-center gap-1">
+                            <mat-icon class="text-base">person</mat-icon>
+                            {{ result.gender === 'M' ? 'Masculino' : 'Feminino' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Document Footer -->
+                <div class="p-4 bg-gray-50 flex items-center justify-between">
+                    <span class="text-xs text-gray-500">{{ formatDate(result.created_at) }}</span>
+                    <div class="flex gap-2">
+                        <button (click)="viewDocument(result)"
+                            class="p-2 text-gray-400 hover:text-green-600 transition-colors rounded-lg hover:bg-green-50"
+                            title="Visualizar">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                        <button (click)="downloadDocument(result)"
+                            class="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                            title="Baixar">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div *ngIf="isModalVisible"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 modal-overlay"
+    (click)="closeModal()">
+    <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl overflow-hidden z-[9999] modal-content"
+        (click)="$event.stopPropagation()">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b bg-gray-50">
+            <div class="flex items-center space-x-3">
+                <!-- Icon logic can be simplified or adapted if needed -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ selectedFile?.title }}</h3>
+                    <p class="text-sm text-gray-600">{{ selectedFile?.file_name }}</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button (click)="downloadDocument(selectedFile!)"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                    <span>⬇️</span>
+                    <span>Baixar</span>
+                </button>
+                <button (click)="closeModal()"
+                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="flex-1 relative h-full">
+            <!-- Loading Spinner -->
+            <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Carregando documento...</p>
+                </div>
+            </div>
+
+            <!-- Document Iframe -->
+            <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
+                style="z-index: 1 !important; pointer-events: auto;" (load)="modalIsLoading = false">
+            </iframe>
+
+            <!-- Error State -->
+            <div *ngIf="!modalIsLoading && !modalViewerUrl"
+                class="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div class="text-center">
+                    <div class="text-red-500 text-6xl mb-4">❌</div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Erro ao carregar documento</h3>
+                    <p class="text-gray-600">Não foi possível carregar o documento para visualização.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

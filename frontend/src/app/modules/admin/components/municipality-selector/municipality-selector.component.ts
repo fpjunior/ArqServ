@@ -25,7 +25,7 @@ export class MunicipalitySelectorComponent implements OnInit {
   isLoading: boolean = false;
   searchQuery: string = '';
 
-  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute) {}
+  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute) { }
 
   ngOnInit(): void {
     this.loadMunicipalities();
@@ -59,15 +59,22 @@ export class MunicipalitySelectorComponent implements OnInit {
 
   selectMunicipality(municipalityCode: string): void {
     sessionStorage.setItem('selectedMunicipalityCode', municipalityCode);
-    
-    // Verificar a URL atual para decidir para onde redirecionar
-    const currentUrl = this.router.url;
-    console.log(`🔀 [MUNICIPALITY-SELECTOR] URL atual: ${currentUrl}, Município: ${municipalityCode}`);
-    
-    if (currentUrl.includes('documentacoes-financeiras')) {
-      this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode]);
-    } else {
-      this.router.navigate(['/servers/municipality', municipalityCode]);
+
+    // Verificar o contexto da rota via active route data
+    const context = this.route.snapshot.data['context'];
+    console.log(`🔀 [MUNICIPALITY-SELECTOR] Contexto: ${context}, Município: ${municipalityCode}`);
+
+    switch (context) {
+      case 'financial':
+        this.router.navigate(['/documentacoes-financeiras/municipality', municipalityCode]);
+        break;
+      case 'search':
+        this.router.navigate(['/busca-avancada/municipality', municipalityCode]);
+        break;
+      case 'servers':
+      default:
+        this.router.navigate(['/servers/municipality', municipalityCode]);
+        break;
     }
   }
 }

@@ -548,4 +548,42 @@ export class DocumentsService {
       })
     );
   }
+
+  /**
+   * Advanced search for documents and servers
+   */
+  advancedSearch(filters: {
+    municipalityCode: string;
+    query?: string;
+    year?: string | number;
+    documentType?: string;
+    gender?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams();
+
+    Object.keys(filters).forEach(key => {
+      const value = filters[key as keyof typeof filters];
+      if (value !== undefined && value !== null && value !== '' && value !== 'all') {
+        params = params.set(key, value.toString());
+      }
+    });
+
+    const url = `${environment.apiUrl}/search/advanced`;
+    console.log('🔍 [DocumentsService] Advanced search:', url, filters);
+
+    return this.http.get<ApiResponse<any[]>>(url, {
+      params,
+      headers: this.getAuthHeaders()
+    }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Search results:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Search error:', error);
+        return this.handleError(error);
+      })
+    );
+  }
 }
