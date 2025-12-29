@@ -120,234 +120,233 @@
           </label>
         </div>
       </div>
-      <form [formGroup]="uploadForm" class="space-y-6">
+      <form [formGroup]="uploadForm" class="space-y-8">
 
-        <!-- SEÇÃO SERVIDORES -->
-        <div *ngIf="uploadType === 'servidores'">
-          <!-- Município -->
-          <div class="flex items-start gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Município *</label>
-              <select formControlName="municipality_code" required (change)="onMunicipalityChange($event)"
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="" disabled>Selecione um município</option>
-                <option *ngFor="let municipality of municipalities" [value]="municipality.code">
-                  {{municipality.name}} - {{municipality.state}}
-                </option>
-              </select>
-              <div
-                *ngIf="uploadForm.get('municipality_code')?.hasError('required') && uploadForm.get('municipality_code')?.touched"
-                class="text-red-500 text-sm mt-1">
-                Município é obrigatório
+        <!-- SEÇÃO 1: CONTEXTO (Card Cinza Claro) -->
+        <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+          <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2">
+            <mat-icon class="text-blue-600">domain</mat-icon>
+            {{ uploadType === 'servidores' ? 'Seleção de Servidor' : 'Seleção de Categoria Financeira' }}
+          </h3>
+
+          <div class="space-y-4">
+            <!-- SERVIDORES -->
+            <div *ngIf="uploadType === 'servidores'" class="space-y-4">
+              <!-- Município -->
+              <div class="grid grid-cols-1 md:grid-cols-[1fr,auto] gap-4 items-end">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Município *</label>
+                  <select formControlName="municipality_code" required (change)="onMunicipalityChange($event)"
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <option value="" disabled>Selecione um município</option>
+                    <option *ngFor="let municipality of municipalities" [value]="municipality.code">
+                      {{municipality.name}} - {{municipality.state}}
+                    </option>
+                  </select>
+                </div>
+                <button type="button" (click)="openMunicipalityDialog()"
+                  class="h-11 px-4 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors whitespace-nowrap shadow-sm">
+                  <mat-icon class="text-base leading-none w-4 h-4">add</mat-icon>
+                  Novo Município
+                </button>
+              </div>
+
+              <!-- Servidor -->
+              <div class="grid grid-cols-1 md:grid-cols-[1fr,auto] gap-4 items-end">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Servidor *</label>
+                  <select formControlName="server_id" required
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white">
+                    <option value="" disabled>Selecione um servidor</option>
+                    <option *ngFor="let server of servers" [value]="server.id">
+                      {{server.name}}
+                    </option>
+                  </select>
+                </div>
+                <button type="button" (click)="openServerDialog()" [disabled]="!selectedMunicipalityCode"
+                  class="h-11 px-4 bg-white border border-green-200 text-green-700 hover:bg-green-50 font-medium disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 rounded-lg flex items-center justify-center gap-2 transition-colors whitespace-nowrap shadow-sm">
+                  <mat-icon class="text-base leading-none w-4 h-4">person_add</mat-icon>
+                  Novo Servidor
+                </button>
+              </div>
+
+              <!-- Estrutura Hierárquica no Google Drive -->
+              <div *ngIf="canShowHierarchicalPath()" class="mt-4 bg-blue-50/50 border border-blue-100 p-3 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <mat-icon class="text-blue-500 text-sm mt-0.5">folder</mat-icon>
+                  <div class="text-sm">
+                    <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Caminho no Drive</p>
+                    <p class="text-blue-800 font-mono">{{getHierarchicalPath()}}</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="pt-6">
-              <button type="button" (click)="openMunicipalityDialog()"
-                class="h-12 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors">
-                <mat-icon class="text-lg">add</mat-icon>
-                Novo Município
-              </button>
-            </div>
-          </div>
 
-          <!-- Servidor -->
-          <div class="flex items-start gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Servidor *</label>
-              <select formControlName="server_id" required
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option value="" disabled>Selecione um servidor</option>
-                <option *ngFor="let server of servers" [value]="server.id">
-                  {{server.name}}
-                </option>
-              </select>
-              <div *ngIf="uploadForm.get('server_id')?.hasError('required') && uploadForm.get('server_id')?.touched"
-                class="text-red-500 text-sm mt-1">
-                Servidor é obrigatório
+            <!-- FINANCEIRAS -->
+            <div *ngIf="uploadType === 'financeiras'" class="space-y-4">
+              <!-- Município -->
+              <div class="grid grid-cols-1 md:grid-cols-[1fr,auto] gap-4 items-end">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Município *</label>
+                  <select formControlName="municipality_code" required (change)="onMunicipalityChange($event)"
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <option value="" disabled>Selecione um município</option>
+                    <option *ngFor="let municipality of municipalities" [value]="municipality.code">
+                      {{municipality.name}} - {{municipality.state}}
+                    </option>
+                  </select>
+                </div>
+                <button type="button" (click)="openMunicipalityDialog()"
+                  class="h-11 px-4 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors whitespace-nowrap shadow-sm">
+                  <mat-icon class="text-base leading-none w-4 h-4">add</mat-icon>
+                  Novo Município
+                </button>
               </div>
-            </div>
-            <div class="pt-6">
-              <button type="button" (click)="openServerDialog()" [disabled]="!selectedMunicipalityCode"
-                class="h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors">
-                <mat-icon class="text-lg">person_add</mat-icon>
-                Novo Servidor
-              </button>
-            </div>
-          </div>
 
-          <!-- Estrutura Hierárquica no Google Drive -->
-          <div *ngIf="canShowHierarchicalPath()" class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-            <div class="flex items-start">
-              <mat-icon class="text-blue-500 mr-3 mt-0.5">folder_open</mat-icon>
-              <div>
-                <h4 class="text-sm font-medium text-blue-800 mb-1">Estrutura no Google Drive:</h4>
-                <p class="text-blue-700 font-mono text-sm">📁 {{getHierarchicalPath()}}</p>
-                <p class="text-blue-600 text-xs mt-2">O arquivo será organizado automaticamente nesta estrutura de
-                  pastas.</p>
+              <!-- Tipo de Documento -->
+              <div class="grid grid-cols-1 md:grid-cols-[1fr,auto] gap-4 items-end">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento *</label>
+                  <select formControlName="financial_document_type" required
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white">
+                    <option value="" disabled>Selecione o tipo</option>
+                    <option *ngFor="let type of financialDocumentTypes" [value]="type.code">
+                      {{type.name}}
+                    </option>
+                  </select>
+                </div>
+                <button type="button" (click)="openFinancialTypeDialog()"
+                  class="h-11 px-4 bg-white border border-green-200 text-green-700 hover:bg-green-50 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors whitespace-nowrap shadow-sm">
+                  <mat-icon class="text-base leading-none w-4 h-4">post_add</mat-icon>
+                  Novo Tipo
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- SEÇÃO DOCUMENTAÇÕES FINANCEIRAS -->
-        <div *ngIf="uploadType === 'financeiras'">
-          <!-- Município para Documentos Financeiros -->
-          <div class="flex items-start gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Município *</label>
-              <select formControlName="municipality_code" required (change)="onMunicipalityChange($event)"
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option value="" disabled>Selecione um município</option>
-                <option *ngFor="let municipality of municipalities" [value]="municipality.code">
-                  {{municipality.name}} - {{municipality.state}}
-                </option>
-              </select>
-              <div
-                *ngIf="uploadForm.get('municipality_code')?.hasError('required') && uploadForm.get('municipality_code')?.touched"
-                class="text-red-500 text-sm mt-1">
-                Município é obrigatório
+              <!-- Ano e Período -->
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Ano *</label>
+                  <select formControlName="financial_year" required
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white">
+                    <option value="" disabled>Selecione</option>
+                    <option *ngFor="let year of getAvailableYears()" [value]="year">{{year}}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Período (Opcional)</label>
+                  <select formControlName="financial_period"
+                    class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white">
+                    <option value="">Anual</option>
+                    <option value="1">1º Trimestre</option>
+                    <option value="2">2º Trimestre</option>
+                    <option value="3">3º Trimestre</option>
+                    <option value="4">4º Trimestre</option>
+                    <option value="semestral-1">1º Semestre</option>
+                    <option value="semestral-2">2º Semestre</option>
+                  </select>
+                </div>
               </div>
-            </div>
-            <div class="pt-6">
-              <button type="button" (click)="openMunicipalityDialog()"
-                class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
-                <mat-icon class="text-lg">add</mat-icon>
-                Novo Município
-              </button>
-            </div>
-          </div>
 
-          <!-- Tipo de Documento Financeiro -->
-          <div class="flex items-start gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento Financeiro *</label>
-              <select formControlName="financial_document_type" required
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option value="" disabled>Selecione o tipo de documento</option>
-                <option *ngFor="let type of financialDocumentTypes" [value]="type.code">
-                  {{type.name}}
-                </option>
-              </select>
-              <div
-                *ngIf="uploadForm.get('financial_document_type')?.hasError('required') && uploadForm.get('financial_document_type')?.touched"
-                class="text-red-500 text-sm mt-1">
-                Tipo de documento é obrigatório
-              </div>
-            </div>
-            <div class="pt-6">
-              <button type="button" (click)="openFinancialTypeDialog()"
-                class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
-                <mat-icon class="text-lg">add</mat-icon>
-                Novo Tipo
-              </button>
-            </div>
-          </div>
-
-          <!-- Período/Ano -->
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ano *</label>
-              <select formControlName="financial_year" required
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option value="" disabled>Selecione o ano</option>
-                <option *ngFor="let year of getAvailableYears()" [value]="year">{{year}}</option>
-              </select>
-              <div
-                *ngIf="uploadForm.get('financial_year')?.hasError('required') && uploadForm.get('financial_year')?.touched"
-                class="text-red-500 text-sm mt-1">
-                Ano é obrigatório
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Período (opcional)</label>
-              <select formControlName="financial_period"
-                class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option value="">Anual</option>
-                <option value="1">1º Trimestre</option>
-                <option value="2">2º Trimestre</option>
-                <option value="3">3º Trimestre</option>
-                <option value="4">4º Trimestre</option>
-                <option value="semestral-1">1º Semestre</option>
-                <option value="semestral-2">2º Semestre</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Estrutura Hierárquica para Documentos Financeiros -->
-          <div *ngIf="canShowFinancialPath()" class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
-            <div class="flex items-start">
-              <mat-icon class="text-green-500 mr-3 mt-0.5">folder_open</mat-icon>
-              <div>
-                <h4 class="text-sm font-medium text-green-800 mb-1">Estrutura no Google Drive:</h4>
-                <p class="text-green-700 font-mono text-sm">📁 {{getFinancialPath()}}</p>
-                <p class="text-green-600 text-xs mt-2">O documento financeiro será organizado automaticamente nesta
-                  estrutura de pastas.</p>
+              <!-- Caminho Financeiro -->
+              <div *ngIf="canShowFinancialPath()" class="mt-4 bg-green-50/50 border border-green-100 p-3 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <mat-icon class="text-green-500 text-sm mt-0.5">folder</mat-icon>
+                  <div class="text-sm">
+                    <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Caminho no Drive</p>
+                    <p class="text-green-800 font-mono">{{getFinancialPath()}}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Título -->
+        <!-- SEÇÃO 2: DETALHES DO DOCUMENTO -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Título do Documento *</label>
-          <input formControlName="title" required
-            class="w-full h-12 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <div *ngIf="uploadForm.get('title')?.hasError('required') && uploadForm.get('title')?.touched"
-            class="text-red-500 text-sm mt-1">
-            Título é obrigatório
-          </div>
-        </div>
+          <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2">
+            <mat-icon class="text-gray-600">description</mat-icon>
+            Detalhes do Documento
+          </h3>
 
-        <!-- Descrição -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (opcional)</label>
-          <textarea formControlName="description" rows="3"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
-        </div>
-        <!-- Área de Upload -->
-        <div
-          class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
-          [class.border-blue-500]="isDragOver" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-          (drop)="onFileDrop($event)" (click)="fileInput.click()">
-          <input #fileInput type="file" (change)="onFileSelected($event)"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt" class="hidden">
-
-          <div *ngIf="!selectedFile">
-            <mat-icon class="text-gray-400 text-5xl mb-4">cloud_upload</mat-icon>
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Arraste e solte seus arquivos aqui</h3>
-            <p class="text-gray-500 mb-2">ou clique para selecionar</p>
-            <small class="text-gray-400">Formatos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT (máx 500MB)</small>
-          </div>
-
-          <div *ngIf="selectedFile" class="flex items-center gap-4 bg-gray-50 rounded-lg p-4">
-            <mat-icon class="text-blue-500 text-3xl">{{getFileIcon(selectedFile.type)}}</mat-icon>
-            <div class="flex-1 text-left">
-              <h4 class="font-medium text-gray-800">{{selectedFile.name}}</h4>
-              <p class="text-sm text-gray-500">{{formatFileSize(selectedFile.size)}}</p>
+          <div class="space-y-4">
+            <!-- Título -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Título do Documento *</label>
+              <input formControlName="title" required placeholder="Ex: Contrato 2024"
+                class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow">
             </div>
-            <button mat-icon-button color="warn" (click)="removeFile($event)" type="button">
-              <mat-icon>delete</mat-icon>
-            </button>
+
+            <!-- Descrição -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Descrição (Opcional)</label>
+              <textarea formControlName="description" rows="3" placeholder="Informações adicionais sobre o documento..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-shadow"></textarea>
+            </div>
           </div>
         </div>
 
-        <!-- Barra de Progresso -->
-        <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"
-          class="rounded-full"></mat-progress-bar>
+        <!-- SEÇÃO 3: ARQUIVO (Dropzone) -->
+        <div>
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all duration-200 group"
+            [class.border-blue-500]="isDragOver" [class.bg-blue-50]="isDragOver" (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)" (drop)="onFileDrop($event)" (click)="fileInput.click()">
 
-        <!-- Botões -->
-        <div class="flex gap-4 justify-end pt-4">
-          <button mat-stroked-button type="button" (click)="resetForm()" [disabled]="isUploading"
-            class="px-6 py-2 flex items-center gap-2">
-            <mat-icon>clear</mat-icon>
+            <input #fileInput type="file" (change)="onFileSelected($event)"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt" class="hidden">
+
+            <div *ngIf="!selectedFile" class="flex flex-col items-center justify-center">
+              <div
+                class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                <mat-icon class="text-blue-600 text-3xl">cloud_upload</mat-icon>
+              </div>
+              <h3 class="text-lg font-bold text-gray-700 mb-1">Clique para selecionar ou arraste aqui</h3>
+              <p class="text-sm text-gray-500 mb-4">Suporta PDF, Word, Excel, Images (Max 500MB)</p>
+              <button type="button"
+                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg text-sm shadow-sm hover:bg-gray-50">
+                Selecionar Arquivo
+              </button>
+            </div>
+
+            <div *ngIf="selectedFile"
+              class="flex items-center gap-4 bg-white border border-blue-100 rounded-xl p-4 shadow-sm text-left relative overflow-hidden">
+              <div class="absolute inset-y-0 left-0 w-1 bg-blue-500"></div>
+              <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <mat-icon class="text-blue-600">{{getFileIcon(selectedFile.type)}}</mat-icon>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-bold text-gray-800 truncate">{{selectedFile.name}}</h4>
+                <p class="text-xs text-gray-500 font-mono">{{formatFileSize(selectedFile.size)}}</p>
+              </div>
+              <button mat-icon-button color="warn" (click)="removeFile($event)" type="button"
+                class="hover:bg-red-50 rounded-full transition-colors">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra de Progresso -->
+          <div *ngIf="uploadProgress > 0" class="mt-4">
+            <div class="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Enviando...</span>
+              <span>{{uploadProgress}}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="uploadProgress" class="rounded-full h-2"></mat-progress-bar>
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" (click)="resetForm()" [disabled]="isUploading"
+            class="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors">
             Limpar
           </button>
 
-          <button mat-raised-button color="primary" type="button" [disabled]="isSubmitDisabled()"
-            (click)="mainButtonClick($event)" class="px-6 py-2 flex items-center gap-2">
-            <mat-icon *ngIf="!isUploading">send</mat-icon>
-            <mat-spinner *ngIf="isUploading" diameter="20"></mat-spinner>
-            {{isUploading ? 'Enviando...' : 'Enviar Documento'}}
+          <button type="button" [disabled]="isSubmitDisabled()" (click)="mainButtonClick($event)"
+            class="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none flex items-center gap-2">
+            <mat-spinner *ngIf="isUploading" diameter="20" class="brightness-0 invert"></mat-spinner>
+            <span>{{isUploading ? 'Enviando...' : 'Enviar Documento'}}</span>
+            <mat-icon *ngIf="!isUploading" class="ml-1">send</mat-icon>
           </button>
         </div>
       </form>
