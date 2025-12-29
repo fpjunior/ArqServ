@@ -80,6 +80,8 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nível de Acesso
               </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Município
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acesso ao
                 Sistema</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -107,6 +109,14 @@
                 <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getRoleColor(user.role)">
                   {{ getRoleLabel(user.role) }}
                 </span>
+              </td>
+
+              <!-- Município -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <span *ngIf="user.role === 'user'" class="px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
+                  {{ getMunicipalityName(user.municipality_code || '') }}
+                </span>
+                <span *ngIf="user.role !== 'user'" class="text-gray-400">-</span>
               </td>
 
               <!-- Acesso ao Sistema (Checkbox) -->
@@ -540,6 +550,35 @@
               {{ municipality.name }} - {{ municipality.state }}
             </option>
           </select>
+        </div>
+
+        <!-- Alterar Senha (Opcional) -->
+        <div class="mt-6 mb-4 border-t pt-4">
+          <div class="flex items-center mb-4">
+            <input type="checkbox" id="changePasswordToggle" [(ngModel)]="showPasswordFields"
+              name="changePasswordToggle" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="changePasswordToggle" class="ml-2 text-gray-900 font-medium cursor-pointer">
+              Alterar Senha
+            </label>
+          </div>
+
+          <div *ngIf="showPasswordFields" class="transition-all duration-300 ease-in-out">
+            <div class="mb-4">
+              <label class="block text-gray-700 font-semibold mb-2">Nova Senha</label>
+              <input type="password" [(ngModel)]="editUserForm.password" name="editPassword"
+                placeholder="Digite a nova senha" [disabled]="isEditing" minlength="6"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+              <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+            </div>
+
+            <div class="mb-4" *ngIf="editUserForm.password">
+              <label class="block text-gray-700 font-semibold mb-2">Confirmar Nova Senha <span
+                  class="text-red-500">*</span></label>
+              <input type="password" [(ngModel)]="editUserForm.confirmPassword" name="editConfirmPassword"
+                placeholder="Confirme a nova senha" required [disabled]="isEditing"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100">
+            </div>
+          </div>
         </div>
 
         <!-- Buttons -->

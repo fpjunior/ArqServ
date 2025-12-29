@@ -181,6 +181,11 @@ router.put('/users/:userId', authenticate, requireAdmin, async (req, res) => {
 
     const updatedUser = await User.update(userId, { name, email, role, municipality_code });
 
+    // Se a senha foi fornecida, atualizar senha
+    if (req.body.password && req.body.password.trim().length >= 6) {
+      await User.updatePassword(userId, req.body.password);
+    }
+
     res.json({
       status: 'SUCCESS',
       message: 'Usuário atualizado com sucesso',

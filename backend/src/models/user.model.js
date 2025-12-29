@@ -335,6 +335,68 @@ class User {
   }
 
   /**
+   * Atualiza senha do usuário (tanto no banco quanto no Supabase Auth)
+   */
+  static async updatePassword(userId, newPassword) {
+    try {
+      console.log(`🔐 Atualizando senha para usuário ID: ${userId}`);
+
+      // 1. Hash da nova senha
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // 2. Atualizar senha na tabela users
+      const { data, error } = await pool.supabase
+        .from('users')
+        .update({
+          password: hashedPassword,
+          updated_at: new Date()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // 3. Buscar usuário no Supabase Auth pelo email para atualizar senha lá também
+      try {
+        const user = await this.findById(userId);
+        if (user && user.email) {
+          // Listar usuários do Auth para encontrar o ID do Auth
+          const { data: authUsers, error: listError } = await pool.supabase.auth.admin.listUsers();
+
+          if (!listError && authUsers) {
+            const authUser = authUsers.users.find(u => u.email === user.email);
+
+            if (authUser) {
+              // Atualizar senha no Supabase Auth
+              const { error: authError } = await pool.supabase.auth.admin.updateUserById(
+                authUser.id,
+                { password: newPassword }
+              );
+
+              if (authError) {
+                console.warn('⚠️ Erro ao atualizar senha no Supabase Auth:', authError);
+              } else {
+                console.log('✅ Senha atualizada no Supabase Auth');
+              }
+            }
+          }
+        }
+      } catch (authError) {
+        console.warn('⚠️ Não foi possível sincronizar senha com Supabase Auth:', authError);
+        // Não falha a operação se não conseguir atualizar no Auth
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar senha:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Deleta usuário
    */
   static async delete(userId) {

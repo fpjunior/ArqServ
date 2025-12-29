@@ -12,6 +12,7 @@ interface User {
   email: string;
   role: string;
   active: boolean;
+  municipality_code?: string;
   created_at: string;
 }
 
@@ -48,7 +49,7 @@ export class UsersListComponent implements OnInit {
 
   // Paginação
   currentPage = 1;
-  itemsPerPage = 10;
+  itemsPerPage = 5;
   totalPages = 0;
   totalItems = 0;
 
@@ -94,6 +95,7 @@ export class UsersListComponent implements OnInit {
   // Modal de Edição
   showEditModal = false;
   isEditing = false;
+  showPasswordFields = false; // Controle de visibilidade dos campos de senha
   editUserForm: CreateUserForm = {
     name: '',
     email: '',
@@ -117,6 +119,7 @@ export class UsersListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadMunicipalities(); // Carregar municípios para exibir nomes na lista
     // Subscribe to current user to conditionally show invite button
     this.authService.currentUser$.subscribe((user) => {
       this.currentUser = user;
@@ -225,6 +228,7 @@ export class UsersListComponent implements OnInit {
   editUser(user: User): void {
     console.log('Editar usuário:', user);
     this.editingUserId = user.id;
+    this.showPasswordFields = false; // Resetar visibilidade dos campos de senha
     this.editUserForm = {
       name: user.name,
       email: user.email,
@@ -245,6 +249,7 @@ export class UsersListComponent implements OnInit {
   closeEditModal(): void {
     this.showEditModal = false;
     this.editingUserId = null;
+    this.showPasswordFields = false;
     this.resetCreateForm(); // Reusa lógica de reset
   }
 
@@ -262,6 +267,18 @@ export class UsersListComponent implements OnInit {
       return;
     }
 
+    // Validar senha se foi fornecida
+    if (this.editUserForm.password) {
+      if (this.editUserForm.password !== this.editUserForm.confirmPassword) {
+        this.showError('Senhas Diferentes', 'As senhas digitadas não coincidem.');
+        return;
+      }
+      if (this.editUserForm.password.length < 6) {
+        this.showError('Senha Muito Curta', 'A senha deve ter no mínimo 6 caracteres.');
+        return;
+      }
+    }
+
     this.isEditing = true;
     const token = localStorage.getItem('arqserv_token');
 
@@ -270,12 +287,17 @@ export class UsersListComponent implements OnInit {
       return;
     }
 
-    const updateData = {
+    const updateData: any = {
       name: this.editUserForm.name,
       email: this.editUserForm.email,
       role: this.editUserForm.role,
       municipality_code: this.editUserForm.municipality_code
     };
+
+    // Incluir senha se fornecida
+    if (this.editUserForm.password) {
+      updateData.password = this.editUserForm.password;
+    }
 
     this.http.put<any>(`${environment.apiUrl}/admin/users/${this.editingUserId}`, updateData, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -390,6 +412,15 @@ export class UsersListComponent implements OnInit {
 
   getStatusLabel(active: boolean): string {
     return active ? 'Ativo' : 'Inativo';
+  }
+
+  getMunicipalityName(code: string): string {
+    if (!code) return '-';
+    // Se a lista de municípios ainda não estiver carregada ou vazia
+    if (!this.municipalities || this.municipalities.length === 0) return code;
+
+    const municipality = this.municipalities.find(m => m.code === code);
+    return municipality ? municipality.name : code;
   }
 
   formatDate(dateString: string): string {
