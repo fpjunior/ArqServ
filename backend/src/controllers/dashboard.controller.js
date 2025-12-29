@@ -84,28 +84,46 @@ class DashboardController {
       // 2. Processar logs para montar a lista de documentos
       const uniqueDocs = [];
       const seenKeys = new Set(); // Pode ser ID do banco ou Drive ID
+
       const dbDocumentIds = [];
+      const driveIds = [];
 
       // Pré-processamento: separar o que precisa buscar no banco
       if (logs) {
         for (const log of logs) {
           if (log.document_id) {
             dbDocumentIds.push(log.document_id);
+          } else if (log.metadata && (log.metadata.drive_file_id || log.metadata.driveId)) {
+            driveIds.push(log.metadata.drive_file_id || log.metadata.driveId);
           }
         }
       }
 
-      // Buscar detalhes dos documentos de banco em lote
+      // Buscar detalhes dos documentos de banco em lote (ID ou Drive ID)
       let dbDocsMap = {};
-      if (dbDocumentIds.length > 0) {
-        const { data: documents, error: docError } = await pool.supabase
-          .from('documents')
-          .select('id, title, file_name, mime_type, category, financial_document_type, file_size, updated_at, file_path, google_drive_id, municipality_code, server_id')
-          .in('id', dbDocumentIds);
+      if (dbDocumentIds.length > 0 || driveIds.length > 0) {
 
-        if (!docError && documents) {
-          dbDocsMap = documents.reduce((acc, doc) => {
+        const queries = [];
+        if (dbDocumentIds.length > 0) {
+          queries.push(pool.supabase.from('documents').select('id, title, file_name, mime_type, category, financial_document_type, file_size, updated_at, file_path, google_drive_id, municipality_code, server_id').in('id', dbDocumentIds));
+        }
+        if (driveIds.length > 0) {
+          queries.push(pool.supabase.from('documents').select('id, title, file_name, mime_type, category, financial_document_type, file_size, updated_at, file_path, google_drive_id, municipality_code, server_id').in('google_drive_id', driveIds));
+        }
+
+        const results = await Promise.all(queries);
+        const allDocs = [];
+        results.forEach(r => {
+          if (r.data) allDocs.push(...r.data);
+          if (r.error) console.error('Erro getRecentDocs:', r.error);
+        });
+
+        if (allDocs.length > 0) {
+          dbDocsMap = allDocs.reduce((acc, doc) => {
             acc[doc.id] = doc;
+            if (doc.google_drive_id) {
+              acc[`drive_${doc.google_drive_id}`] = doc;
+            }
             return acc;
           }, {});
         }
@@ -178,9 +196,16 @@ class DashboardController {
           let docItem = null;
           let uniqueKey = null;
 
-          // CASO 1: Documento de Banco
+          // CASO 1: Documento de Banco (Direto ou via Drive ID)
+          let dbDoc = null;
           if (log.document_id && dbDocsMap[log.document_id]) {
-            const dbDoc = dbDocsMap[log.document_id];
+            dbDoc = dbDocsMap[log.document_id];
+          } else if (log.metadata && (log.metadata.drive_file_id || log.metadata.driveId)) {
+            const dId = log.metadata.drive_file_id || log.metadata.driveId;
+            dbDoc = dbDocsMap[`drive_${dId}`];
+          }
+
+          if (dbDoc) {
             uniqueKey = `db_${dbDoc.id}`;
 
             // Validação de titulo
@@ -234,7 +259,9 @@ class DashboardController {
               googleDriveId: dbDoc.google_drive_id,
               municipalityName: municipalityName,
               municipalityCode: municipalityCode,
-              folderName: folderName
+              folderName: folderName,
+              // Explicit server name
+              serverName: (dbDoc.server_id && serversMap[dbDoc.server_id]) ? serversMap[dbDoc.server_id].name : null
             };
           }
           // CASO 2: Documento apenas do Drive (via Metadata)
@@ -375,25 +402,55 @@ class DashboardController {
 
       // --- ENRIQUECIMENTO DE DADOS (Documentos e Servidores) ---
       const documentIds = [...new Set(activityLogs?.filter(a => a.document_id).map(a => a.document_id) || [])];
+
+      // Coletar Drive IDs de logs sem document_id
+      const driveIds = [...new Set(activityLogs?.filter(a => !a.document_id && a.metadata && (a.metadata.drive_file_id || a.metadata.driveId))
+        .map(a => a.metadata.drive_file_id || a.metadata.driveId) || [])];
+
       let documentsMap = {};
       let serversMap = {};
 
-      if (documentIds.length > 0) {
-        // 1. Buscar detalhes dos documentos
-        const { data: documents, error: docError } = await pool.supabase
+      // Buscar documentos por ID manual E por Drive ID
+      if (documentIds.length > 0 || driveIds.length > 0) {
+        let query = pool.supabase
           .from('documents')
-          .select('id, category, financial_document_type, server_id, title')
-          .in('id', documentIds);
+          .select('id, category, financial_document_type, server_id, title, google_drive_id');
 
-        if (!docError && documents) {
-          console.log('✅ [DEBUG] Documentos encontrados para enriquecimento:', documents.length);
-          documentsMap = documents.reduce((acc, doc) => {
+        // Construir filtro OR (id IN (...) OR google_drive_id IN (...))
+        // Supabase PostgREST syntax for OR is tricky via JS client, easiest is multiple queries or splitting logic
+        // Vamos fazer duas queries para simplicidade e mergear
+
+        const queries = [];
+
+        if (documentIds.length > 0) {
+          queries.push(pool.supabase.from('documents').select('id, category, financial_document_type, server_id, title, google_drive_id').in('id', documentIds));
+        }
+
+        if (driveIds.length > 0) {
+          queries.push(pool.supabase.from('documents').select('id, category, financial_document_type, server_id, title, google_drive_id').in('google_drive_id', driveIds));
+        }
+
+        const results = await Promise.all(queries);
+        const allDocs = [];
+
+        results.forEach(r => {
+          if (r.data) allDocs.push(...r.data);
+          if (r.error) console.error('Erro buscando docs:', r.error);
+        });
+
+        if (allDocs.length > 0) {
+          console.log('✅ [DEBUG] Documentos encontrados para enriquecimento:', allDocs.length);
+
+          documentsMap = allDocs.reduce((acc, doc) => {
             acc[doc.id] = doc;
+            if (doc.google_drive_id) {
+              acc[`drive_${doc.google_drive_id}`] = doc; // Mapear também por Drive ID
+            }
             return acc;
           }, {});
 
-          // 2. Extrair IDs de servidores dos documentos encontrados
-          const serverIds = [...new Set(documents.filter(d => d.server_id).map(d => d.server_id))];
+          // 2. Extrair IDs de servidores
+          const serverIds = [...new Set(allDocs.filter(d => d.server_id).map(d => d.server_id))];
 
           if (serverIds.length > 0) {
             // 3. Buscar nomes dos servidores
@@ -412,17 +469,43 @@ class DashboardController {
         }
       }
 
+      // --- BUSCAR MUNICÍPIOS ---
+      const municipalityCodes = [...new Set(activityLogs?.filter(a => a.municipality_code).map(a => a.municipality_code) || [])];
+      let municipalitiesMap = {};
+
+      if (municipalityCodes.length > 0) {
+        const { data: municipalities, error: munError } = await pool.supabase
+          .from('municipalities')
+          .select('code, name')
+          .in('code', municipalityCodes);
+
+        if (!munError && municipalities) {
+          municipalitiesMap = municipalities.reduce((acc, mun) => {
+            acc[mun.code] = mun.name;
+            return acc;
+          }, {});
+        }
+      }
+
       // Formatar atividades
       const activities = (activityLogs || []).map(log => {
         const user = usersMap[log.user_id] || {};
         const metadata = log.metadata || {};
         const fileName = metadata.file_name || 'Arquivo';
 
-        // Dados enriquecidos
-        const doc = documentsMap[log.document_id];
-        let contextInfo = metadata.context_info || ''; // Prioridade para metadados salvos
+        // Dados enriquecidos - Tentar ID direto OU Drive ID
+        let doc = documentsMap[log.document_id];
+        if (!doc && metadata.drive_file_id) {
+          doc = documentsMap[`drive_${metadata.drive_file_id}`];
+        }
+        if (!doc && metadata.driveId) {
+          doc = documentsMap[`drive_${metadata.driveId}`];
+        }
 
-        if (!contextInfo && doc) {
+        let contextInfo = metadata.context_info || ''; // Prioridade para metadados salvos
+        let serverName = null;
+
+        if (doc) {
           const parts = [];
 
           // Adiciona tipo financeiro se existir
@@ -435,10 +518,12 @@ class DashboardController {
             const server = serversMap[doc.server_id];
             if (server) {
               parts.push(server.name);
+              serverName = server.name;
             }
           }
 
-          if (parts.length > 0) {
+          if (parts.length > 0 && !contextInfo) {
+            // Only build context info if not already present from metadata
             contextInfo = ` • ${parts.join(' • ')}`;
           }
         }
@@ -480,7 +565,9 @@ class DashboardController {
           documentId: log.document_id,
           fileName: fileName,
           fileSize: metadata.file_size,
-          municipalityCode: log.municipality_code
+          municipalityCode: log.municipality_code,
+          municipalityName: municipalitiesMap[log.municipality_code] || null,
+          serverName: serverName
         };
       });
 

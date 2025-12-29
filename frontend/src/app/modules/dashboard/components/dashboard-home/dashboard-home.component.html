@@ -110,10 +110,10 @@
     </div>
 
     <!-- Seção Principal -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 gap-8">
 
       <!-- Documentos Recentes (Moved to Top) -->
-      <div class="lg:col-span-2">
+      <div class="col-span-1">
         <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-full">
           <div class="flex items-center gap-3 mb-4">
             <div class="bg-blue-100 p-2 rounded-lg">
@@ -122,8 +122,9 @@
             <h2 class="text-xl font-bold text-gray-800">Documentos Recentes</h2>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="recentDocuments.length > 0; else noRecentDocs">
-            <div *ngFor="let doc of recentDocuments.slice(0, 4)"
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            *ngIf="recentDocuments.length > 0; else noRecentDocs">
+            <div *ngFor="let doc of recentDocuments.slice(0, 6)"
               class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
 
               <div class="flex items-start gap-3">
@@ -140,15 +141,23 @@
                       title="{{ doc.title }}">{{ doc.title }}</h3>
                   </div>
 
-                  <p class="text-xs text-gray-500 truncate mb-1"
-                    [title]="isAdmin() && doc.municipalityName ? doc.municipalityName + (doc.folderName ? ' • ' + doc.folderName : '') + ' • ' + doc.subTitle : doc.subTitle">
-                    <ng-container *ngIf="isAdmin() && doc.municipalityName">
-                      <span class="font-medium text-blue-600">{{ doc.municipalityName }}</span>
-                      <span *ngIf="doc.folderName"> • {{ doc.folderName }}</span>
-                      <span> • </span>
-                    </ng-container>
+                  <!-- Server Name -->
+                  <div *ngIf="doc.serverName || doc.folderName"
+                    class="flex items-center gap-1 mb-1 text-xs text-blue-600 font-medium">
+                    <span class="text-[10px]">👤</span> {{ doc.serverName || doc.folderName }}
+                  </div>
+
+                  <!-- Subtitle / Context (Só mostra se for diferente do nome do servidor/pasta e diferente de 'Documento') -->
+                  <p *ngIf="doc.subTitle && doc.subTitle !== (doc.serverName || doc.folderName) && doc.subTitle !== 'Documento'"
+                    class="text-xs text-gray-500 truncate mb-1" title="{{ doc.subTitle }}">
                     {{ doc.subTitle }}
                   </p>
+
+                  <!-- Admin: Municipality -->
+                  <div *ngIf="isAdmin() && doc.municipalityName"
+                    class="mb-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                    <span class="mr-1">🏢</span> {{ doc.municipalityName }}
+                  </div>
 
                   <div class="flex items-center gap-2 text-xs text-gray-400">
                     <span>{{ formatTime(doc.updatedAt) }}</span>
@@ -194,41 +203,6 @@
               Ver todos os documentos →
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- Atividades Recentes -->
-      <div class="lg:col-span-1" style="height: 404px;">
-        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-full flex flex-col">
-          <div class="flex items-center gap-3 mb-6 shrink-0">
-            <div class="bg-indigo-100 p-2 rounded-lg">
-              <span class="text-indigo-600 text-xl">🕒</span>
-            </div>
-            <h3 class="text-xl font-bold text-gray-800">Atividades Recentes</h3>
-            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">({{ recentActivities.length
-              }})</span>
-          </div>
-
-          <div class="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
-            <div *ngFor="let activity of recentActivities.slice(0, 10)" (click)="navigateToActivity(activity)"
-              class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm shrink-0"
-                [class.bg-green-500]="activity.type === 'upload'" [class.bg-blue-500]="activity.type === 'view'"
-                [class.bg-purple-500]="activity.type === 'download'" [class.bg-yellow-500]="activity.type === 'edit'">
-                {{ activity.icon }}
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-gray-900 text-sm truncate">{{ activity.title }}</div>
-                <div class="text-gray-600 text-xs truncate">{{ activity.description }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ formatTime(activity.timestamp) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            class="w-full mt-6 bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors shrink-0">
-            Ver Todas as Atividades
-          </button>
         </div>
       </div>
     </div>

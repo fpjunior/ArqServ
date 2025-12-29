@@ -26,6 +26,8 @@ interface RecentActivity {
   timestamp: Date;
   user: string;
   icon: string;
+  serverName?: string;
+  municipalityName?: string;
 }
 
 interface LocalDashboardStats {
@@ -208,10 +210,11 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
                 // Novos campos para admin
                 municipalityName: doc.municipalityName || null,
                 municipalityCode: doc.municipalityCode || null,
-                folderName: doc.folderName || null
+                folderName: doc.folderName || null,
+                serverName: doc.serverName || null
               };
             })
-            .slice(0, 4); // Take top 4 FINAL VALID documents
+            .slice(0, 6); // Take top 6 FINAL VALID documents
 
           console.log('✅ [DASHBOARD] Documentos recentes processados:', this.recentDocuments);
         }
