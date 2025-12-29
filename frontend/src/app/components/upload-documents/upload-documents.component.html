@@ -99,25 +99,55 @@
     <!-- Formulário com Toggle -->
     <div class="bg-white rounded-xl shadow-lg p-8 relative z-10">
       <!-- Toggle de Tipo de Upload -->
+      <!-- Toggle de Tipo de Upload -->
       <div class="radio-toggle-section w-full mb-8 pb-8 border-b border-gray-200">
-        <div class="flex flex-row items-center justify-center gap-8">
-          <label class="flex items-center gap-3 cursor-pointer">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-4 md:gap-8">
+
+          <!-- Opção Servidores -->
+          <label
+            class="relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group hover:shadow-md"
+            [class.border-blue-500]="uploadType === 'servidores'" [class.bg-blue-50]="uploadType === 'servidores'"
+            [class.border-gray-200]="uploadType !== 'servidores'">
             <input type="radio" [(ngModel)]="uploadType" value="servidores" name="uploadType"
-              class="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500 relative z-0">
-            <div class="flex items-center gap-2">
-              <mat-icon class="text-blue-600">people</mat-icon>
-              <span class="text-lg font-medium text-gray-700">Servidores</span>
+              class="absolute opacity-0 w-0 h-0">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                [class.bg-blue-100]="uploadType === 'servidores'" [class.bg-gray-100]="uploadType !== 'servidores'">
+                <mat-icon [class.text-blue-600]="uploadType === 'servidores'" class="text-gray-500">people</mat-icon>
+              </div>
+              <span class="text-lg font-medium transition-colors" [class.text-blue-800]="uploadType === 'servidores'"
+                [class.text-gray-600]="uploadType !== 'servidores'">
+                Servidores
+              </span>
+            </div>
+            <div *ngIf="uploadType === 'servidores'" class="absolute right-4 text-blue-500">
+              <mat-icon>check_circle</mat-icon>
             </div>
           </label>
 
-          <label class="flex items-center gap-3 cursor-pointer">
+          <!-- Opção Documentações Financeiras -->
+          <label
+            class="relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group hover:shadow-md"
+            [class.border-green-500]="uploadType === 'financeiras'" [class.bg-green-50]="uploadType === 'financeiras'"
+            [class.border-gray-200]="uploadType !== 'financeiras'">
             <input type="radio" [(ngModel)]="uploadType" value="financeiras" name="uploadType"
-              class="w-5 h-5 text-green-600 border-2 border-gray-300 focus:ring-green-500 relative z-0">
-            <div class="flex items-center gap-2">
-              <mat-icon class="text-green-600">account_balance</mat-icon>
-              <span class="text-lg font-medium text-gray-700">Documentações Financeiras</span>
+              class="absolute opacity-0 w-0 h-0">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                [class.bg-green-100]="uploadType === 'financeiras'" [class.bg-gray-100]="uploadType !== 'financeiras'">
+                <mat-icon [class.text-green-600]="uploadType === 'financeiras'"
+                  class="text-gray-500">account_balance</mat-icon>
+              </div>
+              <span class="text-lg font-medium transition-colors" [class.text-green-800]="uploadType === 'financeiras'"
+                [class.text-gray-600]="uploadType !== 'financeiras'">
+                Documentações Financeiras
+              </span>
+            </div>
+            <div *ngIf="uploadType === 'financeiras'" class="absolute right-4 text-green-500">
+              <mat-icon>check_circle</mat-icon>
             </div>
           </label>
+
         </div>
       </div>
       <form [formGroup]="uploadForm" class="space-y-8">
