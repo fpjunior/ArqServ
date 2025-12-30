@@ -4,6 +4,117 @@ const { authenticate } = require('../middleware/auth.middleware');
 const pool = require('../config/database');
 
 /**
+ * Get available search options for a municipality
+ * GET /api/search/options
+ */
+router.get('/options', authenticate, async (req, res) => {
+    try {
+        const { municipalityCode } = req.query;
+
+        if (!municipalityCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Municipality code is required'
+            });
+        }
+
+        console.log(`🔍 [SEARCH] Fetching options for municipality: ${municipalityCode}`);
+
+        // Fetch available years from documents
+        const { data: yearData, error: yearError } = await pool.supabase
+            .from('documents')
+            .select('financial_year, created_at')
+            .eq('municipality_code', municipalityCode);
+
+        // Fetch available document types
+        const { data: typeData, error: typeError } = await pool.supabase
+            .from('documents')
+            .select('document_type')
+            .eq('municipality_code', municipalityCode);
+
+        if (yearError) throw yearError;
+        if (typeError) throw typeError;
+
+        // Process Years
+        const years = new Set();
+        if (yearData) {
+            yearData.forEach(doc => {
+                if (doc.financial_year) {
+                    years.add(doc.financial_year);
+                }
+                if (doc.created_at) {
+                    years.add(new Date(doc.created_at).getFullYear());
+                }
+            });
+        }
+
+        // Process Document Types
+        const types = new Set();
+
+        // Check for 'servidor' documents
+        const { count: serverCount } = await pool.supabase
+            .from('documents')
+            .select('*', { count: 'exact', head: true })
+            .eq('municipality_code', municipalityCode)
+            .eq('document_type', 'servidor');
+
+        // Check for 'financeiro' documents (either by type OR by having financial fields)
+        const { count: financialCount } = await pool.supabase
+            .from('documents')
+            .select('*', { count: 'exact', head: true })
+            .eq('municipality_code', municipalityCode)
+            .or('document_type.eq.financeiro,financial_document_type.neq.null');
+
+        if (serverCount > 0) {
+            types.add('servidor');
+        }
+        if (financialCount > 0) {
+            types.add('financeiro');
+        }
+
+        // Determine if Genders should be shown (only if we have server documents)
+        const hasServerDocs = types.has('servidor');
+        // If we have server docs, we might want to check if we actually have distinct genders, 
+        // but typically just knowing we have server docs is enough to show the filter.
+        // Or we could query distinct genders: .select('gender').eq('document_type', 'servidor')
+
+        let availableGenders = [];
+        if (hasServerDocs) {
+            const { data: genderData } = await pool.supabase
+                .from('documents')
+                .select('gender')
+                .eq('municipality_code', municipalityCode)
+                .eq('document_type', 'servidor');
+
+            if (genderData) {
+                const updatedGenders = new Set();
+                genderData.forEach(d => {
+                    if (d.gender) updatedGenders.add(d.gender);
+                });
+                availableGenders = Array.from(updatedGenders).sort();
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                years: Array.from(years).sort((a, b) => b - a), // Descending
+                types: Array.from(types),
+                genders: availableGenders
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ [SEARCH] Error fetching options:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching search options',
+            error: error.message
+        });
+    }
+});
+
+/**
  * Advanced Search Endpoint
  * GET /api/search/advanced
  * 
@@ -53,7 +164,8 @@ router.get('/advanced', authenticate, async (req, res) => {
                     )
                 `)
                 .eq('municipality_code', municipalityCode)
-                .eq('document_type', 'servidor');
+                .eq('document_type', 'servidor')
+                .is('financial_document_type', null);
 
             console.log('📋 [SEARCH] Server docs fetched:', serverDocs?.length || 0);
             if (serverDocs && serverDocs.length > 0) {
@@ -82,7 +194,7 @@ router.get('/advanced', authenticate, async (req, res) => {
                 .from('documents')
                 .select('*')
                 .eq('municipality_code', municipalityCode)
-                .eq('document_type', 'financeiro');
+                .or('document_type.eq.financeiro,financial_document_type.neq.null');
 
             console.log('📋 [SEARCH] Financial docs fetched:', financialDocs?.length || 0);
 

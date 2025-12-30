@@ -41,7 +41,8 @@
                 </div>
 
                 <!-- Filters Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Year, Type, Date From, Date To -> All in one row on desktop -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <!-- Year -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ano</label>
@@ -61,26 +62,14 @@
                         </select>
                     </div>
 
-                    <!-- Gender (for servers) -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Gênero</label>
-                        <select formControlName="gender"
-                            class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                            <option *ngFor="let gender of genderOptions" [value]="gender.value">{{ gender.label }}
-                            </option>
-                        </select>
-                    </div>
-
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Data Inicial</label>
                         <input type="date" formControlName="dateFrom"
                             class="w-full h-11 border border-gray-300 rounded-lg px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
-                </div>
 
-                <!-- Date To (full width) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Date To -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Data Final</label>
                         <input type="date" formControlName="dateTo"
@@ -121,7 +110,7 @@
         <div *ngIf="!isLoading && !hasSearched"
             class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
             <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <mat-icon class="text-blue-600 text-4xl">search</mat-icon>
+                <mat-icon class="text-blue-600 !text-5xl !w-12 !h-12 flex items-center justify-center">search</mat-icon>
             </div>
             <h3 class="text-xl font-bold text-gray-900 mb-2">Pronto para buscar</h3>
             <p class="text-gray-600">Use os filtros acima para encontrar documentos e servidores</p>
@@ -131,7 +120,8 @@
         <div *ngIf="!isLoading && hasSearched && searchResults.length === 0"
             class="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <mat-icon class="text-gray-400 text-4xl">search_off</mat-icon>
+                <mat-icon
+                    class="text-gray-400 !text-5xl !w-12 !h-12 flex items-center justify-center">search_off</mat-icon>
             </div>
             <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum resultado encontrado</h3>
             <p class="text-gray-600">Tente ajustar os filtros de busca</p>
@@ -148,20 +138,20 @@
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-full flex items-center justify-center"
-                                [class.bg-blue-100]="result.type === 'server'"
-                                [class.bg-green-100]="result.type === 'financial'">
-                                <mat-icon [class.text-blue-600]="result.type === 'server'"
-                                    [class.text-green-600]="result.type === 'financial'">
-                                    {{ getDocumentIcon(result.type) }}
+                                [class.bg-blue-100]="getDisplayType(result) === 'server'"
+                                [class.bg-green-100]="getDisplayType(result) === 'financial'">
+                                <mat-icon [class.text-blue-600]="getDisplayType(result) === 'server'"
+                                    [class.text-green-600]="getDisplayType(result) === 'financial'">
+                                    {{ getDocumentIcon(result) }}
                                 </mat-icon>
                             </div>
                             <div>
                                 <span class="text-xs font-semibold px-2 py-1 rounded-full"
-                                    [class.bg-blue-100]="result.type === 'server'"
-                                    [class.text-blue-700]="result.type === 'server'"
-                                    [class.bg-green-100]="result.type === 'financial'"
-                                    [class.text-green-700]="result.type === 'financial'">
-                                    {{ getDocumentTypeLabel(result.type) }}
+                                    [class.bg-blue-100]="getDisplayType(result) === 'server'"
+                                    [class.text-blue-700]="getDisplayType(result) === 'server'"
+                                    [class.bg-green-100]="getDisplayType(result) === 'financial'"
+                                    [class.text-green-700]="getDisplayType(result) === 'financial'">
+                                    {{ getDocumentTypeLabel(result) }}
                                 </span>
                             </div>
                         </div>
@@ -169,11 +159,12 @@
 
                     <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">{{ result.title }}</h3>
 
-                    <!-- Server Name Display -->
-                    <div *ngIf="result.server_name" class="flex items-center gap-1.5 mb-3 text-gray-600">
-                        <mat-icon
-                            class="text-sm w-4 h-4 text-gray-400 flex items-center justify-center">person_outline</mat-icon>
-                        <span class="text-sm font-medium">{{ result.server_name }}</span>
+                    <!-- Subtitle: Server Name OR Financial Category + Year -->
+                    <div class="flex items-center gap-1.5 mb-3 text-gray-600">
+                        <mat-icon class="text-sm w-4 h-4 text-gray-400 flex items-center justify-center">
+                            {{ getDisplayType(result) === 'server' ? 'person_outline' : 'folder_open' }}
+                        </mat-icon>
+                        <span class="text-sm font-medium">{{ getDocumentSubtitle(result) }}</span>
                     </div>
 
                     <div class="flex flex-wrap gap-2 text-sm text-gray-600">

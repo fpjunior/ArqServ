@@ -18,6 +18,9 @@ interface SearchResult {
     drive_file_id?: string;
     google_drive_id?: string;
     year?: number;
+    financial_year?: number;
+    financial_document_type?: string;
+    category?: string;
     gender?: string;
     created_at: string;
     municipality_code?: string;
@@ -56,11 +59,6 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         { value: 'server', label: 'Servidores' },
         { value: 'financial', label: 'Documentos Financeiros' }
     ];
-    genderOptions = [
-        { value: 'all', label: 'Todos' },
-        { value: 'M', label: 'Masculino' },
-        { value: 'F', label: 'Feminino' }
-    ];
 
     // Modal state
     isModalVisible = false;
@@ -95,6 +93,12 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
 
         this.initializeForm();
         this.loadMunicipalityName();
+
+        if (this.municipalityCode) {
+            this.loadSearchOptions();
+        } else {
+            this.initializeYears(); // Fallback
+        }
     }
 
     ngOnDestroy(): void {
@@ -108,7 +112,6 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             query: [''],
             year: ['all'],
             documentType: ['all'],
-            gender: ['all'],
             dateFrom: [''],
             dateTo: ['']
         });
@@ -120,6 +123,46 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         for (let year = currentYear; year >= currentYear - 20; year--) {
             this.years.push(year);
         }
+    }
+
+    private loadSearchOptions(): void {
+        if (!this.municipalityCode) return;
+
+        console.log('🔄 Carregando opções de pesquisa para:', this.municipalityCode);
+
+        this.documentsService.getSearchOptions(this.municipalityCode).subscribe({
+            next: (response) => {
+                if (response.success && response.data) {
+                    // Update Years
+                    if (response.data.years && response.data.years.length > 0) {
+                        this.years = response.data.years;
+                    }
+
+                    // Update Document Types
+                    const types = response.data.types || [];
+                    this.documentTypes = [{ value: 'all', label: 'Todos' }];
+
+                    if (types.includes('servidor')) {
+                        this.documentTypes.push({ value: 'server', label: 'Servidores' });
+                    }
+                    if (types.includes('financeiro')) {
+                        this.documentTypes.push({ value: 'financial', label: 'Documentos Financeiros' });
+                    }
+
+
+
+                    console.log('✅ Opções atualizadas:', {
+                        years: this.years,
+                        types: this.documentTypes
+                    });
+                }
+            },
+            error: (error) => {
+                console.error('❌ Erro ao carregar opções:', error);
+                // Fallback to default options if error
+                this.initializeYears();
+            }
+        });
     }
 
     private loadMunicipalityName(): void {
@@ -186,7 +229,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             query: '',
             year: 'all',
             documentType: 'all',
-            gender: 'all',
+
             dateFrom: '',
             dateTo: ''
         });
@@ -297,12 +340,48 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         }
     }
 
-    getDocumentIcon(type: string): string {
-        return type === 'server' ? 'people' : 'account_balance';
+    getDocumentIcon(result: SearchResult): string {
+        const type = this.getDisplayType(result);
+        return type === 'server' ? 'people' : 'folder_open';
     }
 
-    getDocumentTypeLabel(type: string): string {
-        return type === 'server' ? 'Servidor' : 'Financeiro';
+    getDisplayType(result: SearchResult): 'server' | 'financial' {
+        // override strict backend type if it seems wrong
+        if (result.type === 'server') {
+            // If it's markers as server but has no server_name, it's safer to show as "Documento" (Financial style)
+            if (!result.server_name) {
+                return 'financial';
+            }
+        }
+        return result.type;
+    }
+
+    getDocumentTypeLabel(result: SearchResult): string {
+        const type = this.getDisplayType(result);
+        return type === 'server' ? 'Servidor' : 'Documentação Financeira';
+    }
+
+    getDocumentSubtitle(result: SearchResult): string {
+        const type = this.getDisplayType(result);
+
+        if (type === 'server') {
+            return result.server_name || 'Servidor sem nome';
+        } else {
+            // For financial documents: "Folder Name + Year"
+            // Folder name comes from 'financial_document_type' (e.g., "despesas") or 'category'
+
+            const doc = result as any;
+            let folderName = doc.financial_document_type || doc.category || 'Documento';
+
+            // Capitalize first letter
+            if (folderName && typeof folderName === 'string') {
+                folderName = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase();
+            }
+
+            const year = doc.financial_year || doc.year || '';
+
+            return `${folderName} ${year}`.trim();
+        }
     }
 
     formatDate(dateString: string): string {

@@ -552,6 +552,29 @@ export class DocumentsService {
   /**
    * Advanced search for documents and servers
    */
+  /**
+   * Get available search options (years, types, genders) for a municipality
+   */
+  getSearchOptions(municipalityCode: string): Observable<ApiResponse<{ years: number[], types: string[], genders: string[] }>> {
+    const url = `${environment.apiUrl}/search/options`;
+    const params = new HttpParams().set('municipalityCode', municipalityCode);
+
+    console.log('🔍 [DocumentsService] Fetching search options:', url, municipalityCode);
+
+    return this.http.get<ApiResponse<{ years: number[], types: string[], genders: string[] }>>(url, {
+      params,
+      headers: this.getAuthHeaders()
+    }).pipe(
+      tap(response => {
+        console.log('✅ [DocumentsService] Search options received:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ [DocumentsService] Error fetching search options:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
   advancedSearch(filters: {
     municipalityCode: string;
     query?: string;
