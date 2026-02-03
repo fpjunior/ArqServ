@@ -17,22 +17,21 @@ export interface DocumentFile {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div *ngIf="isVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-0 sm:p-4" (click)="onBackdropClick($event)">
-      <div class="bg-white rounded-none sm:rounded-lg shadow-xl w-full h-full sm:max-w-4xl sm:h-auto sm:max-h-[90vh] flex flex-col" (click)="$event.stopPropagation()">
+    <div *ngIf="isVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" (click)="onBackdropClick($event)">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col" (click)="$event.stopPropagation()">
         <!-- Header -->
-        <div class="flex items-center justify-between p-3 sm:p-4 border-b bg-white">
-          <div class="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-            <div class="text-xl sm:text-2xl flex-shrink-0">{{ getFileIcon() }}</div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm sm:text-lg font-semibold text-gray-900 truncate">{{ file?.title }}</h3>
-              <p class="text-xs sm:text-sm text-gray-500 truncate">{{ file?.file_name }}</p>
+        <div class="flex items-center justify-between p-4 border-b">
+          <div class="flex items-center space-x-3">
+            <div class="text-2xl">{{ getFileIcon() }}</div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">{{ file?.title }}</h3>
+              <p class="text-sm text-gray-500">{{ file?.file_name }}</p>
             </div>
           </div>
           <button 
             (click)="close()" 
-            class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 ml-2"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
             type="button"
-            aria-label="Fechar"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -41,29 +40,28 @@ export interface DocumentFile {
         </div>
 
         <!-- Viewer Content -->
-        <div class="flex-1 overflow-hidden relative">
-          <div *ngIf="isLoading" class="absolute inset-0 flex flex-col items-center justify-center bg-white">
+        <div class="flex-1 p-4 overflow-hidden">
+          <div *ngIf="isLoading" class="flex items-center justify-center h-96">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <span class="mt-3 text-gray-600 text-sm">Carregando documento...</span>
+            <span class="ml-3 text-gray-600">Carregando documento...</span>
           </div>
 
-          <div *ngIf="!isLoading && viewerUrl" class="w-full h-full">
+          <div *ngIf="!isLoading && viewerUrl" class="h-full min-h-[500px]">
             <iframe 
               [src]="viewerUrl" 
-              class="w-full h-full border-0"
+              class="w-full h-full border rounded"
               frameborder="0"
-              allowfullscreen
               (load)="onIframeLoad()"
             ></iframe>
           </div>
 
-          <div *ngIf="!isLoading && !viewerUrl" class="flex flex-col items-center justify-center h-full text-gray-500 p-4">
+          <div *ngIf="!isLoading && !viewerUrl" class="flex flex-col items-center justify-center h-96 text-gray-500">
             <div class="text-4xl mb-4">📄</div>
-            <p class="text-base sm:text-lg mb-2 text-center">Não foi possível carregar a visualização</p>
-            <p class="text-xs sm:text-sm text-center mb-4">Clique no botão abaixo para abrir no Google Drive</p>
+            <p class="text-lg mb-2">Não foi possível carregar a visualização</p>
+            <p class="text-sm">Clique no botão abaixo para abrir no Google Drive</p>
             <button 
               (click)="openInGoogleDrive()" 
-              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+              class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               Abrir no Google Drive
             </button>
@@ -71,28 +69,28 @@ export interface DocumentFile {
         </div>
 
         <!-- Footer -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-t bg-gray-50 gap-2 sm:gap-0">
-          <div class="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+        <div class="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-lg">
+          <div class="text-sm text-gray-600">
             <span *ngIf="file?.mime_type">Tipo: {{ file?.mime_type }}</span>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div class="flex space-x-3">
             <button 
               (click)="openInGoogleDrive()" 
-              class="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors border border-gray-300 rounded hover:bg-gray-100"
+              class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
               type="button"
             >
-              🔗 Abrir no Drive
+              Abrir no Google Drive
             </button>
             <button 
               (click)="downloadDocument()" 
-              class="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
               type="button"
             >
               📥 Baixar
             </button>
             <button 
               (click)="close()" 
-              class="px-3 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors sm:hidden"
+              class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
               type="button"
             >
               Fechar
@@ -103,23 +101,8 @@ export interface DocumentFile {
     </div>
   `,
   styles: [`
-    :host {
-      display: contents;
-    }
-    
-    /* Garantir que o iframe ocupe todo o espaço disponível */
     iframe {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    
-    /* Melhorar o scroll no mobile */
-    @media (max-width: 640px) {
-      iframe {
-        -webkit-overflow-scrolling: touch;
-      }
+      min-height: 500px;
     }
   `]
 })
