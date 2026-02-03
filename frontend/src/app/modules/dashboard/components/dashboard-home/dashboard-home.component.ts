@@ -5,7 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
-import { forkJoin, Subject } from 'rxjs';
+import { DocumentViewerService, ViewerState } from '../../../../services/document-viewer.service';
+import { ModalWindowService } from '../../../../services/modal-window.service';
+import { forkJoin, Subject, Subscription } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
 interface QuickAction {
@@ -113,26 +115,41 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   recentActivities: RecentActivity[] = [];
   recentDocuments: any[] = [];
 
-  // Modal State
+  // Modal State - agora gerenciado pelo DocumentViewerService
   isModalVisible = false;
   selectedFile: any | null = null;
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
-  private isIframeDestroying = false;
-  private readonly BLANK_URL = 'about:blank';
+  private viewerStateSubscription: Subscription | null = null;
 
   constructor(
     private documentsService: DocumentsService,
     private authService: AuthService,
     public router: Router,
     private sanitizer: DomSanitizer,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private documentViewerService: DocumentViewerService,
+    public modalWindowService: ModalWindowService
   ) { }
 
   ngOnInit() {
     console.log('🔵 [DASHBOARD-HOME] ngOnInit chamado');
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
       this.currentUser = user;
+    });
+
+    // Assinar estado do viewer
+    this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      this.isModalVisible = state.isVisible;
+      this.modalViewerUrl = state.viewerUrl;
+      this.modalIsLoading = state.isLoading;
+      this.cdr.detectChanges();
+    });
+
+    // Assinar eventos de limpeza forçada
+    this.documentViewerService.forceCleanup$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      console.log('🚨 [DASHBOARD-HOME] Limpeza forçada recebida');
+      this.selectedFile = null;
     });
 
     this.loadDashboardStats();
@@ -416,103 +433,53 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/servers', serverId]);
   }
 
-  viewDocument(doc: any) {
+  /**
+   * Abre documento usando o serviço centralizado para gerenciamento de memória.
+   * O serviço cuida automaticamente de limpar documentos anteriores.
+   */
+  async viewDocument(doc: any) {
     console.log('👁️ [DASHBOARD] Visualizando documento:', doc);
 
-    // 🚨 CRITICAL MOBILE FIX: Destruir iframe anterior ANTES de carregar novo
-    if (this.isModalVisible || this.modalViewerUrl) {
-      console.log('🧹 [MOBILE-FIX] Limpando iframe anterior antes de carregar novo documento...');
-      this.destroyIframeCompletely(() => {
-        // Callback: Após destruição completa, carregar novo documento
-        this.loadDocumentInModal(doc);
-      });
-      return;
-    }
-
-    // Se não há iframe anterior, carregar diretamente
-    this.loadDocumentInModal(doc);
-  }
-
-  /**
-   * 🧹 MOBILE OPTIMIZATION: Destrói completamente o iframe anterior
-   * Libera memória antes de carregar novo documento
-   */
-  private destroyIframeCompletely(callback?: () => void) {
-    if (this.isIframeDestroying) {
-      console.warn('⚠️ [MOBILE-FIX] Destruição já em andamento, aguardando...');
-      setTimeout(() => callback?.(), 200);
-      return;
-    }
-
-    this.isIframeDestroying = true;
-    console.log('🗑️ [MOBILE-FIX] Iniciando destruição completa do iframe...');
-
-    // PASSO 1: Substituir URL por about:blank para liberar recursos
-    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.BLANK_URL);
-    this.modalIsLoading = false;
-
-    // PASSO 2: Forçar detecção de mudanças
-    this.cdr.detectChanges();
-
-    // PASSO 3: Aguardar navegador processar about:blank (crítico para mobile)
-    setTimeout(() => {
-      // PASSO 4: Remover iframe do DOM
-      this.modalViewerUrl = null;
-      this.selectedFile = null;
-      this.isModalVisible = false;
-
-      // PASSO 5: Forçar detecção novamente
-      this.cdr.detectChanges();
-
-      // PASSO 6: Aguardar garbage collection do navegador
-      setTimeout(() => {
-        this.isIframeDestroying = false;
-        console.log('✅ [MOBILE-FIX] Iframe completamente destruído e memória liberada');
-        callback?.();
-      }, 150);
-    }, 100);
-  }
-
-  /**
-   * Carrega documento no modal (método auxiliar)
-   */
-  private loadDocumentInModal(doc: any) {
     // Fallback: Se não tiver googleDriveId mas o ID for 'drive_XXX', extrair
     if (!doc.googleDriveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
       doc.googleDriveId = doc.id.replace('drive_', '');
     }
 
-    // Calcular URL
-    let urlToUse = '';
-    if (doc.googleDriveId) {
-      urlToUse = `https://drive.google.com/file/d/${doc.googleDriveId}/preview`;
-    } else if (doc.webViewLink) {
-      urlToUse = doc.webViewLink.replace('/view', '/preview');
-    } else if (doc.filePath) {
-      urlToUse = doc.filePath;
-    }
-
-    // Configurar modal
+    // Guardar referência do arquivo selecionado para exibição de metadados
     this.selectedFile = doc;
-    this.modalIsLoading = true;
-    this.isModalVisible = true;
-    this.modalViewerUrl = null;
 
-    if (urlToUse) {
-      // Pequeno delay para garantir que o DOM está pronto (especialmente após destruição)
-      setTimeout(() => {
-        this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(urlToUse);
-        this.cdr.detectChanges();
-      }, 50);
-    } else {
-      this.modalIsLoading = false;
-      console.error('Nenhuma URL de visualização encontrada para o documento');
+    // Determinar ID e URL para visualização
+    const driveId = doc.googleDriveId || doc.drive_file_id;
+    let customUrl: string | undefined;
+
+    if (!driveId) {
+      // Tentar URLs alternativas
+      if (doc.webViewLink) {
+        customUrl = doc.webViewLink.replace('/view', '/preview');
+      } else if (doc.filePath) {
+        customUrl = doc.filePath;
+      } else {
+        console.error('Nenhuma URL de visualização encontrada para o documento');
+        return;
+      }
     }
 
+    // Usar serviço centralizado para abrir documento
+    // O serviço cuida automaticamente da limpeza de memória
+    const title = doc.title || doc.fileName || 'Documento';
+    await this.documentViewerService.openDocument(
+      driveId || 'custom',
+      title,
+      driveId ? undefined : customUrl
+    );
+
+    // Registrar visualização
     this.logView(doc);
   }
 
-  // Extrair lógica de registro para reutilizar
+  /**
+   * Registra a visualização do documento
+   */
   private logView(doc: any) {
     // Sanitizar nome do arquivo antes de logar
     let logFileName = doc.title || doc.fileName || 'Documento';
@@ -529,9 +496,13 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  closeModal() {
-    console.log('🔒 [MOBILE-FIX] Usuário fechou modal, limpando memória...');
-    this.destroyIframeCompletely();
+  /**
+   * Fecha o modal usando o serviço centralizado
+   */
+  async closeModal() {
+    console.log('🔒 [DASHBOARD-HOME] Usuário fechou modal');
+    this.selectedFile = null;
+    await this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy() {
@@ -539,8 +510,13 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
 
+    // Cancelar subscription do viewer
+    if (this.viewerStateSubscription) {
+      this.viewerStateSubscription.unsubscribe();
+    }
+
     // Garantir que modal está fechado e memória liberada
-    this.modalViewerUrl = null;
+    this.documentViewerService.closeViewer();
     this.selectedFile = null;
   }
 

@@ -2,12 +2,15 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
+import { DocumentViewerService } from '../../../../services/document-viewer.service';
+import { ModalWindowService } from '../../../../services/modal-window.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer } from '@angular/platform-browser';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
+import { Subscription } from 'rxjs';
 
 interface FinancialDocument {
   id: number;
@@ -61,6 +64,9 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   successMessage: string = '';
   year: number | null = null;
 
+  // Subscription do viewer
+  private viewerStateSubscription: Subscription | null = null;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -68,7 +74,9 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private documentViewerService: DocumentViewerService,
+    public modalWindowService: ModalWindowService
   ) { }
 
   // Definição das categorias
@@ -209,6 +217,14 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       }
 
       this.loadCategoryData();
+    });
+
+    // Assinar estado do viewer
+    this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      this.isModalVisible = state.isVisible;
+      this.modalViewerUrl = state.viewerUrl;
+      this.modalIsLoading = state.isLoading;
+      this.cdr.detectChanges();
     });
 
     this.fetchStorageInfo();
@@ -378,34 +394,27 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  viewDocument(document: FinancialDocument): void {
+  /**
+   * Visualiza documento usando o serviço centralizado
+   */
+  async viewDocument(document: FinancialDocument): Promise<void> {
     console.log('🆕 Visualizando documento:', document);
 
     const googleDriveId = document.googleDriveId;
     if (!googleDriveId) {
       console.error('❌ ID do Google Drive não encontrado para este documento:', document);
-      console.log('📋 Propriedades do documento:', {
-        id: document.id,
-        name: document.name,
-        googleDriveId: document.googleDriveId,
-        googleDriveUrl: document.googleDriveUrl
-      });
-      alert('ID do Google Drive não encontrado para este documento. Verifique se o documento foi salvo com ID válido.');
+      alert('ID do Google Drive não encontrado para este documento.');
       return;
     }
 
-    // FORÇAR modal a aparecer imediatamente
-    this.isModalVisible = true;
+    // Guardar ID para referência
     this.selectedDocumentId = googleDriveId;
-    this.modalIsLoading = true;
 
-    console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
-    console.log('🔥 Google Drive ID:', this.selectedDocumentId);
-
-    // Criar URL segura
-    const embedUrl = `https://drive.google.com/file/d/${googleDriveId}/preview`;
-    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-    console.log('🔥 Modal URL criada:', embedUrl);
+    // Usar serviço centralizado para abrir documento
+    await this.documentViewerService.openDocument(
+      googleDriveId,
+      document.name
+    );
 
     // Registrar visualização
     this.documentsService.logView({
@@ -414,22 +423,6 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       fileName: document.name,
       municipalityCode: this.municipalityCode
     }).subscribe();
-
-    // Adicionar verificação para garantir que o modal está sendo exibido
-    if (!this.isModalVisible || !this.modalViewerUrl) {
-      console.error('❌ O modal não foi configurado corretamente. Verifique as propriedades.');
-      alert('Erro ao configurar o modal de visualização.');
-      return;
-    }
-
-    // Parar loading após 1s
-    setTimeout(() => {
-      this.modalIsLoading = false;
-      console.log('🔥 Modal loading finished');
-    }, 1000);
-
-    // JAMAIS abrir nova guia
-    return; // Garante que nada mais seja executado
   }
 
   showDeleteModal(document: FinancialDocument): void {
@@ -577,32 +570,25 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     return this.documents.filter(doc => doc.status === status).length;
   }
 
-  closeModal(): void {
-    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
-
-    // PASSO 1: Limpar URL do iframe IMEDIATAMENTE
-    this.modalViewerUrl = null;
-    this.modalIsLoading = false;
-
-    // PASSO 2: Forçar detecção de mudanças para remover iframe do DOM AGORA
-    this.cdr.detectChanges();
-
-    // PASSO 3: Aguardar um ciclo de renderização para garantir remoção do DOM
-    setTimeout(() => {
-      this.selectedDocumentId = '';
-      this.isModalVisible = false;
-
-      // PASSO 4: Forçar outra detecção para garantir que o modal foi removido
-      this.cdr.detectChanges();
-
-      console.log('✅ [MOBILE-FIX] Modal completamente removido do DOM');
-    }, 100);
+  /**
+   * Fecha o modal usando o serviço centralizado
+   */
+  async closeModal(): Promise<void> {
+    console.log('🔒 [FINANCIAL-CATEGORY] Fechando modal');
+    this.selectedDocumentId = '';
+    await this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy(): void {
     console.log('🗑️ [FINANCIAL-CATEGORY] ngOnDestroy - Limpando memória');
+
+    // Cancelar subscription do viewer
+    if (this.viewerStateSubscription) {
+      this.viewerStateSubscription.unsubscribe();
+    }
+
     // Garantir que modal está fechado e memória liberada
-    this.modalViewerUrl = null;
+    this.documentViewerService.closeViewer();
     this.selectedDocumentId = '';
   }
 

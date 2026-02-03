@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
+import { DocumentViewerService } from '../../../../services/document-viewer.service';
+import { ModalWindowService } from '../../../../services/modal-window.service';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DomSanitizer } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
 
 interface FinancialFolder {
   financial_document_type: string;
@@ -46,7 +49,7 @@ const FINANCIAL_TYPE_DISPLAY_NAMES: { [key: string]: string } = {
   templateUrl: './financial-documents.component.html',
   styleUrls: ['./financial-documents.component.scss']
 })
-export class FinancialDocumentsComponent implements OnInit {
+export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   financialFolders: FinancialFolder[] = [];
   selectedFolder: FinancialFolder | null = null;
   municipalityCode: string | null = null;
@@ -59,15 +62,29 @@ export class FinancialDocumentsComponent implements OnInit {
   selectedDocumentId: string | null = null;
   modalIsLoading: boolean = false;
 
+  // Subscription do viewer
+  private viewerStateSubscription: Subscription | null = null;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private documentsService: DocumentsService,
     private authService: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private cdr: ChangeDetectorRef,
+    private documentViewerService: DocumentViewerService,
+    public modalWindowService: ModalWindowService
   ) { }
 
   ngOnInit(): void {
+    // Assinar estado do viewer
+    this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      this.isModalVisible = state.isVisible;
+      this.modalViewerUrl = state.viewerUrl;
+      this.modalIsLoading = state.isLoading;
+      this.cdr.detectChanges();
+    });
+
     try {
       // Obter município da rota (admin escolhe) ou do usuário logado (user tem fixo)
       const routeMunicipalityCode = this.route.snapshot.paramMap.get('municipalityCode');
@@ -208,21 +225,20 @@ export class FinancialDocumentsComponent implements OnInit {
     return this.financialFolders.reduce((total, folder) => total + folder.count, 0);
   }
 
-  viewDocument(documentId: number): void {
+  /**
+   * Visualiza documento usando o serviço centralizado
+   */
+  async viewDocument(documentId: number): Promise<void> {
     console.log('🆕 Visualizando documento:', documentId);
 
-    // FORÇAR modal a aparecer imediatamente
-    this.isModalVisible = true;
+    // Guardar ID para referência
     this.selectedDocumentId = documentId.toString();
-    this.modalIsLoading = true;
 
-    console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
-    console.log('🔥 Documento selecionado:', this.selectedDocumentId);
-
-    // Criar URL segura
-    const embedUrl = `https://drive.google.com/file/d/${documentId}/preview`;
-    this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-    console.log('🔥 Modal URL criada:', embedUrl);
+    // Usar serviço centralizado para abrir documento
+    await this.documentViewerService.openDocument(
+      documentId.toString(),
+      `Documento ${documentId}`
+    );
 
     // Registrar visualização
     this.documentsService.logView({
@@ -230,15 +246,28 @@ export class FinancialDocumentsComponent implements OnInit {
       driveFileId: documentId.toString(),
       municipalityCode: this.municipalityCode || undefined
     }).subscribe();
+  }
 
-    // Parar loading após 1s
-    setTimeout(() => {
-      this.modalIsLoading = false;
-      console.log('🔥 Modal loading finished');
-    }, 1000);
+  /**
+   * Fecha o modal usando o serviço centralizado
+   */
+  async closeModal(): Promise<void> {
+    console.log('🔒 [FINANCIAL-DOCUMENTS] Fechando modal');
+    this.selectedDocumentId = null;
+    await this.documentViewerService.closeViewer();
+  }
 
-    // JAMAIS abrir nova guia
-    return; // Garante que nada mais seja executado
+  ngOnDestroy(): void {
+    console.log('🗑️ [FINANCIAL-DOCUMENTS] ngOnDestroy - Limpando memória');
+
+    // Cancelar subscription do viewer
+    if (this.viewerStateSubscription) {
+      this.viewerStateSubscription.unsubscribe();
+    }
+
+    // Garantir que modal está fechado
+    this.documentViewerService.closeViewer();
+    this.selectedDocumentId = null;
   }
 
   downloadDocument(documentId: number): void {

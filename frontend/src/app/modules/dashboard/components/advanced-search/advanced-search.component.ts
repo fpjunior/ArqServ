@@ -3,12 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DocumentsService } from '../../../../services/documents.service';
+import { DocumentViewerService } from '../../../../services/document-viewer.service';
+import { ModalWindowService } from '../../../../services/modal-window.service';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { environment } from '../../../../../environments/environment';
+import { Subscription } from 'rxjs';
 
 interface SearchResult {
     id: number;
@@ -66,6 +69,9 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     modalViewerUrl: SafeResourceUrl | null = null;
     modalIsLoading = false;
 
+    // Subscription do viewer
+    private viewerStateSubscription: Subscription | null = null;
+
     constructor(
         private fb: FormBuilder,
         private router: Router,
@@ -74,7 +80,9 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         private authService: AuthService,
         private http: HttpClient,
         private sanitizer: DomSanitizer,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private documentViewerService: DocumentViewerService,
+        public modalWindowService: ModalWindowService
     ) {
         this.initializeYears();
     }
@@ -94,6 +102,14 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         this.initializeForm();
         this.loadMunicipalityName();
 
+        // Assinar estado do viewer
+        this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+            this.isModalVisible = state.isVisible;
+            this.modalViewerUrl = state.viewerUrl;
+            this.modalIsLoading = state.isLoading;
+            this.cdr.detectChanges();
+        });
+
         if (this.municipalityCode) {
             this.loadSearchOptions();
         } else {
@@ -103,7 +119,14 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         console.log('🗑️ [ADVANCED-SEARCH] ngOnDestroy - Limpando memória');
-        this.modalViewerUrl = null;
+
+        // Cancelar subscription do viewer
+        if (this.viewerStateSubscription) {
+            this.viewerStateSubscription.unsubscribe();
+        }
+
+        // Garantir que modal está fechado
+        this.documentViewerService.closeViewer();
         this.selectedFile = null;
     }
 
@@ -148,8 +171,6 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
                     if (types.includes('financeiro')) {
                         this.documentTypes.push({ value: 'financial', label: 'Documentos Financeiros' });
                     }
-
-
 
                     console.log('✅ Opções atualizadas:', {
                         years: this.years,
@@ -229,7 +250,6 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             query: '',
             year: 'all',
             documentType: 'all',
-
             dateFrom: '',
             dateTo: ''
         });
@@ -237,23 +257,36 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         this.hasSearched = false;
     }
 
-    viewDocument(result: SearchResult): void {
+    /**
+     * Visualiza documento usando o serviço centralizado
+     */
+    async viewDocument(result: SearchResult): Promise<void> {
         console.log('Visualizando documento:', result);
 
-        this.isModalVisible = true;
+        // Guardar referência do arquivo para exibição de metadados
         this.selectedFile = result;
-        this.modalIsLoading = true;
 
         const driveFileId = result.drive_file_id || result.google_drive_id;
 
-        if (driveFileId) {
-            const embedUrl = `https://drive.google.com/file/d/${driveFileId}/preview`;
-            this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-            console.log('🔥 Modal URL criada:', embedUrl);
-        } else if ((result as any).file_path) {
-            // Fallback if file_path is viewable directly
-            const filePath = (result as any).file_path.replace('/view', '/preview');
-            this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(filePath);
+        if (!driveFileId) {
+            // Tentar URL alternativa
+            if ((result as any).file_path) {
+                const filePath = (result as any).file_path.replace('/view', '/preview');
+                await this.documentViewerService.openDocument(
+                    'custom',
+                    result.title || result.file_name || 'Documento',
+                    filePath
+                );
+            } else {
+                console.error('Nenhum ID do Drive ou caminho de arquivo encontrado');
+                return;
+            }
+        } else {
+            // Usar serviço centralizado para abrir documento
+            await this.documentViewerService.openDocument(
+                driveFileId,
+                result.title || result.file_name || 'Documento'
+            );
         }
 
         // Registrar visualização
@@ -263,31 +296,15 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             fileName: result.file_name || result.title,
             municipalityCode: this.municipalityCode || undefined
         }).subscribe();
-
-        setTimeout(() => {
-            this.modalIsLoading = false;
-        }, 1000);
     }
 
-    closeModal(): void {
-        console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
-
-        // PASSO 1: Limpar URL do iframe IMEDIATAMENTE
-        this.modalViewerUrl = null;
-        this.modalIsLoading = false;
-
-        // PASSO 2: Forçar detecção de mudanças para remover iframe do DOM AGORA
-        this.cdr.detectChanges();
-
-        // PASSO 3: Aguardar um ciclo de renderização para garantir remoção do DOM
-        setTimeout(() => {
-            this.selectedFile = null;
-            this.isModalVisible = false;
-
-            // PASSO 4: Forçar outra detecção para garantir que o modal foi removido
-            this.cdr.detectChanges();
-            console.log('✅ [MOBILE-FIX] Modal completamente removido do DOM');
-        }, 100);
+    /**
+     * Fecha o modal usando o serviço centralizado
+     */
+    async closeModal(): Promise<void> {
+        console.log('🔒 [ADVANCED-SEARCH] Fechando modal');
+        this.selectedFile = null;
+        await this.documentViewerService.closeViewer();
     }
 
     downloadDocument(result: SearchResult): void {

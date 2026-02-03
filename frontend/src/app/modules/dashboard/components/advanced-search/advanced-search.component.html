@@ -208,32 +208,92 @@
     </div>
 </div>
 
-<!-- Document Viewer Modal -->
-<div *ngIf="isModalVisible"
-    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 modal-overlay"
+<!-- Document Viewer Modal - Estilo Janela Windows -->
+<div *ngIf="isModalVisible" class="fixed inset-0 z-[9999] modal-overlay"
+    [class.bg-black]="!modalWindowService.isMobileDevice" [class.bg-opacity-50]="!modalWindowService.isMobileDevice"
     (click)="closeModal()">
-    <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl overflow-hidden z-[9999] modal-content"
+
+    <!-- Janela do Modal -->
+    <div class="modal-window bg-white shadow-2xl overflow-hidden flex flex-col"
+        [ngStyle]="modalWindowService.getWindowStyle()"
+        [class.rounded-lg]="!modalWindowService.currentState.isMaximized && !modalWindowService.isMobileDevice"
         (click)="$event.stopPropagation()">
 
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 border-b bg-gray-50">
-            <div class="flex items-center space-x-3">
+        <!-- Bordas de Redimensionamento (apenas desktop) -->
+        <ng-container *ngIf="!modalWindowService.isMobileDevice && !modalWindowService.currentState.isMaximized">
+            <!-- Cantos -->
+            <div class="absolute top-0 left-0 w-3 h-3 cursor-nwse-resize z-50"
+                (mousedown)="modalWindowService.startResize($event, 'nw')"></div>
+            <div class="absolute top-0 right-0 w-3 h-3 cursor-nesw-resize z-50"
+                (mousedown)="modalWindowService.startResize($event, 'ne')"></div>
+            <div class="absolute bottom-0 left-0 w-3 h-3 cursor-nesw-resize z-50"
+                (mousedown)="modalWindowService.startResize($event, 'sw')"></div>
+            <div class="absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize z-50"
+                (mousedown)="modalWindowService.startResize($event, 'se')"></div>
+
+            <!-- Bordas -->
+            <div class="absolute top-0 left-3 right-3 h-1 cursor-ns-resize z-40"
+                (mousedown)="modalWindowService.startResize($event, 'n')"></div>
+            <div class="absolute bottom-0 left-3 right-3 h-1 cursor-ns-resize z-40"
+                (mousedown)="modalWindowService.startResize($event, 's')"></div>
+            <div class="absolute left-0 top-3 bottom-3 w-1 cursor-ew-resize z-40"
+                (mousedown)="modalWindowService.startResize($event, 'w')"></div>
+            <div class="absolute right-0 top-3 bottom-3 w-1 cursor-ew-resize z-40"
+                (mousedown)="modalWindowService.startResize($event, 'e')"></div>
+        </ng-container>
+
+        <!-- Barra de Título (arrastável) -->
+        <div class="flex items-center justify-between px-4 py-2 border-b bg-gradient-to-r from-gray-50 to-gray-100 select-none"
+            [class.cursor-move]="!modalWindowService.isMobileDevice && !modalWindowService.currentState.isMaximized"
+            (mousedown)="modalWindowService.startDrag($event)" (dblclick)="modalWindowService.toggleMaximize()">
+
+            <!-- Info do Documento -->
+            <div class="flex items-center space-x-3 min-w-0 flex-1">
                 <!-- Icon logic can be simplified or adapted if needed -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ selectedFile?.title }}</h3>
-                    <p class="text-sm text-gray-600">{{ selectedFile?.file_name }}</p>
+                <span class="text-2xl shrink-0">📄</span>
+                <div class="min-w-0">
+                    <h3 class="text-base font-semibold text-gray-900 truncate">{{ selectedFile?.title }}</h3>
+                    <p class="text-xs text-gray-500 truncate">{{ selectedFile?.file_name }}</p>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2">
-                <button (click)="downloadDocument(selectedFile!)"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <!-- Ações e Controles de Janela -->
+            <div class="flex items-center space-x-1 shrink-0">
+                <!-- Botão Baixar -->
+                <button (click)="downloadDocument(selectedFile!); $event.stopPropagation()"
+                    class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center space-x-1.5"
+                    title="Baixar documento">
                     <span>⬇️</span>
-                    <span>Baixar</span>
+                    <span class="hidden sm:inline">Baixar</span>
                 </button>
-                <button (click)="closeModal()"
-                    class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                <!-- Separador -->
+                <div class="w-px h-6 bg-gray-300 mx-2" *ngIf="!modalWindowService.isMobileDevice"></div>
+
+                <!-- Botões de Controle da Janela (desktop only) -->
+                <ng-container *ngIf="!modalWindowService.isMobileDevice">
+                    <!-- Maximizar/Restaurar -->
+                    <button (click)="modalWindowService.toggleMaximize(); $event.stopPropagation()"
+                        class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded transition-colors"
+                        [title]="modalWindowService.currentState.isMaximized ? 'Restaurar' : 'Maximizar'">
+                        <svg *ngIf="!modalWindowService.currentState.isMaximized" class="w-4 h-4" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                        <svg *ngIf="modalWindowService.currentState.isMaximized" class="w-4 h-4" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                        </svg>
+                    </button>
+                </ng-container>
+
+                <!-- Fechar -->
+                <button (click)="closeModal(); $event.stopPropagation()"
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-red-100 hover:text-red-600 rounded transition-colors"
+                    title="Fechar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -241,10 +301,13 @@
             </div>
         </div>
 
-        <!-- Modal Content -->
-        <div class="flex-1 relative h-full">
+        <!-- Conteúdo do Modal -->
+        <div class="flex-1 relative overflow-hidden">
+            <!-- Overlay de proteção -->
+            <div *ngIf="modalWindowService.isInteracting" class="absolute inset-0 z-50 bg-transparent"></div>
+
             <!-- Loading Spinner -->
-            <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
                 <div class="text-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p class="text-gray-600">Carregando documento...</p>
@@ -252,8 +315,9 @@
             </div>
 
             <!-- Document Iframe -->
-            <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0 relative"
-                style="z-index: 1 !important; pointer-events: auto;" (load)="modalIsLoading = false">
+            <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0"
+                style="pointer-events: auto; transform: scale(0.7); transform-origin: 0 0; width: 143%; height: 143%;"
+                (load)="modalIsLoading = false">
             </iframe>
 
             <!-- Error State -->
@@ -265,6 +329,14 @@
                     <p class="text-gray-600">Não foi possível carregar o documento para visualização.</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Barra de Status (opcional, desktop) -->
+        <div *ngIf="!modalWindowService.isMobileDevice"
+            class="px-3 py-1 text-xs text-gray-500 bg-gray-50 border-t flex items-center justify-between">
+            <span>{{ selectedFile?.file_name }}</span>
+            <span class="text-gray-400">Dica: Arraste a barra de título para mover • Arraste as bordas para
+                redimensionar • Duplo clique para maximizar</span>
         </div>
     </div>
 </div>

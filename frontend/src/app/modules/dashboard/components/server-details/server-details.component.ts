@@ -5,11 +5,14 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
+import { DocumentViewerService } from '../../../../services/document-viewer.service';
+import { ModalWindowService } from '../../../../services/modal-window.service';
 import { environment } from '../../../../../environments/environment';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Location } from '@angular/common';
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
+import { Subscription } from 'rxjs';
 
 interface ServerFile {
   id: number;
@@ -70,6 +73,9 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   successModalVisible: boolean = false;
   successMessage: string = '';
 
+  // Subscription do viewer
+  private viewerStateSubscription: Subscription | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -78,7 +84,9 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
     private location: Location,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private documentViewerService: DocumentViewerService,
+    public modalWindowService: ModalWindowService
   ) { }
 
   ngOnInit(): void {
@@ -98,6 +106,14 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       this.router.navigate(['/servers']);
       return;
     }
+
+    // Assinar estado do viewer
+    this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      this.isModalVisible = state.isVisible;
+      this.modalViewerUrl = state.viewerUrl;
+      this.modalIsLoading = state.isLoading;
+      this.cdr.detectChanges();
+    });
 
     this.loadServerFiles(serverId);
   }
@@ -161,45 +177,40 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     this.filterFiles();
   }
 
-  viewDocument(file: ServerFile): void {
-    console.log('🆕 NOVO ViewDocument chamado:', file);
+  /**
+   * Visualiza documento usando o serviço centralizado
+   */
+  async viewDocument(file: ServerFile): Promise<void> {
+    console.log('🆕 ViewDocument chamado:', file);
 
-    // FORÇAR modal a aparecer imediatamente
-    this.isModalVisible = true;
+    // Guardar referência do arquivo para exibição de metadados
     this.selectedFile = file;
-    this.modalIsLoading = true;
 
-    console.log('🔥 FORÇANDO modal visibility:', this.isModalVisible);
-    console.log('🔥 Selected file:', this.selectedFile);
-
-    // Criar URL segura
+    // Obter ID do Drive
     const driveFileId = file.drive_file_id || file.google_drive_id;
-    if (driveFileId) {
-      const embedUrl = `https://drive.google.com/file/d/${driveFileId}/preview`;
-      this.modalViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-      console.log('🔥 Modal URL criada:', embedUrl);
+
+    if (!driveFileId) {
+      console.error('❌ Nenhum ID do Google Drive encontrado para o arquivo:', file);
+      return;
     }
 
-    // Registrar visualização (sempre, independente de ter driveFileId)
-    console.log('👁️ Chamando logView para servidor...');
+    // Usar serviço centralizado para abrir documento
+    await this.documentViewerService.openDocument(
+      driveFileId,
+      file.title || file.file_name
+    );
+
+    // Registrar visualização
+    console.log('👁️ Registrando visualização...');
     this.documentsService.logView({
       documentId: file.id,
-      driveFileId: driveFileId || undefined,
+      driveFileId: driveFileId,
       fileName: file.file_name || file.title,
       municipalityCode: this.server?.municipality_code
     }).subscribe({
       next: (res) => console.log('✅ logView sucesso:', res),
       error: (err) => console.error('❌ logView erro:', err)
     });
-
-    // Parar loading após 1s
-    setTimeout(() => {
-      this.modalIsLoading = false;
-      console.log('🔥 Modal loading finished');
-    }, 1000);
-
-    // JAMAIS abrir nova guia
-    return; // Garante que nada mais seja executado
   }
 
   downloadDocument(file: ServerFile): void {
@@ -333,32 +344,25 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     this.location.back();
   }
 
-  closeModal(): void {
-    console.log('🔒 [MOBILE-FIX] Fechando modal e limpando memória...');
-
-    // PASSO 1: Limpar URL do iframe IMEDIATAMENTE
-    this.modalViewerUrl = null;
-    this.modalIsLoading = false;
-
-    // PASSO 2: Forçar detecção de mudanças para remover iframe do DOM AGORA
-    this.cdr.detectChanges();
-
-    // PASSO 3: Aguardar um ciclo de renderização para garantir remoção do DOM
-    setTimeout(() => {
-      this.selectedFile = null;
-      this.isModalVisible = false;
-
-      // PASSO 4: Forçar outra detecção para garantir que o modal foi removido
-      this.cdr.detectChanges();
-
-      console.log('✅ [MOBILE-FIX] Modal completamente removido do DOM');
-    }, 100);
+  /**
+   * Fecha o modal usando o serviço centralizado
+   */
+  async closeModal(): Promise<void> {
+    console.log('🔒 [SERVER-DETAILS] Fechando modal');
+    this.selectedFile = null;
+    await this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy(): void {
     console.log('🗑️ [SERVER-DETAILS] ngOnDestroy - Limpando memória');
+
+    // Cancelar subscription do viewer
+    if (this.viewerStateSubscription) {
+      this.viewerStateSubscription.unsubscribe();
+    }
+
     // Garantir que modal está fechado e memória liberada
-    this.modalViewerUrl = null;
+    this.documentViewerService.closeViewer();
     this.selectedFile = null;
   }
 }
