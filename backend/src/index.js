@@ -396,7 +396,8 @@ app.get('/api/debug/db-ping', async (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, async () => {
-  console.log(`🚀 ArqServ Backend rodando na porta ${PORT}`);
+  const packageJson = require('../package.json');
+  console.log(`🚀 ArqServ Backend v${packageJson.version} rodando na porta ${PORT}`);
   console.log(`📡 Acesse: http://localhost:${PORT}/api/test`);
 
   // Inicializar Google Drive services
