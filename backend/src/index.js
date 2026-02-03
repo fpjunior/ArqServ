@@ -197,6 +197,20 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
+// Rota específica para versão e status
+app.get('/api/version', (req, res) => {
+  const packageJson = require('../package.json');
+  res.json({
+    name: packageJson.name,
+    version: packageJson.version,
+    status: 'ONLINE',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(process.uptime())} segundos`,
+    message: `Backend v${packageJson.version} rodando com sucesso!`
+  });
+});
+
 // Rota de debug para verificar configurações
 app.get('/api/debug', async (req, res) => {
   const pool = require('./config/database');
