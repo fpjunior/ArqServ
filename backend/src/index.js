@@ -414,27 +414,74 @@ app.get('/api/debug/db-ping', async (req, res) => {
   }
 });
 
-// Iniciar servidor
-app.listen(PORT, async () => {
+// Inicializar Google Drive services antes de iniciar o servidor
+async function initializeServices() {
+  console.log('🔄 Inicializando Google Drive services...');
+  
+  try {
+    const driveOAuthInitialized = await googleDriveOAuthService.initialize();
+    const driveServiceInitialized = await googleDriveService.initialize();
+
+    // Armazenar serviços no app Express
+    app.set('googleDriveOAuthService', googleDriveOAuthService);
+    app.set('googleDriveService', googleDriveService);
+
+    if (driveOAuthInitialized) {
+      console.log('✅ Google Drive OAuth service pronto!');
+    } else if (driveServiceInitialized) {
+      console.log('✅ Google Drive service account pronto (com limitações)');
+    } else {
+      console.log('⚠️ Google Drive não configurado - uploads serão salvos localmente');
+    }
+  } catch (error) {
+    console.log('⚠️ Erro ao inicializar Google Drive:', error.message);
+    console.log('⚠️ Uploads serão salvos localmente');
+  }
+}
+
+// Iniciar servidor - escutar em 0.0.0.0 para aceitar conexões externas (Render)
+const server = app.listen(PORT, '0.0.0.0', async () => {
   const packageJson = require('../package.json');
   console.log(`🚀 ArqServ Backend v${packageJson.version} rodando na porta ${PORT}`);
-  console.log(`📡 Acesse: http://localhost:${PORT}/api/test`);
+  console.log(`📡 Servidor escutando em 0.0.0.0:${PORT}`);
+  console.log(`📡 Health check: http://localhost:${PORT}/api/version`);
+  
+  // Inicializar serviços em paralelo
+  await initializeServices();
+  
+  console.log('✅ Servidor pronto para receber requisições!');
+});
 
-  // Inicializar Google Drive services
-  console.log('🔄 Inicializando Google Drive services...');
+// Tratamento de erros do servidor
+server.on('error', (error) => {
+  console.error('❌ Erro ao iniciar servidor:', error.message);
+  process.exit(1);
+});
 
-  const driveOAuthInitialized = await googleDriveOAuthService.initialize();
-  const driveServiceInitialized = await googleDriveService.initialize();
+// Graceful shutdown para Render e outros serviços de cloud
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM recebido, encerrando servidor graciosamente...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    process.exit(0);
+  });
+});
 
-  // Armazenar serviços no app Express
-  app.set('googleDriveOAuthService', googleDriveOAuthService);
-  app.set('googleDriveService', googleDriveService);
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT recebido, encerrando servidor graciosamente...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    process.exit(0);
+  });
+});
 
-  if (driveOAuthInitialized) {
-    console.log('✅ Google Drive OAuth service pronto!');
-  } else if (driveServiceInitialized) {
-    console.log('✅ Google Drive service account pronto (com limitações)');
-  } else {
-    console.log('⚠️ Google Drive não configurado - uploads serão salvos localmente');
-  }
+// Tratamento de erros não capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
