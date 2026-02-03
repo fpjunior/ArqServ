@@ -259,51 +259,50 @@
           </svg>
         </button>
       </div>
+    </div>
 
-      <!-- Conteúdo do Modal -->
-      <div class="flex-1 relative overflow-hidden">
-        <!-- Overlay de proteção -->
-        <div *ngIf="modalWindowService.isInteracting" class="absolute inset-0 z-50 bg-transparent"></div>
+    <!-- Conteúdo do Modal -->
+    <div class="flex-1 relative overflow-hidden">
+      <!-- Overlay de proteção -->
+      <div *ngIf="modalWindowService.isInteracting" class="absolute inset-0 z-50 bg-transparent"></div>
 
-        <!-- Loading Spinner -->
-        <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
-          <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p class="text-gray-600">Carregando documento...</p>
-          </div>
-        </div>
-
-        <!-- Document Iframe -->
-        <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0"
-          (load)="modalIsLoading = false">
-        </iframe>
-
-        <!-- Error State -->
-        <div *ngIf="!modalIsLoading && !modalViewerUrl"
-          class="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <div class="text-center">
-            <div class="text-red-500 text-6xl mb-4">❌</div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Erro ao carregar documento</h3>
-            <p class="text-gray-600">Não foi possível carregar o documento para visualização.</p>
-          </div>
+      <!-- Loading Spinner -->
+      <div *ngIf="modalIsLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Carregando documento...</p>
         </div>
       </div>
 
-      <!-- Barra de Status (opcional, desktop) -->
-      <div *ngIf="!modalWindowService.isMobileDevice"
-        class="px-3 py-1 text-xs text-gray-500 bg-gray-50 border-t flex items-center justify-between">
-        <span>Visualização de documento</span>
-        <span class="text-gray-400">Dica: Arraste a barra de título para mover • Arraste as bordas para
-          redimensionar •
-          Duplo clique para maximizar</span>
+      <!-- Document Iframe -->
+      <iframe *ngIf="modalViewerUrl" [src]="modalViewerUrl" class="w-full h-full border-0"
+        (load)="modalIsLoading = false">
+      </iframe>
+
+      <!-- Error State -->
+      <div *ngIf="!modalIsLoading && !modalViewerUrl"
+        class="absolute inset-0 flex items-center justify-center bg-gray-100">
+        <div class="text-center">
+          <div class="text-red-500 text-6xl mb-4">❌</div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Erro ao carregar documento</h3>
+          <p class="text-gray-600">Não foi possível carregar o documento para visualização.</p>
+        </div>
       </div>
     </div>
+
+    <!-- Barra de Status (opcional, desktop) -->
+    <div *ngIf="!modalWindowService.isMobileDevice"
+      class="px-3 py-1 text-xs text-gray-500 bg-gray-50 border-t flex items-center justify-between">
+      <span>Visualização de documento</span>
+      <span class="text-gray-400">Dica: Arraste a barra de título para mover • Arraste as bordas para redimensionar • Duplo clique para maximizar</span>
+    </div>
   </div>
+</div>
 
-  <!-- Modal de Confirmação de Exclusão -->
-  <app-confirm-delete-modal [isVisible]="confirmDeleteModalVisible" [itemName]="documentToDelete?.name || ''"
-    (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
-  </app-confirm-delete-modal>
+<!-- Modal de Confirmação de Exclusão -->
+<app-confirm-delete-modal [isVisible]="confirmDeleteModalVisible" [itemName]="documentToDelete?.name || ''"
+  (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
+</app-confirm-delete-modal>
 
-  <app-success-modal *ngIf="successModalVisible" [visible]="successModalVisible" [message]="successMessage">
-  </app-success-modal>
+<app-success-modal *ngIf="successModalVisible" [visible]="successModalVisible" [message]="successMessage">
+</app-success-modal>
