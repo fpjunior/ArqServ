@@ -1,15 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../../shared/services/auth.service';
 import { filter } from 'rxjs/operators';
+import { environment } from '../../../../../environments/environment';
+import packageJson from '../../../../../../package.json';
 
 import { ChangePasswordModalComponent } from '../change-password-modal/change-password-modal.component';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, ChangePasswordModalComponent],
+  imports: [CommonModule, RouterOutlet, ChangePasswordModalComponent, HttpClientModule],
   templateUrl: './dashboard-layout.component.html',
   styleUrls: ['./dashboard-layout.component.scss']
 })
@@ -21,9 +24,13 @@ export class DashboardLayoutComponent implements OnInit {
   isUserMenuOpen: boolean = false;
   isSidebarOpen: boolean = false;
 
+  public frontendVersion: string = packageJson.version;
+  public backendVersion: string = 'Carregando...';
+
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private http: HttpClient
   ) {
     // Escutar mudanças de rota para atualizar a aba ativa
     this.router.events.pipe(
@@ -35,6 +42,8 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.fetchBackendVersion();
+
     // Carregar usuário do localStorage imediatamente para evitar delay
     const storedUser = localStorage.getItem('arqserv_user');
     if (storedUser) {
@@ -60,6 +69,27 @@ export class DashboardLayoutComponent implements OnInit {
         event.preventDefault();
         console.log('🔑 Logout via atalho de teclado');
         this.forceLogout();
+      }
+    });
+  }
+
+  fetchBackendVersion(): void {
+    // Tenta buscar a versão do backend
+    // Assumindo que a API base URL já está configurada ou usando proxy
+    // Como é um teste simples, tentarei usar o environment ou caminho relativo se houver proxy
+    const apiUrl = environment.apiUrl || 'http://localhost:3005/api'; // Fallback
+
+    this.http.get<any>(`${apiUrl}/test`).subscribe({
+      next: (data) => {
+        if (data && data.version) {
+          this.backendVersion = data.version;
+        } else {
+          this.backendVersion = 'Desc.';
+        }
+      },
+      error: (err) => {
+        console.error('Erro ao buscar versão do backend:', err);
+        this.backendVersion = 'Offline';
       }
     });
   }

@@ -173,8 +173,10 @@ app.get('/api/servers/municipality/:code', async (req, res) => {
 
 // Rota de teste
 app.get('/api/test', (req, res) => {
+  const packageJson = require('../package.json');
   res.json({
     message: 'ArqServ Backend funcionando!',
+    version: packageJson.version,
     timestamp: new Date().toISOString(),
     port: PORT
   });
