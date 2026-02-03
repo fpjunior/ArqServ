@@ -182,6 +182,12 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Rota Raiz (Health Check para Render)
+app.get('/', (req, res) => {
+  const packageJson = require('../package.json');
+  res.status(200).send(`ArqServ Backend v${packageJson.version} is running!`);
+});
+
 // Rota de health check (rápida, sem banco)
 app.get('/api/ping', (req, res) => {
   res.json({
