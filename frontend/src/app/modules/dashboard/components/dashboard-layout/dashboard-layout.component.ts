@@ -6,6 +6,7 @@ import { AuthService, User } from '../../../../shared/services/auth.service';
 import { filter } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import packageJson from '../../../../../../package.json';
+import packageJsonBack from '../../../../../../../backend/package.json';
 
 import { ChangePasswordModalComponent } from '../change-password-modal/change-password-modal.component';
 
@@ -25,7 +26,7 @@ export class DashboardLayoutComponent implements OnInit {
   isSidebarOpen: boolean = false;
 
   public frontendVersion: string = packageJson.version;
-  public backendVersion: string = 'Carregando...';
+  public backendVersion: string = packageJsonBack.version;
 
   constructor(
     private authService: AuthService,
