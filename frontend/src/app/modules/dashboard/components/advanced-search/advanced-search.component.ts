@@ -97,37 +97,40 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       window.addEventListener('click', this.emergencyResetHandler.bind(this), true);
     }
-        this.currentUser = this.authService.getCurrentUser();
+  }
 
-        // Get municipality from route or user
-        const routeMunicipalityCode = this.route.snapshot.paramMap.get('municipalityCode');
+  ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
 
-        if (routeMunicipalityCode) {
-            this.municipalityCode = routeMunicipalityCode;
-        } else if (this.currentUser?.municipality_code) {
-            this.municipalityCode = this.currentUser.municipality_code;
-        }
+    // Get municipality from route or user
+    const routeMunicipalityCode = this.route.snapshot.paramMap.get('municipalityCode');
 
-        this.initializeForm();
-        this.loadMunicipalityName();
-
-        // Assinar estado do viewer
-        this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
-            this.isModalVisible = state.isVisible;
-            this.modalViewerUrl = state.viewerUrl;
-            this.modalIsLoading = state.isLoading;
-            // Nota: Removido cdr.detectChanges() - causava travamento em mobile
-        });
-
-        if (this.municipalityCode) {
-            this.loadSearchOptions();
-        } else {
-            this.initializeYears(); // Fallback
-        }
+    if (routeMunicipalityCode) {
+      this.municipalityCode = routeMunicipalityCode;
+    } else if (this.currentUser?.municipality_code) {
+      this.municipalityCode = this.currentUser.municipality_code;
     }
 
-    private initializeForm(): void {
-        this.searchForm = this.fb.group({
+    this.initializeForm();
+    this.loadMunicipalityName();
+
+    // Assinar estado do viewer
+    this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      this.isModalVisible = state.isVisible;
+      this.modalViewerUrl = state.viewerUrl;
+      this.modalIsLoading = state.isLoading;
+      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
+    });
+
+    if (this.municipalityCode) {
+      this.loadSearchOptions();
+    } else {
+      this.initializeYears(); // Fallback
+    }
+  }
+
+  private initializeForm(): void {
+    this.searchForm = this.fb.group({
             query: [''],
             year: ['all'],
             documentType: ['all'],
