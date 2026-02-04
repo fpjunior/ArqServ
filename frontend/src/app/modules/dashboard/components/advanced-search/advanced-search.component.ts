@@ -355,6 +355,18 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
                     link.click();
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
+
+                    // Registrar download
+                    console.log('📥 Registrando download...');
+                    this.documentsService.logDownload({
+                        documentId: result.id,
+                        driveFileId: driveFileId,
+                        fileName: result.file_name || result.title,
+                        municipalityCode: result.municipality_code || this.municipalityCode || undefined
+                    }).subscribe({
+                        next: (res) => console.log('✅ logDownload sucesso:', res),
+                        error: (err) => console.error('❌ logDownload erro:', err)
+                    });
                 }
             },
             error: (error) => {
