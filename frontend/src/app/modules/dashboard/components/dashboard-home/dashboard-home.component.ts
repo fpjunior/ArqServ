@@ -122,6 +122,9 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   modalIsLoading = false;
   private viewerStateSubscription: Subscription | null = null;
 
+  // Flag para prevenir duplo clique
+  private isOpeningDocument = false;
+
   constructor(
     private documentsService: DocumentsService,
     private authService: AuthService,
@@ -436,45 +439,60 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   /**
    * Abre documento usando o serviço centralizado para gerenciamento de memória.
    * O serviço cuida automaticamente de limpar documentos anteriores.
+   * PROTEÇÃO: Previne duplo clique
    */
   async viewDocument(doc: any) {
+    // Proteção contra duplo clique
+    if (this.isOpeningDocument) {
+      console.warn('⚠️ [DASHBOARD] Abertura já em andamento, ignorando...');
+      return;
+    }
+
+    this.isOpeningDocument = true;
     console.log('👁️ [DASHBOARD] Visualizando documento:', doc);
 
-    // Fallback: Se não tiver googleDriveId mas o ID for 'drive_XXX', extrair
-    if (!doc.googleDriveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
-      doc.googleDriveId = doc.id.replace('drive_', '');
-    }
-
-    // Guardar referência do arquivo selecionado para exibição de metadados
-    this.selectedFile = doc;
-
-    // Determinar ID e URL para visualização
-    const driveId = doc.googleDriveId || doc.drive_file_id;
-    let customUrl: string | undefined;
-
-    if (!driveId) {
-      // Tentar URLs alternativas
-      if (doc.webViewLink) {
-        customUrl = doc.webViewLink.replace('/view', '/preview');
-      } else if (doc.filePath) {
-        customUrl = doc.filePath;
-      } else {
-        console.error('Nenhuma URL de visualização encontrada para o documento');
-        return;
+    try {
+      // Fallback: Se não tiver googleDriveId mas o ID for 'drive_XXX', extrair
+      if (!doc.googleDriveId && typeof doc.id === 'string' && doc.id.startsWith('drive_')) {
+        doc.googleDriveId = doc.id.replace('drive_', '');
       }
+
+      // Guardar referência do arquivo selecionado para exibição de metadados
+      this.selectedFile = doc;
+
+      // Determinar ID e URL para visualização
+      const driveId = doc.googleDriveId || doc.drive_file_id;
+      let customUrl: string | undefined;
+
+      if (!driveId) {
+        // Tentar URLs alternativas
+        if (doc.webViewLink) {
+          customUrl = doc.webViewLink.replace('/view', '/preview');
+        } else if (doc.filePath) {
+          customUrl = doc.filePath;
+        } else {
+          console.error('Nenhuma URL de visualização encontrada para o documento');
+          return;
+        }
+      }
+
+      // Usar serviço centralizado para abrir documento
+      // O serviço cuida automaticamente da limpeza de memória
+      const title = doc.title || doc.fileName || 'Documento';
+      await this.documentViewerService.openDocument(
+        driveId || 'custom',
+        title,
+        driveId ? undefined : customUrl
+      );
+
+      // Registrar visualização
+      this.logView(doc);
+    } finally {
+      // Liberar flag após um pequeno delay
+      setTimeout(() => {
+        this.isOpeningDocument = false;
+      }, 300);
     }
-
-    // Usar serviço centralizado para abrir documento
-    // O serviço cuida automaticamente da limpeza de memória
-    const title = doc.title || doc.fileName || 'Documento';
-    await this.documentViewerService.openDocument(
-      driveId || 'custom',
-      title,
-      driveId ? undefined : customUrl
-    );
-
-    // Registrar visualização
-    this.logView(doc);
   }
 
   /**
@@ -502,6 +520,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   closeModal(): void {
     console.log('🔒 [DASHBOARD-HOME] Usuário fechou modal');
     this.selectedFile = null;
+    this.isOpeningDocument = false;
     this.documentViewerService.closeViewer();
   }
 
@@ -516,6 +535,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
+    this.isOpeningDocument = false;
     this.documentViewerService.forceReset();
     this.selectedFile = null;
   }

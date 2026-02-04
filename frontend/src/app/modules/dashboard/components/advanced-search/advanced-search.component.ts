@@ -72,6 +72,9 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     // Subscription do viewer
     private viewerStateSubscription: Subscription | null = null;
 
+    // Flag para prevenir duplo clique
+    private isOpeningDocument = false;
+
     constructor(
         private fb: FormBuilder,
         private router: Router,
@@ -125,8 +128,9 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             this.viewerStateSubscription.unsubscribe();
         }
 
-        // Garantir que modal está fechado
-        this.documentViewerService.closeViewer();
+        // Garantir que modal está fechado e memória liberada
+        this.isOpeningDocument = false;
+        this.documentViewerService.forceReset();
         this.selectedFile = null;
     }
 
@@ -259,43 +263,58 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
 
     /**
      * Visualiza documento usando o serviço centralizado
+     * PROTEÇÃO: Previne duplo clique
      */
     async viewDocument(result: SearchResult): Promise<void> {
-        console.log('Visualizando documento:', result);
-
-        // Guardar referência do arquivo para exibição de metadados
-        this.selectedFile = result;
-
-        const driveFileId = result.drive_file_id || result.google_drive_id;
-
-        if (!driveFileId) {
-            // Tentar URL alternativa
-            if ((result as any).file_path) {
-                const filePath = (result as any).file_path.replace('/view', '/preview');
-                await this.documentViewerService.openDocument(
-                    'custom',
-                    result.title || result.file_name || 'Documento',
-                    filePath
-                );
-            } else {
-                console.error('Nenhum ID do Drive ou caminho de arquivo encontrado');
-                return;
-            }
-        } else {
-            // Usar serviço centralizado para abrir documento
-            await this.documentViewerService.openDocument(
-                driveFileId,
-                result.title || result.file_name || 'Documento'
-            );
+        // Proteção contra duplo clique
+        if (this.isOpeningDocument) {
+            console.warn('⚠️ [ADVANCED-SEARCH] Abertura já em andamento, ignorando...');
+            return;
         }
 
-        // Registrar visualização
-        this.documentsService.logView({
-            documentId: result.id,
-            driveFileId: driveFileId,
-            fileName: result.file_name || result.title,
-            municipalityCode: this.municipalityCode || undefined
-        }).subscribe();
+        this.isOpeningDocument = true;
+        console.log('Visualizando documento:', result);
+
+        try {
+            // Guardar referência do arquivo para exibição de metadados
+            this.selectedFile = result;
+
+            const driveFileId = result.drive_file_id || result.google_drive_id;
+
+            if (!driveFileId) {
+                // Tentar URL alternativa
+                if ((result as any).file_path) {
+                    const filePath = (result as any).file_path.replace('/view', '/preview');
+                    await this.documentViewerService.openDocument(
+                        'custom',
+                        result.title || result.file_name || 'Documento',
+                        filePath
+                    );
+                } else {
+                    console.error('Nenhum ID do Drive ou caminho de arquivo encontrado');
+                    return;
+                }
+            } else {
+                // Usar serviço centralizado para abrir documento
+                await this.documentViewerService.openDocument(
+                    driveFileId,
+                    result.title || result.file_name || 'Documento'
+                );
+            }
+
+            // Registrar visualização
+            this.documentsService.logView({
+                documentId: result.id,
+                driveFileId: driveFileId,
+                fileName: result.file_name || result.title,
+                municipalityCode: this.municipalityCode || undefined
+            }).subscribe();
+        } finally {
+            // Liberar flag após um pequeno delay
+            setTimeout(() => {
+                this.isOpeningDocument = false;
+            }, 300);
+        }
     }
 
     /**
@@ -304,6 +323,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     closeModal(): void {
         console.log('🔒 [ADVANCED-SEARCH] Fechando modal');
         this.selectedFile = null;
+        this.isOpeningDocument = false;
         this.documentViewerService.closeViewer();
     }
 

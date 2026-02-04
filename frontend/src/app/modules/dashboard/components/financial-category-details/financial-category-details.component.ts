@@ -67,6 +67,9 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
 
+  // Flag para prevenir duplo clique
+  private isOpeningDocument = false;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -396,33 +399,48 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Visualiza documento usando o serviço centralizado
+   * PROTEÇÃO: Previne duplo clique
    */
   async viewDocument(document: FinancialDocument): Promise<void> {
-    console.log('🆕 Visualizando documento:', document);
-
-    const googleDriveId = document.googleDriveId;
-    if (!googleDriveId) {
-      console.error('❌ ID do Google Drive não encontrado para este documento:', document);
-      alert('ID do Google Drive não encontrado para este documento.');
+    // Proteção contra duplo clique
+    if (this.isOpeningDocument) {
+      console.warn('⚠️ [FINANCIAL-CATEGORY] Abertura já em andamento, ignorando...');
       return;
     }
 
-    // Guardar ID para referência
-    this.selectedDocumentId = googleDriveId;
+    this.isOpeningDocument = true;
+    console.log('🆕 Visualizando documento:', document);
 
-    // Usar serviço centralizado para abrir documento
-    await this.documentViewerService.openDocument(
-      googleDriveId,
-      document.name
-    );
+    try {
+      const googleDriveId = document.googleDriveId;
+      if (!googleDriveId) {
+        console.error('❌ ID do Google Drive não encontrado para este documento:', document);
+        alert('ID do Google Drive não encontrado para este documento.');
+        return;
+      }
 
-    // Registrar visualização
-    this.documentsService.logView({
-      documentId: document.id,
-      driveFileId: googleDriveId,
-      fileName: document.name,
-      municipalityCode: this.municipalityCode
-    }).subscribe();
+      // Guardar ID para referência
+      this.selectedDocumentId = googleDriveId;
+
+      // Usar serviço centralizado para abrir documento
+      await this.documentViewerService.openDocument(
+        googleDriveId,
+        document.name
+      );
+
+      // Registrar visualização
+      this.documentsService.logView({
+        documentId: document.id,
+        driveFileId: googleDriveId,
+        fileName: document.name,
+        municipalityCode: this.municipalityCode
+      }).subscribe();
+    } finally {
+      // Liberar flag após um pequeno delay
+      setTimeout(() => {
+        this.isOpeningDocument = false;
+      }, 300);
+    }
   }
 
   showDeleteModal(document: FinancialDocument): void {
@@ -576,6 +594,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   closeModal(): void {
     console.log('🔒 [FINANCIAL-CATEGORY] Fechando modal');
     this.selectedDocumentId = '';
+    this.isOpeningDocument = false;
     this.documentViewerService.closeViewer();
   }
 
@@ -588,6 +607,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
+    this.isOpeningDocument = false;
     this.documentViewerService.forceReset();
     this.selectedDocumentId = '';
   }

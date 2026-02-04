@@ -76,6 +76,9 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
 
+  // Flag para prevenir duplo clique
+  private isOpeningDocument = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -179,41 +182,56 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Visualiza documento usando o serviço centralizado
+   * PROTEÇÃO: Previne duplo clique
    */
   async viewDocument(file: ServerFile): Promise<void> {
-    console.log('🆕 ViewDocument chamado:', file);
-
-    // IMPORTANTE: Limpar seleção anterior primeiro
-    this.selectedFile = null;
-
-    // Obter ID do Drive
-    const driveFileId = file.drive_file_id || file.google_drive_id;
-
-    if (!driveFileId) {
-      console.error('❌ Nenhum ID do Google Drive encontrado para o arquivo:', file);
+    // Proteção contra duplo clique
+    if (this.isOpeningDocument) {
+      console.warn('⚠️ [SERVER-DETAILS] Abertura já em andamento, ignorando...');
       return;
     }
 
-    // Guardar referência do arquivo para exibição de metadados
-    this.selectedFile = file;
+    this.isOpeningDocument = true;
+    console.log('🆕 ViewDocument chamado:', file);
 
-    // Usar serviço centralizado para abrir documento
-    await this.documentViewerService.openDocument(
-      driveFileId,
-      file.title || file.file_name
-    );
+    try {
+      // IMPORTANTE: Limpar seleção anterior primeiro
+      this.selectedFile = null;
 
-    // Registrar visualização
-    console.log('👁️ Registrando visualização...');
-    this.documentsService.logView({
-      documentId: file.id,
-      driveFileId: driveFileId,
-      fileName: file.file_name || file.title,
-      municipalityCode: this.server?.municipality_code
-    }).subscribe({
-      next: (res) => console.log('✅ logView sucesso:', res),
-      error: (err) => console.error('❌ logView erro:', err)
-    });
+      // Obter ID do Drive
+      const driveFileId = file.drive_file_id || file.google_drive_id;
+
+      if (!driveFileId) {
+        console.error('❌ Nenhum ID do Google Drive encontrado para o arquivo:', file);
+        return;
+      }
+
+      // Guardar referência do arquivo para exibição de metadados
+      this.selectedFile = file;
+
+      // Usar serviço centralizado para abrir documento
+      await this.documentViewerService.openDocument(
+        driveFileId,
+        file.title || file.file_name
+      );
+
+      // Registrar visualização
+      console.log('👁️ Registrando visualização...');
+      this.documentsService.logView({
+        documentId: file.id,
+        driveFileId: driveFileId,
+        fileName: file.file_name || file.title,
+        municipalityCode: this.server?.municipality_code
+      }).subscribe({
+        next: (res) => console.log('✅ logView sucesso:', res),
+        error: (err) => console.error('❌ logView erro:', err)
+      });
+    } finally {
+      // Liberar flag após um pequeno delay
+      setTimeout(() => {
+        this.isOpeningDocument = false;
+      }, 300);
+    }
   }
 
   downloadDocument(file: ServerFile): void {
@@ -353,6 +371,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   closeModal(): void {
     console.log('🔒 [SERVER-DETAILS] Fechando modal');
     this.selectedFile = null;
+    this.isOpeningDocument = false; // Resetar flag
     // Não usar await - deixar o serviço fazer a limpeza em background
     this.documentViewerService.closeViewer();
   }
@@ -366,6 +385,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
+    this.isOpeningDocument = false;
     this.documentViewerService.forceReset();
     this.selectedFile = null;
   }

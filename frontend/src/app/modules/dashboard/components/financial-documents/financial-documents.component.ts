@@ -65,6 +65,9 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
 
+  // Flag para prevenir duplo clique
+  private isOpeningDocument = false;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -227,25 +230,40 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
 
   /**
    * Visualiza documento usando o serviço centralizado
+   * PROTEÇÃO: Previne duplo clique
    */
   async viewDocument(documentId: number): Promise<void> {
+    // Proteção contra duplo clique
+    if (this.isOpeningDocument) {
+      console.warn('⚠️ [FINANCIAL-DOCUMENTS] Abertura já em andamento, ignorando...');
+      return;
+    }
+
+    this.isOpeningDocument = true;
     console.log('🆕 Visualizando documento:', documentId);
 
-    // Guardar ID para referência
-    this.selectedDocumentId = documentId.toString();
+    try {
+      // Guardar ID para referência
+      this.selectedDocumentId = documentId.toString();
 
-    // Usar serviço centralizado para abrir documento
-    await this.documentViewerService.openDocument(
-      documentId.toString(),
-      `Documento ${documentId}`
-    );
+      // Usar serviço centralizado para abrir documento
+      await this.documentViewerService.openDocument(
+        documentId.toString(),
+        `Documento ${documentId}`
+      );
 
-    // Registrar visualização
-    this.documentsService.logView({
-      documentId: documentId,
-      driveFileId: documentId.toString(),
-      municipalityCode: this.municipalityCode || undefined
-    }).subscribe();
+      // Registrar visualização
+      this.documentsService.logView({
+        documentId: documentId,
+        driveFileId: documentId.toString(),
+        municipalityCode: this.municipalityCode || undefined
+      }).subscribe();
+    } finally {
+      // Liberar flag após um pequeno delay
+      setTimeout(() => {
+        this.isOpeningDocument = false;
+      }, 300);
+    }
   }
 
   /**
@@ -254,6 +272,7 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   closeModal(): void {
     console.log('🔒 [FINANCIAL-DOCUMENTS] Fechando modal');
     this.selectedDocumentId = null;
+    this.isOpeningDocument = false;
     this.documentViewerService.closeViewer();
   }
 
@@ -266,6 +285,7 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado
+    this.isOpeningDocument = false;
     this.documentViewerService.forceReset();
     this.selectedDocumentId = null;
   }
