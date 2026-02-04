@@ -143,7 +143,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
-      this.cdr.detectChanges();
+      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
     });
 
     // Assinar eventos de limpeza forçada
