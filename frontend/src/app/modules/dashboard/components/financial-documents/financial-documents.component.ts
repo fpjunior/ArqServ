@@ -68,6 +68,10 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   // Flag para prevenir duplo clique
   private isOpeningDocument = false;
 
+  // PROTEÇÃO DE EMERGÊNCIA: contador de cliques para detectar travamento
+  private clickCount = 0;
+  private lastClickTime = 0;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -77,7 +81,12 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private documentViewerService: DocumentViewerService,
     public modalWindowService: ModalWindowService
-  ) { }
+  ) {
+    // PROTEÇÃO: Se usuário clicar 3x em 2 segundos sem resposta, forçar reset
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', this.emergencyResetHandler.bind(this), true);
+    }
+  }
 
   ngOnInit(): void {
     // Assinar estado do viewer
@@ -279,6 +288,11 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     console.log('🗑️ [FINANCIAL-DOCUMENTS] ngOnDestroy - Limpando memória');
 
+    // Remover listener de emergência
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('click', this.emergencyResetHandler.bind(this), true);
+    }
+
     // Cancelar subscription do viewer
     if (this.viewerStateSubscription) {
       this.viewerStateSubscription.unsubscribe();
@@ -288,6 +302,36 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
     this.isOpeningDocument = false;
     this.documentViewerService.forceReset();
     this.selectedDocumentId = null;
+  }
+
+  /**
+   * PROTEÇÃO DE EMERGÊNCIA: Se usuário clicar várias vezes sem resposta, força reset
+   */
+  private emergencyResetHandler(event: Event): void {
+    const now = Date.now();
+    
+    // Se cliques rápidos (menos de 2s entre eles)
+    if (now - this.lastClickTime < 2000) {
+      this.clickCount++;
+      
+      // Se 3 ou mais cliques em 2 segundos
+      if (this.clickCount >= 3) {
+        console.warn('🚨 [EMERGÊNCIA] Detectado travamento! Forçando reset...');
+        this.isOpeningDocument = false;
+        this.documentViewerService.forceReset();
+        this.clickCount = 0;
+        
+        // Feedback visual
+        if (typeof window !== 'undefined' && window.navigator && 'vibrate' in window.navigator) {
+          window.navigator.vibrate(200);
+        }
+      }
+    } else {
+      // Resetar contador se passou mais de 2s
+      this.clickCount = 1;
+    }
+    
+    this.lastClickTime = now;
   }
 
   downloadDocument(documentId: number): void {

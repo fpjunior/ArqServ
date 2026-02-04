@@ -166,6 +166,15 @@ export class DocumentViewerService {
                 this.pendingOpenTimeout = null;
                 resolve(true);
             }, this.isMobile ? 150 : 50);
+
+            // CRÍTICO: Liberar flag de abertura após pequeno delay (mesmo se cancelado)
+            // Isso garante que não fique travado se o usuário fechar muito rápido
+            setTimeout(() => {
+                if (this.isOpening) {
+                    console.log('🔓 [DocumentViewerService] Liberando flag de segurança...');
+                    this.isOpening = false;
+                }
+            }, 500);
         });
     }
 

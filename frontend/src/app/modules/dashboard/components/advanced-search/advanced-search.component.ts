@@ -75,22 +75,28 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     // Flag para prevenir duplo clique
     private isOpeningDocument = false;
 
-    constructor(
-        private fb: FormBuilder,
-        private router: Router,
-        private route: ActivatedRoute,
-        private documentsService: DocumentsService,
-        private authService: AuthService,
-        private http: HttpClient,
-        private sanitizer: DomSanitizer,
-        private cdr: ChangeDetectorRef,
-        private documentViewerService: DocumentViewerService,
-        public modalWindowService: ModalWindowService
-    ) {
-        this.initializeYears();
-    }
+  // PROTEÇÃO DE EMERGÊNCIA: contador de cliques para detectar travamento
+  private clickCount = 0;
+  private lastClickTime = 0;
 
-    ngOnInit(): void {
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private route: ActivatedRoute,
+    private documentsService: DocumentsService,
+    private authService: AuthService,
+    private http: HttpClient,
+    private sanitizer: DomSanitizer,
+    private cdr: ChangeDetectorRef,
+    private documentViewerService: DocumentViewerService,
+    public modalWindowService: ModalWindowService
+  ) {
+    this.initializeYears();
+    
+    // PROTEÇÃO: Se usuário clicar 3x em 2 segundos sem resposta, forçar reset
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', this.emergencyResetHandler.bind(this), true);
+    }
         this.currentUser = this.authService.getCurrentUser();
 
         // Get municipality from route or user
@@ -423,5 +429,54 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
 
     formatDate(dateString: string): string {
         return new Date(dateString).toLocaleDateString('pt-BR');
+    }
+
+    ngOnDestroy(): void {
+        console.log('🗑️ [ADVANCED-SEARCH] ngOnDestroy - Limpando memória');
+
+        // Remover listener de emergência
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('click', this.emergencyResetHandler.bind(this), true);
+        }
+
+        // Cancelar subscription do viewer
+        if (this.viewerStateSubscription) {
+            this.viewerStateSubscription.unsubscribe();
+        }
+
+        // Garantir que modal está fechado e memória liberada
+        this.isOpeningDocument = false;
+        this.documentViewerService.forceReset();
+        this.selectedFile = null;
+    }
+
+    /**
+     * PROTEÇÃO DE EMERGÊNCIA: Se usuário clicar várias vezes sem resposta, força reset
+     */
+    private emergencyResetHandler(event: Event): void {
+        const now = Date.now();
+        
+        // Se cliques rápidos (menos de 2s entre eles)
+        if (now - this.lastClickTime < 2000) {
+            this.clickCount++;
+            
+            // Se 3 ou mais cliques em 2 segundos
+            if (this.clickCount >= 3) {
+                console.warn('🚨 [EMERGÊNCIA] Detectado travamento! Forçando reset...');
+                this.isOpeningDocument = false;
+                this.documentViewerService.forceReset();
+                this.clickCount = 0;
+                
+                // Feedback visual
+                if (typeof window !== 'undefined' && window.navigator && 'vibrate' in window.navigator) {
+                    window.navigator.vibrate(200);
+                }
+            }
+        } else {
+            // Resetar contador se passou mais de 2s
+            this.clickCount = 1;
+        }
+        
+        this.lastClickTime = now;
     }
 }
