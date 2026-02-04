@@ -627,7 +627,12 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       document.body.removeChild(link);
 
       // Registrar log de download
-      this.documentsService.logDownload(doc.id).subscribe({
+      this.documentsService.logDownload({
+        documentId: doc.id,
+        driveFileId: driveId,
+        fileName: doc.title || doc.name || 'documento',
+        municipalityCode: doc.municipalityCode
+      }).subscribe({
         next: () => console.log('✅ Log de download registrado'),
         error: err => console.warn('⚠️ Falha ao logar download:', err)
       });
@@ -643,7 +648,12 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      this.documentsService.logDownload(doc.id).subscribe();
+      this.documentsService.logDownload({
+        documentId: doc.id,
+        driveFileId: doc.googleDriveId || doc.id,
+        fileName: doc.title || doc.name || 'documento',
+        municipalityCode: doc.municipalityCode
+      }).subscribe();
       return;
     }
 
