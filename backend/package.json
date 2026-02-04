@@ -1,6 +1,6 @@
 {
   "name": "arqserv-backend",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Backend para sistema ArqServ",
   "main": "src/index.js",
   "scripts": {
