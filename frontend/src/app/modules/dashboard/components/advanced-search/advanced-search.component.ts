@@ -126,20 +126,6 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
         }
     }
 
-    ngOnDestroy(): void {
-        console.log('🗑️ [ADVANCED-SEARCH] ngOnDestroy - Limpando memória');
-
-        // Cancelar subscription do viewer
-        if (this.viewerStateSubscription) {
-            this.viewerStateSubscription.unsubscribe();
-        }
-
-        // Garantir que modal está fechado e memória liberada
-        this.isOpeningDocument = false;
-        this.documentViewerService.forceReset();
-        this.selectedFile = null;
-    }
-
     private initializeForm(): void {
         this.searchForm = this.fb.group({
             query: [''],
