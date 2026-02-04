@@ -385,7 +385,17 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
           link.click();
           window.document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-        }
+          // Registrar download
+          console.log('📥 Registrando download...');
+          this.documentsService.logDownload({
+            documentId: doc.id,
+            driveFileId: googleDriveId,
+            fileName: doc.name,
+            municipalityCode: this.municipalityCode || undefined
+          }).subscribe({
+            next: (res) => console.log('✅ logDownload sucesso:', res),
+            error: (err) => console.error('❌ logDownload erro:', err)
+          });        }
       },
       error: (error) => {
         console.error('❌ Erro no download:', error);
