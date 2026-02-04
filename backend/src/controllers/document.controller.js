@@ -586,11 +586,20 @@ class DocumentController {
    */
   static async logView(req, res) {
     try {
-      const { documentId, driveFileId, fileName } = req.body;
+      const { documentId, driveFileId, fileName, municipalityCode: bodyMunicipalityCode } = req.body;
       const userId = req.user?.id;
-      const municipalityCode = req.user?.municipality_code;
+      // Usar município do usuário logado (seguro), ou do body como fallback
+      const municipalityCode = req.user?.municipality_code || bodyMunicipalityCode;
 
-      console.log('👁️ Registrando visualização:', { documentId, driveFileId, fileName });
+      console.log('👁️ Registrando visualização:', { 
+        documentId, 
+        driveFileId, 
+        fileName,
+        userId,
+        municipalityCode,
+        userMunicipalityCode: req.user?.municipality_code,
+        bodyMunicipalityCode
+      });
 
       await ActivityLogService.logActivity({
         activityType: 'view',
