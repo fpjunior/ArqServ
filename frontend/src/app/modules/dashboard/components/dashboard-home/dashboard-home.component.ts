@@ -499,10 +499,10 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   /**
    * Fecha o modal usando o serviço centralizado
    */
-  async closeModal() {
+  closeModal(): void {
     console.log('🔒 [DASHBOARD-HOME] Usuário fechou modal');
     this.selectedFile = null;
-    await this.documentViewerService.closeViewer();
+    this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy() {
@@ -516,7 +516,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
-    this.documentViewerService.closeViewer();
+    this.documentViewerService.forceReset();
     this.selectedFile = null;
   }
 

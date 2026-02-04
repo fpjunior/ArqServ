@@ -301,10 +301,10 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     /**
      * Fecha o modal usando o serviço centralizado
      */
-    async closeModal(): Promise<void> {
+    closeModal(): void {
         console.log('🔒 [ADVANCED-SEARCH] Fechando modal');
         this.selectedFile = null;
-        await this.documentViewerService.closeViewer();
+        this.documentViewerService.closeViewer();
     }
 
     downloadDocument(result: SearchResult): void {

@@ -573,10 +573,10 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   /**
    * Fecha o modal usando o serviço centralizado
    */
-  async closeModal(): Promise<void> {
+  closeModal(): void {
     console.log('🔒 [FINANCIAL-CATEGORY] Fechando modal');
     this.selectedDocumentId = '';
-    await this.documentViewerService.closeViewer();
+    this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy(): void {
@@ -588,7 +588,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
-    this.documentViewerService.closeViewer();
+    this.documentViewerService.forceReset();
     this.selectedDocumentId = '';
   }
 

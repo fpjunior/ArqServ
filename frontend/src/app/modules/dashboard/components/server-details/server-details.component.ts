@@ -183,8 +183,8 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   async viewDocument(file: ServerFile): Promise<void> {
     console.log('🆕 ViewDocument chamado:', file);
 
-    // Guardar referência do arquivo para exibição de metadados
-    this.selectedFile = file;
+    // IMPORTANTE: Limpar seleção anterior primeiro
+    this.selectedFile = null;
 
     // Obter ID do Drive
     const driveFileId = file.drive_file_id || file.google_drive_id;
@@ -193,6 +193,9 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       console.error('❌ Nenhum ID do Google Drive encontrado para o arquivo:', file);
       return;
     }
+
+    // Guardar referência do arquivo para exibição de metadados
+    this.selectedFile = file;
 
     // Usar serviço centralizado para abrir documento
     await this.documentViewerService.openDocument(
@@ -347,10 +350,11 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   /**
    * Fecha o modal usando o serviço centralizado
    */
-  async closeModal(): Promise<void> {
+  closeModal(): void {
     console.log('🔒 [SERVER-DETAILS] Fechando modal');
     this.selectedFile = null;
-    await this.documentViewerService.closeViewer();
+    // Não usar await - deixar o serviço fazer a limpeza em background
+    this.documentViewerService.closeViewer();
   }
 
   ngOnDestroy(): void {
@@ -362,7 +366,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     }
 
     // Garantir que modal está fechado e memória liberada
-    this.documentViewerService.closeViewer();
+    this.documentViewerService.forceReset();
     this.selectedFile = null;
   }
 }
