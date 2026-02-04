@@ -24,9 +24,9 @@ router.post('/upload',
 /**
  * @route POST /api/documents/log-view
  * @desc Registra a visualização de um documento
- * @access Public (ou Private, dependendo da necessidade)
+ * @access Private (requer autenticação)
  */
-router.post('/log-view', DocumentController.logView);
+router.post('/log-view', authenticate, DocumentController.logView);
 
 /**
  * @route GET /api/documents/financial/:municipality_code

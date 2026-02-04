@@ -95,22 +95,34 @@ class ActivityLogService {
 
             if (municipalityCode) {
                 query = query.eq('municipality_code', municipalityCode);
+                console.log(`🔍 [ACTIVITY] Aplicando filtro de município: ${municipalityCode}`);
             }
 
             if (startDate) {
                 query = query.gte('created_at', startDate.toISOString());
+                console.log(`🔍 [ACTIVITY] Aplicando filtro de data inicial: ${startDate.toISOString()}`);
             }
 
             if (endDate) {
                 query = query.lte('created_at', endDate.toISOString());
             }
 
-            const { count, error } = await query;
+            const { count, error, data } = await query;
 
             if (error) {
                 console.error('❌ [ACTIVITY] Erro ao contar atividades:', error);
                 return 0;
             }
+
+            // DEBUG: Buscar registros para ver o que tem na tabela
+            const { data: debugData } = await pool.supabase
+                .from('activity_logs')
+                .select('id, activity_type, municipality_code, created_at')
+                .eq('activity_type', activityType)
+                .order('created_at', { ascending: false })
+                .limit(5);
+            
+            console.log(`🔍 [ACTIVITY DEBUG] Últimos 5 registros de '${activityType}':`, JSON.stringify(debugData, null, 2));
 
             console.log(`📊 [ACTIVITY] Resultado da contagem: ${count}`);
             return count || 0;
