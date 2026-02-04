@@ -82,9 +82,10 @@ export class DocumentsService {
 
   private getAuthHeaders(): HttpHeaders {
     const token = this.authService.getToken();
-    if (!token) return new HttpHeaders();
+    if (!token) return new HttpHeaders({ 'Content-Type': 'application/json' });
     return new HttpHeaders({
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     });
   }
 
