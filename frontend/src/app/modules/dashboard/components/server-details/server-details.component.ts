@@ -68,6 +68,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   // Confirm delete modal
   confirmDeleteModalVisible = false;
   fileToDelete: ServerFile | null = null;
+  isDeletingDocument = false;
 
   // Success modal
   successModalVisible: boolean = false;
@@ -80,7 +81,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private authService: AuthService,
+    public authService: AuthService,
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
     private location: Location,
@@ -269,16 +270,21 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
 
   onDeleteConfirmed(): void {
     if (!this.fileToDelete) return;
-    this.isLoading = true;
+    
+    console.log('🗑️ Iniciando exclusão do documento:', this.fileToDelete.id);
+    this.isDeletingDocument = true;
     this.errorMessage = '';
+    
     this.http.delete(`${environment.apiUrl}/documents/${this.fileToDelete.id}`, {
       headers: {
         Authorization: `Bearer ${this.authService.getToken()}`
       }
     }).subscribe({
-      next: () => {
+      next: (response: any) => {
+        console.log('✅ Documento deletado com sucesso:', response);
         this.files = this.files.filter(f => f.id !== this.fileToDelete!.id);
         this.filteredFiles = this.filteredFiles.filter(f => f.id !== this.fileToDelete!.id);
+        this.isDeletingDocument = false;
         this.confirmDeleteModalVisible = false;
         this.fileToDelete = null;
 
@@ -292,13 +298,12 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
         }, 3000);
       },
       error: (error) => {
-        console.error('Erro ao remover documento:', error);
-        this.errorMessage = 'Erro ao remover documento. Tente novamente mais tarde.';
+        console.error('❌ Erro ao remover documento:', error);
+        console.error('Detalhes do erro:', error.error);
+        this.isDeletingDocument = false;
+        this.errorMessage = error.error?.message || 'Erro ao remover documento. Tente novamente mais tarde.';
         this.confirmDeleteModalVisible = false;
         this.fileToDelete = null;
-      },
-      complete: () => {
-        this.isLoading = false;
       }
     });
   }
