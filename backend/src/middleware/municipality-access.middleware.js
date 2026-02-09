@@ -24,7 +24,7 @@ const checkMunicipalityAccess = async (req, res, next) => {
 
     // Buscar dados do usuário
     const user = await User.findById(userId);
-    
+
     if (!user) {
       console.log('❌ [ACCESS] Usuário não encontrado');
       return res.status(401).json({
@@ -34,9 +34,9 @@ const checkMunicipalityAccess = async (req, res, next) => {
       });
     }
 
-    // Admin tem acesso a todos os municípios
-    if (user.role === 'admin') {
-      console.log('✅ [ACCESS] Admin - acesso liberado para todos os municípios');
+    // Admin e superadmin têm acesso a todos os municípios
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      console.log('✅ [ACCESS] Admin/Superadmin - acesso liberado para todos os municípios');
       return next();
     }
 
@@ -78,7 +78,7 @@ const filterDocumentsByUserMunicipality = async (req, res, next) => {
 
     // Buscar dados do usuário
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -87,9 +87,9 @@ const filterDocumentsByUserMunicipality = async (req, res, next) => {
       });
     }
 
-    // Admin pode ver documentos de todos os municípios - não filtrar
-    if (user.role === 'admin') {
-      console.log('✅ [FILTER] Admin - sem filtros de município');
+    // Admin e superadmin podem ver documentos de todos os municípios - não filtrar
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      console.log('✅ [FILTER] Admin/Superadmin - sem filtros de município');
       return next();
     }
 
@@ -141,7 +141,7 @@ const checkUploadMunicipalityAccess = async (req, res, next) => {
 
     // Buscar dados do usuário
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -150,9 +150,9 @@ const checkUploadMunicipalityAccess = async (req, res, next) => {
       });
     }
 
-    // Admin pode fazer upload em qualquer município
-    if (user.role === 'admin') {
-      console.log('✅ [UPLOAD] Admin - upload liberado para qualquer município');
+    // Admin e superadmin podem fazer upload em qualquer município
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      console.log('✅ [UPLOAD] Admin/Superadmin - upload liberado para qualquer município');
       return next();
     }
 

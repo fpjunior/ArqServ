@@ -17,9 +17,9 @@ function applyMunicipalityFilter(req, res, next) {
 
     console.log(`🔍 [MUNICIPALITY FILTER] User: ${req.user.email}, Role: ${req.user.role}, Municipality: ${req.user.municipality_code}`);
 
-    // Se for admin, permitir acesso a todos os dados
-    if (req.user.role === 'admin') {
-      console.log('👑 [ADMIN ACCESS] Acesso completo liberado para admin');
+    // Se for admin ou superadmin, permitir acesso a todos os dados
+    if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+      console.log('👑 [ADMIN ACCESS] Acesso completo liberado para admin/superadmin');
       req.municipalityFilter = null; // null = sem filtro
       return next();
     }

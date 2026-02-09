@@ -65,10 +65,10 @@ export class AuthService {
             try {
               const parsedUser = JSON.parse(storedUser);
               userRole = parsedUser.role || 'user';
-              // Se já temos um admin no localStorage, preservar esses dados
-              if (parsedUser.role === 'admin') {
+              // Se já temos um admin ou superadmin no localStorage, preservar esses dados
+              if (parsedUser.role === 'admin' || parsedUser.role === 'superadmin') {
                 preserveLocalData = true;
-                console.log('✅ [AUTH] Admin role preservado do localStorage:', userRole);
+                console.log('✅ [AUTH] Admin/Superadmin role preservado do localStorage:', userRole);
               }
             } catch (e) {
               console.warn('⚠️ [AUTH] Erro ao parsear usuário do localStorage');
@@ -530,11 +530,11 @@ export class AuthService {
   }
 
   /**
-   * Verifica se o usuário atual é admin
+   * Verifica se o usuário atual é admin ou superadmin
    */
   isAdmin(): boolean {
     const user = this.getCurrentUser();
-    const isAdminRole = user?.role === 'admin';
+    const isAdminRole = user?.role === 'admin' || user?.role === 'superadmin';
     console.log('🔍 [AUTH] Verificação admin:', { user: user?.email, role: user?.role, isAdmin: isAdminRole });
     return isAdminRole;
   }

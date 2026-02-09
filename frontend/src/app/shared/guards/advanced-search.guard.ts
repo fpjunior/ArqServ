@@ -17,9 +17,9 @@ export class AdvancedSearchGuard implements CanActivate {
             return false;
         }
 
-        // Se for admin, permite acessar o seletor de municípios
-        if (user.role === 'admin') {
-            console.log('✅ [AdvancedSearchGuard] Admin acessando seletor de municípios');
+        // Se for admin ou superadmin, permite acessar o seletor de municípios
+        if (user.role === 'admin' || user.role === 'superadmin') {
+            console.log('✅ [AdvancedSearchGuard] Admin/Superadmin acessando seletor de municípios');
             return true;
         }
 
