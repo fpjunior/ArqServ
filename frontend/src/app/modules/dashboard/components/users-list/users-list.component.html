@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <div *ngIf="currentUser?.role === 'admin'">
+      <div *ngIf="currentUser?.role === 'admin' || currentUser?.role === 'superadmin'">
         <button
           class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
           (click)="openCreateModal()">
@@ -310,8 +310,16 @@
           <select [(ngModel)]="createUserForm.role" name="role" required [disabled]="isCreating"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 bg-white">
             <option value="">Selecione o nível de acesso</option>
+
+            <!-- Superadmin só aparece para superadmins -->
+            <option *ngIf="currentUser?.role === 'superadmin'" value="superadmin">Super Administrador - Acesso total ao
+              sistema</option>
+
+            <!-- Admin só aparece para superadmins -->
+            <option *ngIf="currentUser?.role === 'superadmin'" value="admin">Administrador - Gerenciar usuários</option>
+
+            <!-- User aparece para todos -->
             <option value="user">Usuário - Acesso básico</option>
-            <option value="admin">Administrador - Acesso total</option>
           </select>
         </div>
 
@@ -532,8 +540,16 @@
           <select [(ngModel)]="editUserForm.role" name="editRole" required [disabled]="isEditing"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 bg-white">
             <option value="">Selecione o nível de acesso</option>
+
+            <!-- Superadmin só aparece para superadmins -->
+            <option *ngIf="currentUser?.role === 'superadmin'" value="superadmin">Super Administrador - Acesso total ao
+              sistema</option>
+
+            <!-- Admin só aparece para superadmins -->
+            <option *ngIf="currentUser?.role === 'superadmin'" value="admin">Administrador - Gerenciar usuários</option>
+
+            <!-- User aparece para todos -->
             <option value="user">Usuário - Acesso básico</option>
-            <option value="admin">Administrador - Acesso total</option>
           </select>
         </div>
 

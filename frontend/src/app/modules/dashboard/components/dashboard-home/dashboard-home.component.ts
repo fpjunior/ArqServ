@@ -615,7 +615,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   isAdmin(): boolean {
-    return this.currentUser?.role === 'admin';
+    return this.currentUser?.role === 'admin' || this.currentUser?.role === 'superadmin';
   }
 
   private fetchStorageInfo(): void {

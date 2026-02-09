@@ -83,7 +83,9 @@ class User {
    */
   static async getPermissionsByRole(role) {
     // Permissões hardcoded por role
+    // Superadmin e admin têm as MESMAS permissões
     const permissions = {
+      'superadmin': ['users.*', 'documents.*', 'servers.*', 'settings.*'],
       'admin': ['users.*', 'documents.*', 'servers.*', 'settings.*'],
       'manager': ['documents.read', 'documents.upload', 'servers.read'],
       'user': ['documents.read']
@@ -213,11 +215,12 @@ class User {
   }
 
   /**
-   * Busca todos os usuários
+   * Busca todos os usuários (com filtro opcional para ocultar superadmins)
+   * Superadmin vê todos, admin não vê superadmin
    */
-  static async findAll() {
+  static async findAll(hideSuperadmins = false) {
     try {
-      const { data, error } = await pool.supabase
+      let query = pool.supabase
         .from('users')
         .select(`
           id, 
@@ -228,8 +231,14 @@ class User {
           active, 
           created_at, 
           updated_at
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // Admin não vê superadmin
+      if (hideSuperadmins) {
+        query = query.neq('role', 'superadmin');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         throw error;
@@ -238,6 +247,24 @@ class User {
       return data || [];
     } catch (error) {
       console.error('❌ Erro ao buscar usuários:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Conta quantos usuários do tipo especificado existem
+   */
+  static async countUsersByRole(role) {
+    try {
+      const { count, error } = await pool.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', role);
+
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('❌ Erro ao contar usuários:', error.message);
       throw error;
     }
   }

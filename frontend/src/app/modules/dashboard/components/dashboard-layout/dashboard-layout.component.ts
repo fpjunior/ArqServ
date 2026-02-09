@@ -65,8 +65,8 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   isAdmin(): boolean {
-    // Verificar localmente primeiro para evitar delay
-    return this.currentUser?.role === 'admin';
+    // Superadmin e admin têm acesso às mesmas funcionalidades
+    return this.currentUser?.role === 'admin' || this.currentUser?.role === 'superadmin';
   }
 
   logout(): void {
@@ -210,6 +210,8 @@ export class DashboardLayoutComponent implements OnInit {
 
     // Retorna label baseado no role
     switch (this.currentUser.role) {
+      case 'superadmin':
+        return 'Super Administrador - ArqServ';
       case 'admin':
         return 'Administrador - ArqServ';
       case 'manager':

@@ -111,7 +111,35 @@ exports.authenticate = async (req, res, next) => {
 };
 
 /**
- * Middleware para verificar se user é admin
+ * Middleware para verificar se user é superadmin
+ */
+exports.requireSuperAdmin = async (req, res, next) => {
+  if (req.user?.role !== 'superadmin') {
+    return res.status(403).json({
+      status: 'ERROR',
+      message: 'Acesso negado. Privilégios de super administrador necessários',
+      code: 'SUPERADMIN_ONLY'
+    });
+  }
+  next();
+};
+
+/**
+ * Middleware para verificar se user é admin ou superadmin
+ */
+exports.requireAdminOrSuperAdmin = async (req, res, next) => {
+  if (!['admin', 'superadmin'].includes(req.user?.role)) {
+    return res.status(403).json({
+      status: 'ERROR',
+      message: 'Acesso negado. Privilégios de administrador necessários',
+      code: 'ADMIN_REQUIRED'
+    });
+  }
+  next();
+};
+
+/**
+ * Middleware para verificar se user é admin (apenas)
  */
 exports.requireAdmin = async (req, res, next) => {
   if (req.user?.role !== 'admin') {

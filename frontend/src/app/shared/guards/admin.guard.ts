@@ -5,14 +5,14 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class AdminGuard implements CanActivate {
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     const user = this.authService.getCurrentUser();
     console.log('🔐 [AdminGuard] Verificando acesso - Usuário:', user, 'URL:', state.url);
-    
-    if (user && user.role === 'admin') {
-      console.log('✅ [AdminGuard] Usuário é admin, acesso permitido');
+
+    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+      console.log('✅ [AdminGuard] Usuário é admin/superadmin, acesso permitido');
       return true;
     }
 

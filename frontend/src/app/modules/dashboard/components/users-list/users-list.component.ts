@@ -390,6 +390,7 @@ export class UsersListComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
+      'superadmin': 'Super Administrador',
       'admin': 'Administrador',
       'manager': 'Gerenciador',
       'user': 'Usuário'
@@ -399,6 +400,7 @@ export class UsersListComponent implements OnInit {
 
   getRoleColor(role: string): string {
     const colors: Record<string, string> = {
+      'superadmin': 'bg-red-100 text-red-800',
       'admin': 'bg-purple-100 text-purple-800',
       'manager': 'bg-blue-100 text-blue-800',
       'user': 'bg-gray-100 text-gray-800'
@@ -619,8 +621,14 @@ export class UsersListComponent implements OnInit {
         console.error('❌ Erro ao criar usuário:', error);
         this.isCreating = false;
 
-        // Determinar título e mensagem do erro
-        if (error.error?.code === 'EMAIL_EXISTS') {
+        // Tratar erro de limite de usuários
+        if (error.error?.code === 'USER_LIMIT_REACHED') {
+          this.errorTitle = 'Limite Atingido';
+          this.errorMessage = error.error.message;
+        } else if (error.error?.code === 'INSUFFICIENT_PERMISSIONS') {
+          this.errorTitle = 'Sem Permissão';
+          this.errorMessage = error.error.message;
+        } else if (error.error?.code === 'EMAIL_EXISTS') {
           this.errorTitle = 'Email já Cadastrado';
           this.errorMessage = 'Este email já está sendo usado por outro usuário. Tente com um email diferente.';
         } else if (error.error?.message) {
