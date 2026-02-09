@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, requireAdmin } = require('../middleware/auth.middleware');
+const { authenticate, requireAdmin, requireAdminOrSuperAdmin, requireSuperAdmin } = require('../middleware/auth.middleware');
 const User = require('../models/user.model');
 const pool = require('../config/database');
 
@@ -22,9 +22,12 @@ router.get('/me', authenticate, (req, res) => {
  * GET /api/admin/users
  * Lista todos os usuários (apenas admin)
  */
-router.get('/users', authenticate, requireAdmin, async (req, res) => {
+router.get('/users', authenticate, requireAdminOrSuperAdmin, async (req, res) => {
   try {
-    const users = await User.findAll();
+    // Superadmin vê todos, admin não vê superadmin
+    const hideSuperadmins = req.user.role !== 'superadmin';
+    const users = await User.findAll(hideSuperadmins);
+
     res.json({
       status: 'SUCCESS',
       data: users
@@ -44,9 +47,10 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
  * Cria um novo usuário (apenas admin)
  * Cria tanto no Supabase Auth quanto na tabela users
  */
-router.post('/users', authenticate, requireAdmin, async (req, res) => {
+router.post('/users', authenticate, requireAdminOrSuperAdmin, async (req, res) => {
   try {
     const { name, email, password, role, municipality_code } = req.body;
+    const currentUserRole = req.user.role;
 
     // Validação
     if (!name || !email || !password) {
@@ -57,12 +61,36 @@ router.post('/users', authenticate, requireAdmin, async (req, res) => {
       });
     }
 
-    if (!['admin', 'user', 'manager'].includes(role)) {
+    // Validar roles permitidas
+    if (!['admin', 'user', 'superadmin'].includes(role)) {
       return res.status(400).json({
         status: 'ERROR',
-        message: 'Role inválida. Deve ser: admin, user ou manager',
+        message: 'Role inválida. Deve ser: superadmin, admin ou user',
         code: 'INVALID_ROLE'
       });
+    }
+
+    // ÚNICA DIFERENÇA: Apenas superadmin pode criar admin/superadmin
+    if (role === 'admin' || role === 'superadmin') {
+      if (currentUserRole !== 'superadmin') {
+        return res.status(403).json({
+          status: 'ERROR',
+          message: 'Apenas super administradores podem criar administradores',
+          code: 'INSUFFICIENT_PERMISSIONS'
+        });
+      }
+    }
+
+    // Tanto admin quanto superadmin podem criar users (com limite de 5)
+    if (role === 'user') {
+      const userCount = await User.countUsersByRole('user');
+      if (userCount >= 5) {
+        return res.status(400).json({
+          status: 'ERROR',
+          message: 'Limite de usuários atingido (5/5). Entre em contato com o desenvolvedor do sistema para adicionar mais usuários.',
+          code: 'USER_LIMIT_REACHED'
+        });
+      }
     }
 
     // Validar municipality_code para usuários tipo 'user'
@@ -120,10 +148,10 @@ router.patch('/users/:userId/role', authenticate, requireAdmin, async (req, res)
     const { userId } = req.params;
     const { role } = req.body;
 
-    if (!['admin', 'user', 'manager'].includes(role)) {
+    if (!['admin', 'user', 'superadmin'].includes(role)) {
       return res.status(400).json({
         status: 'ERROR',
-        message: 'Role inválida. Deve ser: admin, user ou manager',
+        message: 'Role inválida. Deve ser: superadmin, admin ou user',
         code: 'INVALID_ROLE'
       });
     }
@@ -149,7 +177,7 @@ router.patch('/users/:userId/role', authenticate, requireAdmin, async (req, res)
  * PUT /api/admin/users/:userId
  * Atualiza dados do usuário
  */
-router.put('/users/:userId', authenticate, requireAdmin, async (req, res) => {
+router.put('/users/:userId', authenticate, requireAdminOrSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { name, email, role, municipality_code } = req.body;
@@ -163,7 +191,7 @@ router.put('/users/:userId', authenticate, requireAdmin, async (req, res) => {
       });
     }
 
-    if (!['admin', 'user', 'manager'].includes(role)) {
+    if (!['admin', 'user', 'superadmin'].includes(role)) {
       return res.status(400).json({
         status: 'ERROR',
         message: 'Role inválida',
@@ -205,7 +233,7 @@ router.put('/users/:userId', authenticate, requireAdmin, async (req, res) => {
  * DELETE /api/admin/users/:userId
  * Remove um usuário
  */
-router.delete('/users/:userId', authenticate, requireAdmin, async (req, res) => {
+router.delete('/users/:userId', authenticate, requireAdminOrSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -238,7 +266,7 @@ router.delete('/users/:userId', authenticate, requireAdmin, async (req, res) => 
  * PATCH /api/admin/users/:userId/toggle-active
  * Ativa/desativa um usuário
  */
-router.patch('/users/:userId/toggle-active', authenticate, requireAdmin, async (req, res) => {
+router.patch('/users/:userId/toggle-active', authenticate, requireAdminOrSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { is_active } = req.body;

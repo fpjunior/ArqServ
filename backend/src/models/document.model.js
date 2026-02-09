@@ -322,13 +322,13 @@ class Document {
   }
 
   /**
-   * Deletar documento por ID
+   * Deletar documento por ID (hard delete - remove completamente)
    */
   static async deleteById(id) {
     try {
       const { error } = await supabase
         .from('documents')
-        .update({ is_active: false })
+        .delete()
         .eq('id', id);
 
       if (error) throw error;

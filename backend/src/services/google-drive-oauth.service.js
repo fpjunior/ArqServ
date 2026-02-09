@@ -345,16 +345,17 @@ class GoogleDriveOAuthService {
   async deleteFile(fileId) {
     try {
       if (!this.initialized) {
-        return false;
+        throw new Error('Google Drive service not initialized');
       }
 
+      console.log(`🗑️ Deletando arquivo do Google Drive: ${fileId}`);
       await this.drive.files.delete({ fileId });
-      console.log(`🗑️ File deleted from Google Drive: ${fileId}`);
+      console.log(`✅ Arquivo deletado do Google Drive com sucesso: ${fileId}`);
       return true;
 
     } catch (error) {
-      console.error(`❌ Error deleting file from Google Drive:`, error.message);
-      return false;
+      console.error(`❌ Erro ao deletar arquivo do Google Drive:`, error.message);
+      throw error; // Lançar erro para o controller tratar
     }
   }
 

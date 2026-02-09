@@ -628,65 +628,162 @@ class DocumentController {
   static async deleteDocument(req, res) {
     const { id } = req.params;
 
+    console.log(`\n🗑️ ========== DELETAR DOCUMENTO ==========`);
+    console.log(`📋 ID recebido: ${id}`);
+    console.log(`👤 Usuário: ${req.user?.email || 'desconhecido'}`);
+    console.log(`🔑 Role: ${req.user?.role || 'desconhecido'}`);
+
     try {
       // Se o ID começar com 'drive_', é um arquivo direto do Google Drive
       if (id.startsWith('drive_')) {
         const driveFileId = id.replace('drive_', '');
 
+        console.log(`📁 Tipo: Arquivo DIRETO do Google Drive`);
+        console.log(`🆔 Drive File ID: ${driveFileId}`);
+        
         try {
           if (!googleDriveOAuthService.isInitialized()) {
+            console.log(`⚠️ Serviço do Google Drive não inicializado. Inicializando...`);
             await googleDriveOAuthService.initialize();
+            console.log(`✅ Serviço inicializado com sucesso`);
           }
 
+          console.log(`🗑️ Executando delete no Google Drive...`);
           await googleDriveOAuthService.deleteFile(driveFileId);
+          console.log(`✅ Arquivo deletado do Google Drive com sucesso!`);
+
+          // Buscar e deletar registro no banco (se existir)
+          console.log(`🔍 Buscando registro no banco com google_drive_id: ${driveFileId}`);
+          
+          try {
+            const { supabase } = require('../config/database');
+            
+            // Buscar documentos que tenham esse google_drive_id
+            const { data: documents, error } = await supabase
+              .from('documents')
+              .select('id, title, google_drive_id, is_active')
+              .eq('google_drive_id', driveFileId);
+            
+            if (error) {
+              console.error(`⚠️ Erro ao buscar no banco:`, error.message);
+            } else {
+              console.log(`📊 Query retornou ${documents ? documents.length : 0} resultado(s)`);
+            }
+            
+            if (documents && documents.length > 0) {
+              console.log(`📋 Encontrado(s) ${documents.length} registro(s) no banco:`);
+              for (const doc of documents) {
+                console.log(`   - ID: ${doc.id}, Título: ${doc.title}, Ativo: ${doc.is_active}`);
+                if (doc.is_active) {
+                  await Document.deleteById(doc.id);
+                  console.log(`   ✅ Registro ID ${doc.id} DELETADO da tabela!`);
+                } else {
+                  console.log(`   ⏭️ Registro ID ${doc.id} já estava inativo, deletando...`);
+                  await Document.deleteById(doc.id);
+                  console.log(`   ✅ Registro ID ${doc.id} DELETADO da tabela!`);
+                }
+              }
+            } else {
+              console.log(`ℹ️ Nenhum registro encontrado no banco com google_drive_id: ${driveFileId}`);
+              
+              // Listar alguns registros para debug
+              const { data: sample } = await supabase
+                .from('documents')
+                .select('id, title, google_drive_id')
+                .limit(3);
+              
+              if (sample && sample.length > 0) {
+                console.log(`📝 Exemplos de registros no banco (primeiros 3):`);
+                sample.forEach(s => {
+                  console.log(`   - ID: ${s.id}, Drive ID: ${s.google_drive_id || 'NULL'}`);
+                });
+              }
+            }
+          } catch (dbError) {
+            console.error(`❌ Erro ao processar banco de dados:`, dbError.message);
+            console.error(`Stack:`, dbError.stack);
+            // Não retornar erro, pois o arquivo já foi deletado do Drive
+          }
+          
+          console.log(`========================================\n`);
 
           return res.status(200).json({
             success: true,
             message: 'Arquivo deletado com sucesso do Google Drive',
           });
         } catch (error) {
-          console.error('Erro ao deletar arquivo do Google Drive:', error);
+          console.error('❌ ERRO ao deletar arquivo do Google Drive:', error.message);
+          console.error('Stack:', error.stack);
+          console.log(`========================================\n`);
           return res.status(500).json({
             success: false,
-            message: 'Erro ao deletar arquivo do Google Drive',
+            message: `Erro ao deletar arquivo do Google Drive: ${error.message}`,
           });
         }
       }
 
       // Caso contrário, é um documento do banco de dados
+      console.log(`📊 Tipo: Documento do BANCO DE DADOS`);
+      console.log(`🔍 Buscando documento no banco...`);
+      
       const document = await Document.findById(id);
       if (!document) {
+        console.log(`❌ Documento NÃO ENCONTRADO no banco!`);
+        console.log(`========================================\n`);
         return res.status(404).json({
           success: false,
           message: 'Documento não encontrado',
         });
       }
 
+      console.log(`✅ Documento encontrado:`, {
+        id: document.id,
+        title: document.title,
+        drive_file_id: document.drive_file_id || 'não tem'
+      });
+
       // Deletar do Google Drive
       if (document.drive_file_id) {
         try {
+          console.log(`🗑️ Deletando arquivo do Google Drive: ${document.drive_file_id}`);
+          
+          if (!googleDriveOAuthService.isInitialized()) {
+            console.log(`⚠️ Serviço do Google Drive não inicializado. Inicializando...`);
+            await googleDriveOAuthService.initialize();
+            console.log(`✅ Serviço inicializado com sucesso`);
+          }
+          
           await googleDriveOAuthService.deleteFile(document.drive_file_id);
+          console.log(`✅ Arquivo deletado do Google Drive com sucesso`);
         } catch (error) {
-          console.error('Erro ao deletar arquivo do Google Drive:', error);
+          console.error('❌ ERRO ao deletar arquivo do Google Drive:', error.message);
+          console.log(`========================================\n`);
           return res.status(500).json({
             success: false,
-            message: 'Erro ao deletar arquivo do Google Drive',
+            message: `Erro ao deletar arquivo do Google Drive: ${error.message}`,
           });
         }
+      } else {
+        console.log(`ℹ️ Documento não tem drive_file_id, pulando delete no Drive`);
       }
 
-      // Deletar do banco de dados
+      // Deletar do banco de dados (hard delete)
+      console.log(`🗑️ Deletando registro do banco: ${id}`);
       await Document.deleteById(id);
+      console.log(`✅ Registro DELETADO completamente do banco de dados`);
+      console.log(`========================================\n`);
 
       return res.status(200).json({
         success: true,
         message: 'Documento deletado com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao deletar documento:', error);
+      console.error('❌ ERRO GERAL ao deletar documento:', error.message);
+      console.error('Stack:', error.stack);
+      console.log(`========================================\n`);
       return res.status(500).json({
         success: false,
-        message: 'Erro ao deletar documento',
+        message: `Erro ao deletar documento: ${error.message}`,
       });
     }
   }

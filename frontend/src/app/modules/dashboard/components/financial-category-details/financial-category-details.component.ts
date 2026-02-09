@@ -59,6 +59,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   storageTotal: number = 0;
   confirmDeleteModalVisible = false;
   documentToDelete: FinancialDocument | null = null;
+  isDeletingDocument = false;
   errorMessage: string = '';
   successModalVisible: boolean = false;
   successMessage: string = '';
@@ -80,7 +81,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private documentsService: DocumentsService,
     private sanitizer: DomSanitizer,
-    private authService: AuthService,
+    public authService: AuthService,
     private cdr: ChangeDetectorRef,
     private documentViewerService: DocumentViewerService,
     public modalWindowService: ModalWindowService
@@ -469,12 +470,17 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
 
   onDeleteConfirmed(): void {
     if (!this.documentToDelete) return;
-    this.isLoading = true;
+    
+    console.log('🗑️ Iniciando exclusão do documento financeiro:', this.documentToDelete.id);
+    this.isDeletingDocument = true;
+    
     this.documentsService.deleteFinancialDocument(this.documentToDelete.id).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('✅ Documento financeiro deletado com sucesso:', response);
         // Remove do array local
         this.documents = this.documents.filter(d => d.id !== this.documentToDelete!.id);
         this.filteredDocuments = this.filteredDocuments.filter(d => d.id !== this.documentToDelete!.id);
+        this.isDeletingDocument = false;
         this.confirmDeleteModalVisible = false;
         this.documentToDelete = null;
 
@@ -488,13 +494,12 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
         }, 3000);
       },
       error: (error) => {
-        console.error('Erro ao remover documento:', error);
-        this.errorMessage = 'Erro ao remover documento financeiro.';
+        console.error('❌ Erro ao remover documento financeiro:', error);
+        console.error('Detalhes do erro:', error.error);
+        this.isDeletingDocument = false;
+        this.errorMessage = error.error?.message || 'Erro ao remover documento financeiro.';
         this.confirmDeleteModalVisible = false;
         this.documentToDelete = null;
-      },
-      complete: () => {
-        this.isLoading = false;
       }
     });
   }

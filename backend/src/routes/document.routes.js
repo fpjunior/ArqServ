@@ -1,6 +1,6 @@
 const express = require('express');
 const DocumentController = require('../controllers/document.controller');
-const { authenticate } = require('../middleware/auth.middleware');
+const { authenticate, requireAdmin } = require('../middleware/auth.middleware');
 const {
   checkMunicipalityAccess,
   filterDocumentsByUserMunicipality,
@@ -142,14 +142,14 @@ router.get('/drive/:drive_file_id/download',
  * @desc Deletar documento
  * @access Private (admin)
  */
-router.delete('/:id', DocumentController.deleteDocument);
+router.delete('/:id', authenticate, requireAdmin, DocumentController.deleteDocument);
 
 /**
  * @route DELETE /api/documents/financial/:id
  * @desc Deletar documento financeiro
- * @access Private
+ * @access Private (admin)
  */
-router.delete('/financial/:id', authenticate, DocumentController.deleteFinancialDocument);
+router.delete('/financial/:id', authenticate, requireAdmin, DocumentController.deleteFinancialDocument);
 
 /**
  * @route GET /api/documents/admin/all

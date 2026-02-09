@@ -24,16 +24,6 @@
           </div>
         </div>
       </div>
-
-      <div class="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200 w-full md:w-auto">
-        <div class="text-center md:text-right">
-          <div class="text-2xl font-bold text-gray-900">
-            {{ (storageUsed / (1024 * 1024 * 1024) | number:'1.2-2') }} GB / {{ (storageTotal / (1024 * 1024 * 1024) |
-            number:'1.2-2') }} GB
-          </div>
-          <div class="text-sm text-gray-500">Armazenamento usado</div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -46,22 +36,6 @@
           <input type="text" placeholder="Buscar documentos..." (input)="onSearchChange($event)"
             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
         </div>
-      </div>
-
-      <div class="flex gap-4">
-        <select (change)="onStatusChange($event)"
-          class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
-          <option value="all">Todos os Status</option>
-          <option value="active">Ativos</option>
-          <option value="pending">Pendentes</option>
-          <option value="archived">Arquivados</option>
-        </select>
-
-        <button
-          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center gap-2">
-          <span>📤</span>
-          Novo Upload
-        </button>
       </div>
     </div>
   </div>
@@ -112,7 +86,7 @@
             </svg>
           </button>
 
-          <button (click)="showDeleteModal(document)"
+          <button *ngIf="authService.isAdmin()" (click)="showDeleteModal(document)"
             class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Excluir">
             <span>🗑️</span>
           </button>
@@ -122,7 +96,7 @@
   </div>
 
   <!-- Empty State -->
-  <div class="text-center py-16 px-6" *ngIf="filteredDocuments.length === 0 && !isLoading">
+  <div class="text-center py-16 px-6 pb-6" *ngIf="filteredDocuments.length === 0 && !isLoading">
     <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
       <span class="text-4xl text-gray-400">📄</span>
     </div>
@@ -135,37 +109,6 @@
       class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
       Fazer primeiro upload
     </button>
-  </div>
-
-  <!-- Statistics Footer -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8 px-6 pb-6" *ngIf="filteredDocuments.length > 0">
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
-      <div class="text-2xl font-bold text-green-600">
-        {{ getDocumentsByStatus('active') }}
-      </div>
-      <div class="text-sm text-gray-500">Ativos</div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
-      <div class="text-2xl font-bold text-yellow-600">
-        {{ getDocumentsByStatus('pending') }}
-      </div>
-      <div class="text-sm text-gray-500">Pendentes</div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
-      <div class="text-2xl font-bold text-gray-600">
-        {{ getDocumentsByStatus('archived') }}
-      </div>
-      <div class="text-sm text-gray-500">Arquivados</div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
-      <div class="text-2xl font-bold text-blue-600">
-        {{ documents.length }}
-      </div>
-      <div class="text-sm text-gray-500">Total</div>
-    </div>
   </div>
 </div>
 
@@ -293,14 +236,15 @@
     <div *ngIf="!modalWindowService.isMobileDevice"
       class="px-3 py-1 text-xs text-gray-500 bg-gray-50 border-t flex items-center justify-between">
       <span>Visualização de documento</span>
-      <span class="text-gray-400">Dica: Arraste a barra de título para mover • Arraste as bordas para redimensionar • Duplo clique para maximizar</span>
+      <span class="text-gray-400">Dica: Arraste a barra de título para mover • Arraste as bordas para redimensionar •
+        Duplo clique para maximizar</span>
     </div>
   </div>
 </div>
 
 <!-- Modal de Confirmação de Exclusão -->
 <app-confirm-delete-modal [isVisible]="confirmDeleteModalVisible" [itemName]="documentToDelete?.name || ''"
-  (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
+  [isDeleting]="isDeletingDocument" (confirmed)="onDeleteConfirmed()" (closed)="onDeleteModalClosed()">
 </app-confirm-delete-modal>
 
 <app-success-modal *ngIf="successModalVisible" [visible]="successModalVisible" [message]="successMessage">
