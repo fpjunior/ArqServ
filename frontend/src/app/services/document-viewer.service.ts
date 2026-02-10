@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { BehaviorSubject, Subject } from 'rxjs';
 
 /**
- * Estado do modal de visualização
+ * Estado do modal de visualizaÃ§Ã£o
  */
 export interface ViewerState {
     isVisible: boolean;
@@ -11,18 +11,20 @@ export interface ViewerState {
     viewerUrl: SafeResourceUrl | null;
     currentDocumentId: string | null;
     documentTitle: string;
+    fileSize: number;
+    isLargeFile: boolean;
 }
 
 /**
- * Serviço centralizado para gerenciamento de visualização de documentos.
+ * ServiÃ§o centralizado para gerenciamento de visualizaÃ§Ã£o de documentos.
  * 
- * VERSÃO SIMPLIFICADA - Foco em estabilidade para mobile
+ * VERSÃƒO SIMPLIFICADA - Foco em estabilidade para mobile
  * 
  * PROBLEMAS RESOLVIDOS:
- * - Vazamento de memória em dispositivos móveis ao abrir múltiplos documentos
- * - Destruição incompleta de iframes do Google Drive
- * - Travamento ao fechar modal (loop de detecção de mudanças)
- * - Race condition quando usuário fecha antes do documento carregar
+ * - Vazamento de memÃ³ria em dispositivos mÃ³veis ao abrir mÃºltiplos documentos
+ * - DestruiÃ§Ã£o incompleta de iframes do Google Drive
+ * - Travamento ao fechar modal (loop de detecÃ§Ã£o de mudanÃ§as)
+ * - Race condition quando usuÃ¡rio fecha antes do documento carregar
  */
 @Injectable({
     providedIn: 'root'
@@ -30,9 +32,12 @@ export interface ViewerState {
 export class DocumentViewerService {
     private readonly BLANK_URL = 'about:blank';
 
-    // Configuração de delays (maiores para mobile)
+    // ConfiguraÃ§Ã£o de delays (maiores para mobile)
     private isMobile = false;
     private cleanupDelayMs = 100;
+
+    // Limite de 100MB para visualizacao do Google Drive
+    private readonly LARGE_FILE_THRESHOLD = 100 * 1024 * 1024;
 
     // Estado reativo do viewer
     private stateSubject = new BehaviorSubject<ViewerState>({
@@ -40,33 +45,35 @@ export class DocumentViewerService {
         isLoading: false,
         viewerUrl: null,
         currentDocumentId: null,
-        documentTitle: ''
+        documentTitle: '',
+        fileSize: 0,
+        isLargeFile: false
     });
 
     // Observable para componentes assinarem
     public state$ = this.stateSubject.asObservable();
 
-    // Evento de limpeza forçada
+    // Evento de limpeza forÃ§ada
     private forceCleanupSubject = new Subject<void>();
     public forceCleanup$ = this.forceCleanupSubject.asObservable();
 
     // Contador para debug
     private viewCount = 0;
 
-    // CRÍTICO: Controlar timeouts pendentes para cancelar em caso de fechamento rápido
+    // CRÃTICO: Controlar timeouts pendentes para cancelar em caso de fechamento rÃ¡pido
     private pendingOpenTimeout: any = null;
     private pendingCleanupTimeouts: any[] = [];
     
-    // Flag para evitar múltiplas operações simultâneas
+    // Flag para evitar mÃºltiplas operaÃ§Ãµes simultÃ¢neas
     private isOpening = false;
 
     constructor(private sanitizer: DomSanitizer) {
         this.detectMobileDevice();
-        console.log('📱 [DocumentViewerService] Inicializado. Mobile:', this.isMobile);
+        console.log('ðŸ“± [DocumentViewerService] Inicializado. Mobile:', this.isMobile);
     }
 
     /**
-     * Detecta se está em dispositivo móvel
+     * Detecta se estÃ¡ em dispositivo mÃ³vel
      */
     private detectMobileDevice(): void {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -75,20 +82,20 @@ export class DocumentViewerService {
 
             if (this.isMobile) {
                 this.cleanupDelayMs = 300; // Mais tempo para GC em mobile
-                console.log('📱 [DocumentViewerService] Modo mobile ativado');
+                console.log('ðŸ“± [DocumentViewerService] Modo mobile ativado');
             }
         }
     }
 
     /**
-     * Obtém o estado atual
+     * ObtÃ©m o estado atual
      */
     get currentState(): ViewerState {
         return this.stateSubject.getValue();
     }
 
     /**
-     * Verifica se há um documento atualmente sendo exibido
+     * Verifica se hÃ¡ um documento atualmente sendo exibido
      */
     get isDocumentOpen(): boolean {
         return this.currentState.isVisible;
@@ -97,35 +104,54 @@ export class DocumentViewerService {
     /**
      * Abre um documento no modal.
      * Usa setTimeout para evitar bloqueio da UI.
-     * PROTEÇÃO: Cancela operações pendentes se usuário fechar antes de carregar.
+     * PROTEÃ‡ÃƒO: Cancela operaÃ§Ãµes pendentes se usuÃ¡rio fechar antes de carregar.
      */
-    openDocument(documentId: string, title: string, customUrl?: string): Promise<boolean> {
+    openDocument(documentId: string, title: string, customUrl?: string, fileSize: number = 0): Promise<boolean> {
         return new Promise((resolve) => {
-            console.log(`📖 [DocumentViewerService] Abrindo documento: ${title} (${documentId})`);
+            console.log(`ðŸ“– [DocumentViewerService] Abrindo documento: ${title} (${documentId})`);
 
-            // PROTEÇÃO 1: Se já está abrindo outro documento, aguardar um momento
+            // PROTEÃ‡ÃƒO 1: Se jÃ¡ estÃ¡ abrindo outro documento, aguardar um momento
             if (this.isOpening) {
-                console.warn('⚠️ [DocumentViewerService] Já há abertura em andamento, aguardando...');
-                setTimeout(() => this.openDocument(documentId, title, customUrl).then(resolve), 100);
+                console.warn('âš ï¸ [DocumentViewerService] JÃ¡ hÃ¡ abertura em andamento, aguardando...');
+                setTimeout(() => this.openDocument(documentId, title, customUrl, fileSize).then(resolve), 100);
                 return;
             }
 
             this.isOpening = true;
 
-            // PROTEÇÃO 2: Cancelar qualquer timeout pendente de abertura anterior
+            // PROTEÃ‡ÃƒO 2: Cancelar qualquer timeout pendente de abertura anterior
             if (this.pendingOpenTimeout) {
-                console.log('🚫 [DocumentViewerService] Cancelando abertura pendente...');
+                console.log('ðŸš« [DocumentViewerService] Cancelando abertura pendente...');
                 clearTimeout(this.pendingOpenTimeout);
                 this.pendingOpenTimeout = null;
             }
 
-            // Se já tem documento aberto, fechar primeiro de forma SÍNCRONA
+            // Se jÃ¡ tem documento aberto, fechar primeiro de forma SÃNCRONA
             if (this.currentState.isVisible || this.currentState.viewerUrl) {
-                console.log('🧹 [DocumentViewerService] Fechando documento anterior...');
+                console.log('ðŸ§¹ [DocumentViewerService] Fechando documento anterior...');
                 this.immediateCleanup();
             }
 
             this.viewCount++;
+
+            const isLargeFile = fileSize > this.LARGE_FILE_THRESHOLD;
+
+            // Para arquivos grandes, nao tentar carregar iframe - Google Drive nao suporta preview > 100MB
+            if (isLargeFile) {
+                console.log('[DocumentViewerService] Arquivo grande - exibindo opcoes de download');
+                this.stateSubject.next({
+                    isVisible: true,
+                    isLoading: false,
+                    viewerUrl: null,
+                    currentDocumentId: documentId,
+                    documentTitle: title,
+                    fileSize: fileSize,
+                    isLargeFile: true
+                });
+                this.isOpening = false;
+                resolve(true);
+                return;
+            }
 
             // Preparar URL do viewer
             let viewerUrl: SafeResourceUrl;
@@ -142,14 +168,16 @@ export class DocumentViewerService {
                 isLoading: true,
                 viewerUrl: null,
                 currentDocumentId: documentId,
-                documentTitle: title
+                documentTitle: title,
+                fileSize: fileSize,
+                isLargeFile: false
             });
 
-            // Carregar iframe após pequeno delay (permite DOM atualizar)
+            // Carregar iframe apÃ³s pequeno delay (permite DOM atualizar)
             this.pendingOpenTimeout = setTimeout(() => {
-                // PROTEÇÃO 3: Verificar se não foi fechado durante o delay
+                // PROTEÃ‡ÃƒO 3: Verificar se nÃ£o foi fechado durante o delay
                 if (!this.currentState.isVisible) {
-                    console.warn('⚠️ [DocumentViewerService] Modal foi fechado durante carregamento, abortando...');
+                    console.warn('âš ï¸ [DocumentViewerService] Modal foi fechado durante carregamento, abortando...');
                     this.isOpening = false;
                     this.pendingOpenTimeout = null;
                     resolve(false);
@@ -161,17 +189,17 @@ export class DocumentViewerService {
                     viewerUrl: viewerUrl,
                     isLoading: false
                 });
-                console.log(`✅ [DocumentViewerService] Documento carregado: ${title}`);
+                console.log(`âœ… [DocumentViewerService] Documento carregado: ${title}`);
                 this.isOpening = false;
                 this.pendingOpenTimeout = null;
                 resolve(true);
             }, this.isMobile ? 150 : 50);
 
-            // CRÍTICO: Liberar flag de abertura após pequeno delay (mesmo se cancelado)
-            // Isso garante que não fique travado se o usuário fechar muito rápido
+            // CRÃTICO: Liberar flag de abertura apÃ³s pequeno delay (mesmo se cancelado)
+            // Isso garante que nÃ£o fique travado se o usuÃ¡rio fechar muito rÃ¡pido
             setTimeout(() => {
                 if (this.isOpening) {
-                    console.log('🔓 [DocumentViewerService] Liberando flag de segurança...');
+                    console.log('ðŸ”“ [DocumentViewerService] Liberando flag de seguranÃ§a...');
                     this.isOpening = false;
                 }
             }, 500);
@@ -188,26 +216,26 @@ export class DocumentViewerService {
                 isLoading: false
             });
         }
-        console.log('✅ [DocumentViewerService] Iframe carregado');
+        console.log('âœ… [DocumentViewerService] Iframe carregado');
     }
 
     /**
      * Fecha o modal e limpa recursos.
-     * Usa abordagem assíncrona com setTimeout para não bloquear UI.
-     * PROTEÇÃO: Cancela timeouts pendentes de abertura para evitar race condition.
+     * Usa abordagem assÃ­ncrona com setTimeout para nÃ£o bloquear UI.
+     * PROTEÃ‡ÃƒO: Cancela timeouts pendentes de abertura para evitar race condition.
      */
     closeViewer(): Promise<void> {
         return new Promise((resolve) => {
-            console.log('🔒 [DocumentViewerService] Fechando viewer...');
+            console.log('ðŸ”’ [DocumentViewerService] Fechando viewer...');
 
-            // CRÍTICO: Cancelar timeout pendente de abertura (se usuário fechou rápido)
+            // CRÃTICO: Cancelar timeout pendente de abertura (se usuÃ¡rio fechou rÃ¡pido)
             if (this.pendingOpenTimeout) {
-                console.log('🚫 [DocumentViewerService] Cancelando carregamento pendente...');
+                console.log('ðŸš« [DocumentViewerService] Cancelando carregamento pendente...');
                 clearTimeout(this.pendingOpenTimeout);
                 this.pendingOpenTimeout = null;
             }
 
-            // Limpar flag de operação
+            // Limpar flag de operaÃ§Ã£o
             this.isOpening = false;
 
             // PASSO 1: Esconder modal imediatamente (UX responsiva)
@@ -219,24 +247,26 @@ export class DocumentViewerService {
             // PASSO 2: Navegar para about:blank (libera recursos do Google Drive)
             const timeout1 = setTimeout(() => {
                 if (this.currentState.viewerUrl) {
-                    console.log('🔄 [DocumentViewerService] Navegando para about:blank...');
+                    console.log('ðŸ”„ [DocumentViewerService] Navegando para about:blank...');
                     this.stateSubject.next({
                         ...this.currentState,
                         viewerUrl: this.sanitizer.bypassSecurityTrustResourceUrl(this.BLANK_URL)
                     });
                 }
 
-                // PASSO 3: Remover iframe completamente após delay
+                // PASSO 3: Remover iframe completamente apÃ³s delay
                 const timeout2 = setTimeout(() => {
-                    console.log('🗑️ [DocumentViewerService] Removendo iframe...');
+                    console.log('ðŸ—‘ï¸ [DocumentViewerService] Removendo iframe...');
                     this.stateSubject.next({
                         isVisible: false,
                         isLoading: false,
                         viewerUrl: null,
                         currentDocumentId: null,
-                        documentTitle: ''
+                        documentTitle: '',
+                        fileSize: 0,
+                        isLargeFile: false
                     });
-                    console.log('✅ [DocumentViewerService] Limpeza concluída');
+                    console.log('âœ… [DocumentViewerService] Limpeza concluÃ­da');
                     
                     // Limpar da lista de timeouts pendentes
                     this.pendingCleanupTimeouts = this.pendingCleanupTimeouts.filter(t => t !== timeout1 && t !== timeout2);
@@ -253,10 +283,10 @@ export class DocumentViewerService {
     }
 
     /**
-     * Limpeza imediata e síncrona (para usar antes de abrir novo documento)
+     * Limpeza imediata e sÃ­ncrona (para usar antes de abrir novo documento)
      */
     private immediateCleanup(): void {
-        console.log('⚡ [DocumentViewerService] Limpeza imediata');
+        console.log('âš¡ [DocumentViewerService] Limpeza imediata');
         
         // Cancelar todos os timeouts pendentes
         if (this.pendingOpenTimeout) {
@@ -274,15 +304,17 @@ export class DocumentViewerService {
             isLoading: false,
             viewerUrl: null,
             currentDocumentId: null,
-            documentTitle: ''
+            documentTitle: '',
+            fileSize: 0,
+            isLargeFile: false
         });
     }
 
     /**
-     * Força reset completo do serviço
+     * ForÃ§a reset completo do serviÃ§o
      */
     forceReset(): void {
-        console.log('🔄 [DocumentViewerService] Reset forçado');
+        console.log('ðŸ”„ [DocumentViewerService] Reset forÃ§ado');
         
         // Cancelar TODOS os timeouts
         if (this.pendingOpenTimeout) {
@@ -301,7 +333,7 @@ export class DocumentViewerService {
     }
 
     /**
-     * Obtém estatísticas para debug
+     * ObtÃ©m estatÃ­sticas para debug
      */
     getDebugStats(): { viewCount: number; isMobile: boolean } {
         return {
@@ -310,3 +342,9 @@ export class DocumentViewerService {
         };
     }
 }
+
+
+
+
+
+

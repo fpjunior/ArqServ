@@ -18,7 +18,7 @@ interface FinancialDocument {
   type: string;
   uploadDate: Date;
   size: string;
-  file_size_bytes: number;
+  file_size_bytes?: number; // Opcional - usado para detectar arquivos grandes
   status: 'active' | 'archived' | 'pending';
   description?: string;
   tags?: string[];
