@@ -156,9 +156,20 @@ class GoogleDriveOAuthService {
 
       console.log(`📤 Starting Google Drive OAuth upload: ${fileName}`);
       console.log(`📍 Município: ${municipalityName}, Servidor: ${serverName}`);
+      console.log(`📦 Tipo de arquivo: ${typeof fileBufferOrPath === 'string' ? 'Caminho' : 'Buffer'}`);
+      
+      // Verificar se o arquivo existe quando é um caminho
+      if (typeof fileBufferOrPath === 'string') {
+        if (!fs.existsSync(fileBufferOrPath)) {
+          throw new Error(`Arquivo não encontrado no caminho: ${fileBufferOrPath}`);
+        }
+        const stats = fs.statSync(fileBufferOrPath);
+        console.log(`📊 Tamanho do arquivo: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+      }
 
       // Obter ID da pasta do servidor
       const parentFolderId = await this.getServerFolderId(municipalityName, serverName);
+      console.log(`📂 ID da pasta de destino: ${parentFolderId}`);
 
       // Preparar metadata do arquivo
       const fileMetadata = {
@@ -169,6 +180,7 @@ class GoogleDriveOAuthService {
       // Preparar stream do arquivo - aceita tanto buffer quanto caminho
       let media;
       if (Buffer.isBuffer(fileBufferOrPath)) {
+        console.log('📦 Preparando upload de Buffer...');
         const { Readable } = require('stream');
         const bufferStream = new Readable();
         bufferStream.push(fileBufferOrPath);
@@ -179,6 +191,7 @@ class GoogleDriveOAuthService {
           body: bufferStream,
         };
       } else {
+        console.log(`📦 Preparando upload de arquivo do disco: ${fileBufferOrPath}`);
         media = {
           mimeType: mimeType,
           body: fs.createReadStream(fileBufferOrPath),
@@ -186,6 +199,7 @@ class GoogleDriveOAuthService {
       }
 
       console.log(`☁️ Uploading (resumable) to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ MimeType: ${mimeType}`);
 
       // Fazer upload usando uploadType: resumable para arquivos grandes
       const response = await this.drive.files.create({
@@ -198,6 +212,15 @@ class GoogleDriveOAuthService {
       });
 
       const fileData = response.data;
+      
+      if (!fileData || !fileData.id) {
+        throw new Error('Google Drive não retornou ID do arquivo após upload');
+      }
+
+      console.log(`✅ Arquivo enviado para o Drive com sucesso!`);
+      console.log(`   ID: ${fileData.id}`);
+      console.log(`   Nome: ${fileData.name}`);
+      console.log(`   Tamanho: ${fileData.size ? (fileData.size / 1024 / 1024).toFixed(2) + ' MB' : 'desconhecido'}`);
 
       // Tornar arquivo público para leitura (necessário para webViewLink funcionar para outros usuários)
       try {
@@ -208,9 +231,10 @@ class GoogleDriveOAuthService {
             type: 'anyone',
           },
         });
-        console.log(`Público setado para o arquivo: ${fileData.id}`);
+        console.log(`🔓 Permissões públicas definidas para o arquivo: ${fileData.id}`);
       } catch (permError) {
-        console.error('Erro ao definir permissões públicas:', permError);
+        console.error('⚠️ Erro ao definir permissões públicas:', permError.message);
+        // Não falhar o upload por causa disso
       }
 
       console.log(`✅ File uploaded successfully: ${fileData.name} (${fileData.id})`);
@@ -226,6 +250,10 @@ class GoogleDriveOAuthService {
 
     } catch (error) {
       console.error('❌ Error uploading file to Google Drive:', error.message);
+      console.error('❌ Stack:', error.stack);
+      if (error.errors) {
+        console.error('❌ Google API Errors:', JSON.stringify(error.errors, null, 2));
+      }
       throw error;
     }
   }
@@ -238,9 +266,20 @@ class GoogleDriveOAuthService {
 
       console.log(`📤 Starting financial document upload: ${fileName}`);
       console.log(`📍 Município: ${municipalityName}, Tipo: ${documentType}, Ano: ${year}, Período: ${period || 'Anual'}`);
+      console.log(`📦 Tipo de arquivo: ${typeof fileBufferOrPath === 'string' ? 'Caminho' : 'Buffer'}`);
+      
+      // Verificar se o arquivo existe quando é um caminho
+      if (typeof fileBufferOrPath === 'string') {
+        if (!fs.existsSync(fileBufferOrPath)) {
+          throw new Error(`Arquivo não encontrado no caminho: ${fileBufferOrPath}`);
+        }
+        const stats = fs.statSync(fileBufferOrPath);
+        console.log(`📊 Tamanho do arquivo: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+      }
 
       // Obter ID da pasta para documentos financeiros
       const parentFolderId = await this.getFinancialDocumentFolderId(municipalityName, documentType, year, period);
+      console.log(`📂 ID da pasta de destino: ${parentFolderId}`);
 
       // Preparar metadata do arquivo
       const fileMetadata = {
@@ -251,6 +290,7 @@ class GoogleDriveOAuthService {
       // Preparar stream do arquivo
       let media;
       if (Buffer.isBuffer(fileBufferOrPath)) {
+        console.log('📦 Preparando upload de Buffer...');
         const { Readable } = require('stream');
         const bufferStream = new Readable();
         bufferStream.push(fileBufferOrPath);
@@ -261,6 +301,7 @@ class GoogleDriveOAuthService {
           body: bufferStream,
         };
       } else {
+        console.log(`📦 Preparando upload de arquivo do disco: ${fileBufferOrPath}`);
         media = {
           mimeType: mimeType,
           body: fs.createReadStream(fileBufferOrPath),
@@ -268,6 +309,7 @@ class GoogleDriveOAuthService {
       }
 
       console.log(`☁️ Uploading financial document (resumable) to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ MimeType: ${mimeType}`);
 
       // Fazer upload usando uploadType: resumable
       const response = await this.drive.files.create({
@@ -279,6 +321,15 @@ class GoogleDriveOAuthService {
       });
 
       const fileData = response.data;
+      
+      if (!fileData || !fileData.id) {
+        throw new Error('Google Drive não retornou ID do arquivo após upload');
+      }
+
+      console.log(`✅ Documento financeiro enviado para o Drive com sucesso!`);
+      console.log(`   ID: ${fileData.id}`);
+      console.log(`   Nome: ${fileData.name}`);
+      console.log(`   Tamanho: ${fileData.size ? (fileData.size / 1024 / 1024).toFixed(2) + ' MB' : 'desconhecido'}`);
 
       // Tornar arquivo público para leitura
       try {
@@ -289,9 +340,10 @@ class GoogleDriveOAuthService {
             type: 'anyone',
           },
         });
-        console.log(`Público setado para documento financeiro: ${fileData.id}`);
+        console.log(`🔓 Permissões públicas definidas para documento financeiro: ${fileData.id}`);
       } catch (permError) {
-        console.error('Erro ao definir permissões públicas:', permError);
+        console.error('⚠️ Erro ao definir permissões públicas:', permError.message);
+        // Não falhar o upload por causa disso
       }
 
       console.log(`✅ Financial document uploaded successfully: ${fileData.name} (${fileData.id})`);
@@ -307,6 +359,10 @@ class GoogleDriveOAuthService {
 
     } catch (error) {
       console.error('❌ Error uploading financial document to Google Drive:', error.message);
+      console.error('❌ Stack:', error.stack);
+      if (error.errors) {
+        console.error('❌ Google API Errors:', JSON.stringify(error.errors, null, 2));
+      }
       throw error;
     }
   }

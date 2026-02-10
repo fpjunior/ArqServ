@@ -188,6 +188,8 @@ class DocumentController {
       const fileExtension = path.extname(file.originalname);
       const fileName = `${title}${fileExtension}`;
       console.log(`🚀 Iniciando upload: ${fileName} (título: ${title})`);
+      console.log(`📁 Arquivo local: ${file.path}`);
+      console.log(`📏 Tamanho: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
       let driveFile;
 
@@ -205,6 +207,11 @@ class DocumentController {
           financial_period,
           file.mimetype
         );
+        
+        if (!driveFile || !driveFile.googleDriveId) {
+          throw new Error('Upload para Google Drive falhou: ID do arquivo não retornado');
+        }
+        
         console.log('✅ uploadFinancialDocument concluído:', driveFile.googleDriveId);
       } else {
         console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
@@ -218,10 +225,16 @@ class DocumentController {
           server.name,
           file.mimetype
         );
+        
+        if (!driveFile || !driveFile.googleDriveId) {
+          throw new Error('Upload para Google Drive falhou: ID do arquivo não retornado');
+        }
+        
         console.log('✅ uploadFile concluído:', driveFile.googleDriveId);
       }
 
       console.log(`✅ Upload concluído no Google Drive: ${driveFile.googleDriveId}`);
+      console.log(`🔗 Link de visualização: ${driveFile.googleDriveLink}`);
 
       // Salvar no banco de dados
       const documentData = {
@@ -298,9 +311,23 @@ class DocumentController {
 
     } catch (error) {
       console.error('❌ Erro no upload:', error);
+      console.error('❌ Stack completo:', error.stack);
+      
+      // Mensagem de erro mais específica
+      let errorMessage = 'Erro interno do servidor';
+      
+      if (error.message.includes('Google Drive')) {
+        errorMessage = 'Erro ao enviar arquivo para o Google Drive: ' + error.message;
+      } else if (error.message.includes('não encontrado') || error.message.includes('not found')) {
+        errorMessage = 'Recurso não encontrado: ' + error.message;
+      } else if (error.message.includes('não retornado')) {
+        errorMessage = 'Falha no upload: ' + error.message;
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor'
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     } finally {
       // Limpar arquivo temporário se existir
