@@ -185,16 +185,13 @@ class GoogleDriveOAuthService {
         };
       }
 
-      console.log(`☁️ Uploading (resumable) to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ Uploading to Google Drive folder: ${parentFolderId}`);
 
-      // Fazer upload usando uploadType: resumable para arquivos grandes
+      // Fazer upload - a biblioteca googleapis gerencia automaticamente uploads grandes
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
         media: media,
         fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink',
-      }, {
-        // Upload resumível é melhor para arquivos grandes e conexões instáveis
-        uploadType: 'resumable'
       });
 
       const fileData = response.data;
@@ -291,15 +288,13 @@ class GoogleDriveOAuthService {
         };
       }
 
-      console.log(`☁️ Uploading financial document (resumable) to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ Uploading financial document to Google Drive folder: ${parentFolderId}`);
 
-      // Fazer upload usando uploadType: resumable
+      // Fazer upload - a biblioteca googleapis gerencia automaticamente uploads grandes
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
         media: media,
         fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink',
-      }, {
-        uploadType: 'resumable'
       });
 
       const fileData = response.data;
