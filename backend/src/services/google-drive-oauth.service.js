@@ -185,13 +185,16 @@ class GoogleDriveOAuthService {
         };
       }
 
-      console.log(`☁️ Uploading to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ Uploading (resumable) to Google Drive folder: ${parentFolderId}`);
 
-      // Fazer upload
+      // Fazer upload usando uploadType: resumable para arquivos grandes
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
         media: media,
         fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink',
+      }, {
+        // Upload resumível é melhor para arquivos grandes e conexões instáveis
+        uploadType: 'resumable'
       });
 
       const fileData = response.data;
@@ -227,7 +230,7 @@ class GoogleDriveOAuthService {
     }
   }
 
-  async uploadFinancialDocument(fileBuffer, fileName, municipalityName, documentType, year, period = null, mimeType = 'application/octet-stream') {
+  async uploadFinancialDocument(fileBufferOrPath, fileName, municipalityName, documentType, year, period = null, mimeType = 'application/octet-stream') {
     try {
       if (!this.initialized) {
         throw new Error('Google Drive OAuth service not initialized');
@@ -246,23 +249,33 @@ class GoogleDriveOAuthService {
       };
 
       // Preparar stream do arquivo
-      const { Readable } = require('stream');
-      const bufferStream = new Readable();
-      bufferStream.push(fileBuffer);
-      bufferStream.push(null);
+      let media;
+      if (Buffer.isBuffer(fileBufferOrPath)) {
+        const { Readable } = require('stream');
+        const bufferStream = new Readable();
+        bufferStream.push(fileBufferOrPath);
+        bufferStream.push(null);
 
-      const media = {
-        mimeType: mimeType,
-        body: bufferStream,
-      };
+        media = {
+          mimeType: mimeType,
+          body: bufferStream,
+        };
+      } else {
+        media = {
+          mimeType: mimeType,
+          body: fs.createReadStream(fileBufferOrPath),
+        };
+      }
 
-      console.log(`☁️ Uploading financial document to Google Drive folder: ${parentFolderId}`);
+      console.log(`☁️ Uploading financial document (resumable) to Google Drive folder: ${parentFolderId}`);
 
-      // Fazer upload
+      // Fazer upload usando uploadType: resumable
       const response = await this.drive.files.create({
         requestBody: fileMetadata,
         media: media,
         fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink',
+      }, {
+        uploadType: 'resumable'
       });
 
       const fileData = response.data;

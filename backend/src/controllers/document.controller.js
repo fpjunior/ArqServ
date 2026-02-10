@@ -7,8 +7,23 @@ const ActivityLogService = require('../services/activity-log.service');
 const multer = require('multer');
 const path = require('path');
 
-// Configurar multer para upload de arquivos
-const storage = multer.memoryStorage();
+// Configurar multer para upload de arquivos usando disco para suportar arquivos grandes
+const fs = require('fs');
+const uploadDir = 'uploads/';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
 const upload = multer({
   storage: storage,
   limits: {
@@ -44,7 +59,7 @@ class DocumentController {
       originalname: req.file.originalname,
       mimetype: req.file.mimetype,
       size: req.file.size,
-      buffer: `${req.file.buffer ? req.file.buffer.length : 0} bytes`
+      path: req.file.path
     } : '❌ NENHUM ARQUIVO');
     console.log('🟢 ========================================\n');
 
@@ -180,9 +195,9 @@ class DocumentController {
         console.log(`📂 Destino: ${municipality.name} > Documentações Financeiras > ${financial_document_type}`);
         console.log('💰 Chamando uploadFinancialDocument...');
 
-        // Upload para documentos financeiros - criar estrutura hierárquica
+        // Upload para documentos financeiros - usar caminho do arquivo pro stream
         driveFile = await googleDriveOAuthService.uploadFinancialDocument(
-          file.buffer,
+          file.path,
           fileName,
           municipality.name,
           financial_document_type,
@@ -195,9 +210,9 @@ class DocumentController {
         console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
         console.log('👤 Chamando uploadFile para servidor...');
 
-        // Upload para documentos de servidor (método existente)
+        // Upload para documentos de servidor - usar caminho do arquivo pro stream
         driveFile = await googleDriveOAuthService.uploadFile(
-          file.buffer,
+          file.path,
           fileName,
           municipality.name,
           server.name,
@@ -287,6 +302,16 @@ class DocumentController {
         success: false,
         message: 'Erro interno do servidor'
       });
+    } finally {
+      // Limpar arquivo temporário se existir
+      if (req.file && req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log(`🧹 Arquivo temporário removido: ${req.file.path}`);
+        } catch (unlinkError) {
+          console.error(`⚠️ Erro ao remover arquivo temporário ${req.file.path}:`, unlinkError);
+        }
+      }
     }
   }
 
@@ -591,9 +616,9 @@ class DocumentController {
       // Usar município do usuário logado (seguro), ou do body como fallback
       const municipalityCode = req.user?.municipality_code || bodyMunicipalityCode;
 
-      console.log('👁️ Registrando visualização:', { 
-        documentId, 
-        driveFileId, 
+      console.log('👁️ Registrando visualização:', {
+        documentId,
+        driveFileId,
         fileName,
         userId,
         municipalityCode,
@@ -640,7 +665,7 @@ class DocumentController {
 
         console.log(`📁 Tipo: Arquivo DIRETO do Google Drive`);
         console.log(`🆔 Drive File ID: ${driveFileId}`);
-        
+
         try {
           if (!googleDriveOAuthService.isInitialized()) {
             console.log(`⚠️ Serviço do Google Drive não inicializado. Inicializando...`);
@@ -654,22 +679,22 @@ class DocumentController {
 
           // Buscar e deletar registro no banco (se existir)
           console.log(`🔍 Buscando registro no banco com google_drive_id: ${driveFileId}`);
-          
+
           try {
             const { supabase } = require('../config/database');
-            
+
             // Buscar documentos que tenham esse google_drive_id
             const { data: documents, error } = await supabase
               .from('documents')
               .select('id, title, google_drive_id, is_active')
               .eq('google_drive_id', driveFileId);
-            
+
             if (error) {
               console.error(`⚠️ Erro ao buscar no banco:`, error.message);
             } else {
               console.log(`📊 Query retornou ${documents ? documents.length : 0} resultado(s)`);
             }
-            
+
             if (documents && documents.length > 0) {
               console.log(`📋 Encontrado(s) ${documents.length} registro(s) no banco:`);
               for (const doc of documents) {
@@ -685,13 +710,13 @@ class DocumentController {
               }
             } else {
               console.log(`ℹ️ Nenhum registro encontrado no banco com google_drive_id: ${driveFileId}`);
-              
+
               // Listar alguns registros para debug
               const { data: sample } = await supabase
                 .from('documents')
                 .select('id, title, google_drive_id')
                 .limit(3);
-              
+
               if (sample && sample.length > 0) {
                 console.log(`📝 Exemplos de registros no banco (primeiros 3):`);
                 sample.forEach(s => {
@@ -704,7 +729,7 @@ class DocumentController {
             console.error(`Stack:`, dbError.stack);
             // Não retornar erro, pois o arquivo já foi deletado do Drive
           }
-          
+
           console.log(`========================================\n`);
 
           return res.status(200).json({
@@ -725,7 +750,7 @@ class DocumentController {
       // Caso contrário, é um documento do banco de dados
       console.log(`📊 Tipo: Documento do BANCO DE DADOS`);
       console.log(`🔍 Buscando documento no banco...`);
-      
+
       const document = await Document.findById(id);
       if (!document) {
         console.log(`❌ Documento NÃO ENCONTRADO no banco!`);
@@ -746,13 +771,13 @@ class DocumentController {
       if (document.drive_file_id) {
         try {
           console.log(`🗑️ Deletando arquivo do Google Drive: ${document.drive_file_id}`);
-          
+
           if (!googleDriveOAuthService.isInitialized()) {
             console.log(`⚠️ Serviço do Google Drive não inicializado. Inicializando...`);
             await googleDriveOAuthService.initialize();
             console.log(`✅ Serviço inicializado com sucesso`);
           }
-          
+
           await googleDriveOAuthService.deleteFile(document.drive_file_id);
           console.log(`✅ Arquivo deletado do Google Drive com sucesso`);
         } catch (error) {
