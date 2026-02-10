@@ -28,18 +28,22 @@ app.use(cors());
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 
-// Log de requisições
+// Log de requisições (apenas rotas principais, sem poluir com health checks)
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`, req.body);
+  // Só logar requisições importantes de escrita ou rotas principais
+  if (req.method !== 'GET' || req.path.includes('/upload')) {
+    console.log(`${req.method} ${req.path}`);
+  }
   next();
 });
 
-// Middleware para logar ANTES do multer
+// Middleware para logar uploads
 app.use('/api/documents/upload', (req, res, next) => {
-  console.log('🔵 [PRE-MULTER] Requisição chegou na rota /api/documents/upload');
-  console.log('🔵 [PRE-MULTER] Method:', req.method);
-  console.log('🔵 [PRE-MULTER] Content-Type:', req.headers['content-type']);
-  console.log('🔵 [PRE-MULTER] Authorization:', req.headers.authorization ? 'PRESENTE' : 'AUSENTE');
+  console.log('\n🔵 ===== [UPLOAD REQUEST] =====');
+  console.log('🔵 Method:', req.method);
+  console.log('🔵 Content-Type:', req.headers['content-type']);
+  console.log('🔵 Auth:', req.headers.authorization ? 'PRESENTE' : 'AUSENTE');
+  console.log('🔵 ============================\n');
   next();
 });
 
@@ -53,6 +57,34 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/financial-document-types', financialDocumentTypesRoutes);
 app.use('/api/search', searchRoutes);
+
+// Endpoint de diagnóstico do Google Drive
+app.get('/api/drive-status', async (req, res) => {
+  try {
+    const status = {
+      oauthInitialized: googleDriveOAuthService.isInitialized(),
+      timestamp: new Date().toISOString()
+    };
+
+    if (status.oauthInitialized) {
+      try {
+        const storageInfo = await googleDriveOAuthService.getStorageInfo();
+        status.driveConnected = true;
+        status.storage = {
+          usedMB: (storageInfo.usageInDrive / 1024 / 1024).toFixed(2),
+          totalGB: storageInfo.total ? (storageInfo.total / 1024 / 1024 / 1024).toFixed(2) : 'unlimited'
+        };
+      } catch (driveError) {
+        status.driveConnected = false;
+        status.driveError = driveError.message;
+      }
+    }
+
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Rotas de teste (sem Google Drive)
 app.post('/api/documents/upload-simple',

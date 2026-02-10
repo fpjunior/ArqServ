@@ -13,11 +13,13 @@ const router = express.Router();
  * @route POST /api/documents/upload
  * @desc Upload de documento com informações
  * @access Private (requer autenticação)
+ * IMPORTANTE: multer DEVE rodar ANTES de checkUploadMunicipalityAccess
+ * pois req.body só é populado após multer parsear o multipart/form-data
  */
 router.post('/upload',
   authenticate,
-  checkUploadMunicipalityAccess,
   DocumentController.uploadDocument,
+  checkUploadMunicipalityAccess,
   DocumentController.uploadFile
 );
 

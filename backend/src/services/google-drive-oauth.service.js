@@ -215,6 +215,30 @@ class GoogleDriveOAuthService {
 
       console.log(`✅ File uploaded successfully: ${fileData.name} (${fileData.id})`);
 
+      // VERIFICAÇÃO PÓS-UPLOAD: Confirmar que o arquivo realmente existe no Drive
+      try {
+        const verifyResponse = await this.drive.files.get({
+          fileId: fileData.id,
+          fields: 'id, name, size, mimeType'
+        });
+        const verifiedFile = verifyResponse.data;
+        console.log(`✅ VERIFICAÇÃO: Arquivo confirmado no Drive!`);
+        console.log(`   ID: ${verifiedFile.id}`);
+        console.log(`   Nome: ${verifiedFile.name}`);
+        console.log(`   Tamanho: ${verifiedFile.size ? (verifiedFile.size / 1024 / 1024).toFixed(2) + ' MB' : 'desconhecido'}`);
+        
+        if (verifiedFile.size && parseInt(verifiedFile.size) === 0) {
+          console.error('❌ ALERTA: Arquivo no Drive tem 0 bytes! Upload pode ter falhado.');
+          throw new Error('Arquivo foi criado no Drive mas com 0 bytes - upload falhou');
+        }
+      } catch (verifyError) {
+        if (verifyError.message.includes('0 bytes')) {
+          throw verifyError;
+        }
+        console.error('⚠️ Não foi possível verificar o arquivo no Drive:', verifyError.message);
+        // Continuar mesmo se a verificação falhar, pois o upload já retornou sucesso
+      }
+
       return {
         googleDriveId: fileData.id,
         googleDriveLink: fileData.webViewLink,
@@ -295,6 +319,29 @@ class GoogleDriveOAuthService {
       }
 
       console.log(`✅ Financial document uploaded successfully: ${fileData.name} (${fileData.id})`);
+
+      // VERIFICAÇÃO PÓS-UPLOAD: Confirmar que o arquivo realmente existe no Drive
+      try {
+        const verifyResponse = await this.drive.files.get({
+          fileId: fileData.id,
+          fields: 'id, name, size, mimeType'
+        });
+        const verifiedFile = verifyResponse.data;
+        console.log(`✅ VERIFICAÇÃO: Documento financeiro confirmado no Drive!`);
+        console.log(`   ID: ${verifiedFile.id}`);
+        console.log(`   Nome: ${verifiedFile.name}`);
+        console.log(`   Tamanho: ${verifiedFile.size ? (verifiedFile.size / 1024 / 1024).toFixed(2) + ' MB' : 'desconhecido'}`);
+        
+        if (verifiedFile.size && parseInt(verifiedFile.size) === 0) {
+          console.error('❌ ALERTA: Arquivo no Drive tem 0 bytes! Upload pode ter falhado.');
+          throw new Error('Arquivo foi criado no Drive mas com 0 bytes - upload falhou');
+        }
+      } catch (verifyError) {
+        if (verifyError.message.includes('0 bytes')) {
+          throw verifyError;
+        }
+        console.error('⚠️ Não foi possível verificar o arquivo no Drive:', verifyError.message);
+      }
 
       return {
         googleDriveId: fileData.id,
