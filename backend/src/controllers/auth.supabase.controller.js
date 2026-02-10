@@ -193,7 +193,7 @@ exports.inviteUser = async (req, res) => {
       const token = authHeader.replace('Bearer ', '');
       try {
         const payload = jwt.verify(token, process.env.JWT_SECRET || 'arqserv_secret_key');
-        if (!payload || (payload.role !== 'admin' && payload.user_type !== 'admin')) {
+        if (!payload || (payload.role !== 'admin' && payload.role !== 'superadmin' && payload.user_type !== 'admin')) {
           return res.status(403).json({ success: false, message: 'Forbidden: admin required' });
         }
       } catch (err) {

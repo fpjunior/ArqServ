@@ -65,7 +65,7 @@ const createFinancialDocumentType = async (req, res) => {
             .eq('id', userId)
             .single();
 
-        if (userError || !userData || userData.role !== 'admin') {
+        if (userError || !userData || !['admin', 'superadmin'].includes(userData.role)) {
             console.error('❌ [FINANCIAL-TYPES] Usuário não autorizado');
             return res.status(403).json({
                 success: false,
@@ -156,7 +156,7 @@ const updateFinancialDocumentType = async (req, res) => {
             .eq('id', userId)
             .single();
 
-        if (userError || !userData || userData.role !== 'admin') {
+        if (userError || !userData || !['admin', 'superadmin'].includes(userData.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Apenas administradores podem atualizar tipos de documentos'
@@ -222,7 +222,7 @@ const deleteFinancialDocumentType = async (req, res) => {
             .eq('id', userId)
             .single();
 
-        if (userError || !userData || userData.role !== 'admin') {
+        if (userError || !userData || !['admin', 'superadmin'].includes(userData.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Apenas administradores podem desativar tipos de documentos'
