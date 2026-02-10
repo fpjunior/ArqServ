@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { environment } from '../../../../../environments/environment';
+import { MunicipalityDialogComponent } from '../../../../dialogs/municipality-dialog/municipality-dialog.component';
 
 interface User {
   id: number;
@@ -35,7 +36,7 @@ interface Municipality {
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MunicipalityDialogComponent],
   templateUrl: './users-list.component.html',
   styleUrls: ['./users-list.component.scss']
 })
@@ -57,6 +58,7 @@ export class UsersListComponent implements OnInit {
   municipalities: Municipality[] = [];
   loadingMunicipalities = false;
   itemsPerPageOptions = [5, 10, 25, 50];
+  showMunicipalityDialog = false;
 
   currentUser: any | null = null;
 
@@ -427,6 +429,41 @@ export class UsersListComponent implements OnInit {
 
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('pt-BR');
+  }
+
+  openMunicipalityDialog(): void {
+    this.showMunicipalityDialog = true;
+  }
+
+  onMunicipalityCreated(municipality: any): void {
+    console.log('🏛️ Município criado e recebido noUsersList:', municipality);
+
+    // Criar objeto completo do município para a lista
+    const newMunicipality: Municipality = {
+      id: Date.now(),
+      code: municipality.code,
+      name: municipality.name,
+      state: municipality.state
+    };
+
+    // Adicionar à lista e ordenar
+    this.municipalities = [...this.municipalities, newMunicipality].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    // Selecionar no formulário ativo (criação ou edição)
+    if (this.showCreateModal) {
+      this.createUserForm.municipality_code = municipality.code;
+    } else if (this.showEditModal) {
+      this.editUserForm.municipality_code = municipality.code;
+    }
+
+    // Fechar diálogo
+    this.showMunicipalityDialog = false;
+  }
+
+  onMunicipalityDialogCancelled(): void {
+    this.showMunicipalityDialog = false;
   }
 
   getAdminTypeCount(): number {

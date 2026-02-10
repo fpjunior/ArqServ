@@ -16,7 +16,10 @@ interface Municipality {
 @Component({
   selector: 'app-user-registration',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule
+  ],
   templateUrl: './user-registration.component.html',
   styleUrls: ['./user-registration.component.scss']
 })
@@ -47,7 +50,7 @@ export class UserRegistrationComponent implements OnInit {
     // Quando o role mudar, ajustar validações do município
     this.userForm.get('role')?.valueChanges.subscribe(role => {
       const municipalityCodeControl = this.userForm.get('municipality_code');
-      
+
       if (role === 'user') {
         // Se é usuário, município é obrigatório
         municipalityCodeControl?.setValidators([Validators.required]);
@@ -56,21 +59,21 @@ export class UserRegistrationComponent implements OnInit {
         municipalityCodeControl?.clearValidators();
         municipalityCodeControl?.setValue('');
       }
-      
+
       municipalityCodeControl?.updateValueAndValidity();
     });
 
     // Quando o tipo de usuário mudar, ajustar validações (manter compatibilidade)
     this.userForm.get('user_type')?.valueChanges.subscribe(type => {
       const municipalityControl = this.userForm.get('municipality');
-      
+
       if (type === 'admin') {
         municipalityControl?.clearValidators();
         municipalityControl?.setValue('');
       } else {
         municipalityControl?.setValidators([Validators.required]);
       }
-      
+
       municipalityControl?.updateValueAndValidity();
     });
   }
@@ -82,25 +85,25 @@ export class UserRegistrationComponent implements OnInit {
   passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
-    
+
     if (password?.value !== confirmPassword?.value) {
       confirmPassword?.setErrors({ passwordMismatch: true });
       return { passwordMismatch: true };
     }
-    
+
     if (confirmPassword?.hasError('passwordMismatch')) {
       delete confirmPassword.errors!['passwordMismatch'];
       if (Object.keys(confirmPassword.errors!).length === 0) {
         confirmPassword.setErrors(null);
       }
     }
-    
+
     return null;
   }
 
   loadMunicipalities(): void {
     console.log('🏛️ Carregando municípios da API...');
-    
+
     // Buscar municípios da API real
     this.http.get<any>(`${environment.apiUrl}/municipalities`).subscribe({
       next: (response) => {
@@ -111,7 +114,7 @@ export class UserRegistrationComponent implements OnInit {
             name: municipality.name,
             state: municipality.state
           })).sort((a: any, b: any) => a.name.localeCompare(b.name));
-          
+
           console.log(`✅ ${this.municipalities.length} municípios carregados da API`);
         } else {
           console.warn('⚠️ API retornou resposta sem dados, usando lista mockada');
@@ -154,13 +157,14 @@ export class UserRegistrationComponent implements OnInit {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 
+
   onSubmit(): void {
     if (this.userForm.valid) {
       this.isLoading = true;
-      
+
       const formData = { ...this.userForm.value };
       delete formData.confirmPassword; // Remove confirmPassword antes de enviar
-      
+
       // Se é admin (role), remover municipality e municipality_code
       if (formData.role === 'admin') {
         delete formData.municipality;
@@ -178,11 +182,11 @@ export class UserRegistrationComponent implements OnInit {
       });
 
       this.authService.register(
-        formData.name, 
-        formData.email, 
-        formData.password, 
-        formData.user_type, 
-        formData.municipality, 
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.user_type,
+        formData.municipality,
         formData.role
       )
         .subscribe({
@@ -215,14 +219,14 @@ export class UserRegistrationComponent implements OnInit {
 
   getFieldError(fieldName: string): string {
     const field = this.userForm.get(fieldName);
-    
+
     if (field?.touched && field?.errors) {
       if (field.errors['required']) return `${this.getFieldLabel(fieldName)} é obrigatório`;
       if (field.errors['email']) return 'Email inválido';
       if (field.errors['minlength']) return `${this.getFieldLabel(fieldName)} deve ter pelo menos ${field.errors['minlength'].requiredLength} caracteres`;
       if (field.errors['passwordMismatch']) return 'As senhas não coincidem';
     }
-    
+
     return '';
   }
 
