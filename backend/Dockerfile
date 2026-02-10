@@ -3,6 +3,9 @@ FROM node:20-alpine
 
 # NOTE: Supabase JS packages require Node >= 20 — switching to node:20-alpine to avoid engine warnings
 
+# Instalar Ghostscript para compressão de PDFs
+RUN apk add --no-cache ghostscript
+
 # Definir diretório de trabalho
 WORKDIR /app
 

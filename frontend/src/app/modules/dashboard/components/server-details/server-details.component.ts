@@ -64,6 +64,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   selectedFile: ServerFile | null = null;
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
+  modalIsLargeFile = false;
 
   // Confirm delete modal
   confirmDeleteModalVisible = false;
@@ -125,7 +126,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
-      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
+      this.modalIsLargeFile = state.isLargeFile;
     });
 
     this.loadServerFiles(serverId);
@@ -222,7 +223,9 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       // Usar serviço centralizado para abrir documento
       await this.documentViewerService.openDocument(
         driveFileId,
-        file.title || file.file_name
+        file.title || file.file_name,
+        undefined,
+        file.file_size || 0
       );
 
       // Registrar visualização

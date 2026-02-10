@@ -4,6 +4,7 @@ const Server = require('../models/server.model');
 const { supabase } = require('../config/database');
 const googleDriveOAuthService = require('../services/google-drive-oauth.service');
 const ActivityLogService = require('../services/activity-log.service');
+const fileCompressionService = require('../services/file-compression.service');
 const multer = require('multer');
 const path = require('path');
 
@@ -62,6 +63,8 @@ class DocumentController {
       path: req.file.path
     } : '❌ NENHUM ARQUIVO');
     console.log('🟢 ========================================\n');
+
+    let compressResult = null;
 
     try {
       // Verificar se Google Drive OAuth está disponível
@@ -188,6 +191,28 @@ class DocumentController {
       const fileExtension = path.extname(file.originalname);
       const fileName = `${title}${fileExtension}`;
       console.log(`🚀 Iniciando upload: ${fileName} (título: ${title})`);
+      console.log(`📁 Arquivo local: ${file.path}`);
+      console.log(`📏 Tamanho original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+      // ========== COMPRESSÃO ==========
+      // Comprimir arquivo antes de enviar ao Google Drive
+      let uploadPath = file.path;
+      let actualFileSize = file.size;
+
+      try {
+        compressResult = await fileCompressionService.compressFile(file.path, file.mimetype);
+        uploadPath = compressResult.path;
+        actualFileSize = compressResult.finalSize;
+
+        if (compressResult.compressed) {
+          console.log(`✅ Arquivo comprimido: ${(compressResult.originalSize / 1024 / 1024).toFixed(2)} MB → ${(compressResult.finalSize / 1024 / 1024).toFixed(2)} MB`);
+        }
+      } catch (compressError) {
+        console.log(`⚠️ Compressão falhou, usando arquivo original:`, compressError.message);
+        uploadPath = file.path;
+        actualFileSize = file.size;
+      }
+      // ==================================
 
       let driveFile;
 
@@ -195,9 +220,9 @@ class DocumentController {
         console.log(`📂 Destino: ${municipality.name} > Documentações Financeiras > ${financial_document_type}`);
         console.log('💰 Chamando uploadFinancialDocument...');
 
-        // Upload para documentos financeiros - usar caminho do arquivo pro stream
+        // Upload para documentos financeiros - usar arquivo (possivelmente comprimido)
         driveFile = await googleDriveOAuthService.uploadFinancialDocument(
-          file.path,
+          uploadPath,
           fileName,
           municipality.name,
           financial_document_type,
@@ -210,9 +235,9 @@ class DocumentController {
         console.log(`📂 Destino: ${municipality.name} > ${server ? server.name : 'sem servidor'}`);
         console.log('👤 Chamando uploadFile para servidor...');
 
-        // Upload para documentos de servidor - usar caminho do arquivo pro stream
+        // Upload para documentos de servidor - usar arquivo (possivelmente comprimido)
         driveFile = await googleDriveOAuthService.uploadFile(
-          file.path,
+          uploadPath,
           fileName,
           municipality.name,
           server.name,
@@ -232,7 +257,7 @@ class DocumentController {
         server_id: server?.id || null,
         file_name: fileName, // Nome com o título do documento
         file_path: `https://drive.google.com/file/d/${driveFile.googleDriveId}/view`,
-        file_size: file.size,
+        file_size: actualFileSize, // Tamanho do arquivo (comprimido se aplicável)
         mime_type: file.mimetype,
         google_drive_id: driveFile.googleDriveId,
         uploaded_by: req.user?.id || null
@@ -303,14 +328,18 @@ class DocumentController {
         message: 'Erro interno do servidor'
       });
     } finally {
-      // Limpar arquivo temporário se existir
+      // Limpar arquivos temporários
       if (req.file && req.file.path) {
         try {
           fs.unlinkSync(req.file.path);
           console.log(`🧹 Arquivo temporário removido: ${req.file.path}`);
         } catch (unlinkError) {
-          console.error(`⚠️ Erro ao remover arquivo temporário ${req.file.path}:`, unlinkError);
+          // Ignora se já foi removido
         }
+      }
+      // Limpar arquivo comprimido temporário
+      if (compressResult) {
+        fileCompressionService.cleanup(compressResult, req.file?.path);
       }
     }
   }

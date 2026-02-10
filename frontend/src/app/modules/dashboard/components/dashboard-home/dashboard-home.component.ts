@@ -120,6 +120,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   selectedFile: any | null = null;
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
+  modalIsLargeFile = false;
   private viewerStateSubscription: Subscription | null = null;
 
   // Flag para prevenir duplo clique
@@ -155,10 +156,8 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
-      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
+      this.modalIsLargeFile = state.isLargeFile;
     });
-
-    // Assinar eventos de limpeza forçada
     this.documentViewerService.forceCleanup$.pipe(takeUntil(this.destroy$)).subscribe(() => {
       console.log('🚨 [DASHBOARD-HOME] Limpeza forçada recebida');
       this.selectedFile = null;
@@ -491,7 +490,8 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       await this.documentViewerService.openDocument(
         driveId || 'custom',
         title,
-        driveId ? undefined : customUrl
+        driveId ? undefined : customUrl,
+        doc.file_size || doc.fileSize || 0
       );
 
       // Registrar visualização

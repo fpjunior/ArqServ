@@ -64,6 +64,10 @@ export class UploadDocumentsComponent implements OnInit {
   uploadProgress = 0;
   message = '';
 
+  // Threshold para compressão (25MB) - arquivos maiores são comprimidos no servidor
+  private readonly COMPRESSION_THRESHOLD = 25 * 1024 * 1024;
+  isLargeFile = false; // Indica se o arquivo será compactado
+
   municipalities: Municipality[] = [
     { code: '2600500', name: 'Aliança', state: 'PE' },
     { code: '2600609', name: 'Amaraji', state: 'PE' },
@@ -216,6 +220,12 @@ export class UploadDocumentsComponent implements OnInit {
 
     this.selectedFile = file;
 
+    // Detectar se arquivo é grande (será compactado no servidor)
+    this.isLargeFile = file.size >= this.COMPRESSION_THRESHOLD;
+    if (this.isLargeFile) {
+      console.log(`🗄️ Arquivo grande detectado (${(file.size / 1024 / 1024).toFixed(2)} MB) - será compactado antes do upload`);
+    }
+
     // Auto-preencher título se estiver vazio
     if (!this.uploadForm.get('title')?.value) {
       const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
@@ -229,6 +239,7 @@ export class UploadDocumentsComponent implements OnInit {
     event.stopPropagation();
     this.selectedFile = null;
     this.uploadProgress = 0;
+    this.isLargeFile = false;
     if (this.fileInputRef) {
       this.fileInputRef.nativeElement.value = '';
     }
@@ -321,6 +332,7 @@ export class UploadDocumentsComponent implements OnInit {
   resetForm(): void {
     this.uploadForm.reset();
     this.selectedFile = null;
+    this.isLargeFile = false;
     if (this.fileInputRef) {
       this.fileInputRef.nativeElement.value = '';
     }
@@ -669,6 +681,7 @@ export class UploadDocumentsComponent implements OnInit {
 
     this.uploadForm.reset();
     this.selectedFile = null;
+    this.isLargeFile = false;
     if (this.fileInputRef) {
       this.fileInputRef.nativeElement.value = '';
     }

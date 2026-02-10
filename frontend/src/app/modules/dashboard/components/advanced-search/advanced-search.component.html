@@ -319,8 +319,24 @@
                 style="pointer-events: auto; transform: scale(0.7); transform-origin: 0 0; width: 143%; height: 143%;">
             </iframe>
 
+            <!-- Large File State -->
+            <div *ngIf="modalIsLargeFile && !modalIsLoading && !modalViewerUrl"
+                class="absolute inset-0 flex items-center justify-center bg-gray-50">
+                <div class="text-center max-w-md px-6">
+                    <div class="text-6xl mb-4">📄</div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Arquivo grande demais para visualização</h3>
+                    <p class="text-gray-600 mb-6">Este arquivo excede o limite de 100MB para visualização no navegador. Você pode baixá-lo diretamente.</p>
+                    <ng-container *ngIf="selectedFile as file">
+                        <a *ngIf="file.drive_file_id" [href]="'https://drive.google.com/file/d/' + file.drive_file_id + '/view'" target="_blank"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            <span>📥</span> Abrir no Google Drive
+                        </a>
+                    </ng-container>
+                </div>
+            </div>
+
             <!-- Error State -->
-            <div *ngIf="!modalIsLoading && !modalViewerUrl"
+            <div *ngIf="!modalIsLoading && !modalViewerUrl && !modalIsLargeFile"
                 class="absolute inset-0 flex items-center justify-center bg-gray-100">
                 <div class="text-center">
                     <div class="text-red-500 text-6xl mb-4">❌</div>

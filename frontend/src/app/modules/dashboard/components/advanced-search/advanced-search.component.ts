@@ -68,6 +68,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     selectedFile: SearchResult | null = null;
     modalViewerUrl: SafeResourceUrl | null = null;
     modalIsLoading = false;
+    modalIsLargeFile = false;
 
     // Subscription do viewer
     private viewerStateSubscription: Subscription | null = null;
@@ -119,7 +120,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
-      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
+      this.modalIsLargeFile = state.isLargeFile;
     });
 
     if (this.municipalityCode) {
@@ -283,7 +284,8 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
                     await this.documentViewerService.openDocument(
                         'custom',
                         result.title || result.file_name || 'Documento',
-                        filePath
+                        filePath,
+                        result.file_size || 0
                     );
                 } else {
                     console.error('Nenhum ID do Drive ou caminho de arquivo encontrado');
@@ -293,7 +295,9 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
                 // Usar serviço centralizado para abrir documento
                 await this.documentViewerService.openDocument(
                     driveFileId,
-                    result.title || result.file_name || 'Documento'
+                    result.title || result.file_name || 'Documento',
+                    undefined,
+                    result.file_size || 0
                 );
             }
 

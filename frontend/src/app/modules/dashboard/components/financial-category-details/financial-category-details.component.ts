@@ -18,6 +18,7 @@ interface FinancialDocument {
   type: string;
   uploadDate: Date;
   size: string;
+  file_size_bytes: number;
   status: 'active' | 'archived' | 'pending';
   description?: string;
   tags?: string[];
@@ -54,6 +55,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   isModalVisible: boolean = false;
   selectedDocumentId: string = '';
   modalIsLoading: boolean = false;
+  modalIsLargeFile: boolean = false;
   modalViewerUrl: any;
   storageUsed: number = 0;
   storageTotal: number = 0;
@@ -237,7 +239,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
-      // Nota: Removido cdr.detectChanges() - causava travamento em mobile
+      this.modalIsLargeFile = state.isLargeFile;
     });
 
     this.fetchStorageInfo();
@@ -283,6 +285,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
             type: doc.file_type || 'PDF',
             uploadDate: new Date(doc.created_at),
             size: doc.file_size || 'N/A',
+            file_size_bytes: typeof doc.file_size === 'number' ? doc.file_size : 0,
             status: doc.is_active ? 'active' : 'archived',
             description: doc.description,
             googleDriveId: doc.google_drive_id,
@@ -445,7 +448,9 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       // Usar serviço centralizado para abrir documento
       await this.documentViewerService.openDocument(
         googleDriveId,
-        document.name
+        document.name,
+        undefined,
+        document.file_size_bytes || 0
       );
 
       // Registrar visualização

@@ -61,6 +61,7 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   modalViewerUrl: any;
   selectedDocumentId: string | null = null;
   modalIsLoading: boolean = false;
+  modalIsLargeFile: boolean = false;
 
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
@@ -94,6 +95,7 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
+      this.modalIsLargeFile = state.isLargeFile;
       // Nota: Removido cdr.detectChanges() - causava travamento em mobile
     });
 
@@ -258,7 +260,9 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
       // Usar serviço centralizado para abrir documento
       await this.documentViewerService.openDocument(
         documentId.toString(),
-        `Documento ${documentId}`
+        `Documento ${documentId}`,
+        undefined,
+        0
       );
 
       // Registrar visualização

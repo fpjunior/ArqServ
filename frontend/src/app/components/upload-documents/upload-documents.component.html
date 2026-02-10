@@ -358,10 +358,13 @@
           <!-- Barra de Progresso -->
           <div *ngIf="uploadProgress > 0" class="mt-4">
             <div class="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Enviando...</span>
+              <span>{{isLargeFile ? 'Compactando e enviando...' : 'Enviando...'}}</span>
               <span>{{uploadProgress}}%</span>
             </div>
             <mat-progress-bar mode="determinate" [value]="uploadProgress" class="rounded-full h-2"></mat-progress-bar>
+            <p *ngIf="isLargeFile" class="text-xs text-blue-600 mt-1">
+              Arquivo grande detectado - compactando para otimizar visualização
+            </p>
           </div>
         </div>
 
@@ -375,7 +378,7 @@
           <button type="button" [disabled]="isSubmitDisabled()" (click)="mainButtonClick($event)"
             class="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none flex items-center gap-2">
             <mat-spinner *ngIf="isUploading" diameter="20" class="brightness-0 invert"></mat-spinner>
-            <span>{{isUploading ? 'Enviando...' : 'Enviar Documento'}}</span>
+            <span>{{isUploading ? (isLargeFile ? 'Compactando...' : 'Enviando...') : 'Enviar Documento'}}</span>
             <mat-icon *ngIf="!isUploading" class="ml-1">send</mat-icon>
           </button>
         </div>
