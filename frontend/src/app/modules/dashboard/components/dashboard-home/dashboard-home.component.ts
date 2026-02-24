@@ -7,6 +7,7 @@ import { AuthService, User } from '../../../../shared/services/auth.service';
 import { DocumentsService } from '../../../../services/documents.service';
 import { DocumentViewerService, ViewerState } from '../../../../services/document-viewer.service';
 import { ModalWindowService } from '../../../../services/modal-window.service';
+import { DownloadLoadingModalComponent } from '../../../../shared/components/download-loading-modal/download-loading-modal.component';
 import { forkJoin, Subject, Subscription } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
@@ -46,7 +47,7 @@ interface LocalDashboardStats {
 @Component({
   selector: 'app-dashboard-home',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DownloadLoadingModalComponent],
   templateUrl: './dashboard-home.component.html',
   styleUrls: ['./dashboard-home.component.scss']
 })
@@ -121,6 +122,10 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
   modalViewerUrl: SafeResourceUrl | null = null;
   modalIsLoading = false;
   private viewerStateSubscription: Subscription | null = null;
+
+  // Download loading
+  isDownloading = false;
+  downloadFileName = '';
 
   constructor(
     private documentsService: DocumentsService,
@@ -546,6 +551,9 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       driveId = doc.id.replace('drive_', '');
     }
 
+    // Mostrar modal de loading
+    this.isDownloading = true;
+    this.downloadFileName = doc.title || doc.name || 'documento';
 
     // 1. Prioridade: Download direto do Google Drive (mais rápido e garantido)
     if (driveId) {
@@ -560,6 +568,9 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Fechar modal após breve delay (download iniciado)
+      setTimeout(() => { this.isDownloading = false; }, 2000);
 
       // Registrar log de download
       this.documentsService.logDownload({
@@ -583,6 +594,10 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Fechar modal após breve delay (download iniciado)
+      setTimeout(() => { this.isDownloading = false; }, 2000);
+
       this.documentsService.logDownload({
         documentId: doc.id,
         driveFileId: doc.googleDriveId || doc.id,
@@ -596,6 +611,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
     let downloadId = doc.id;
     this.documentsService.downloadDocument(downloadId).subscribe({
       next: (blob: Blob) => {
+        this.isDownloading = false;
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -608,6 +624,7 @@ export class DashboardHomeComponent implements OnInit, OnDestroy {
         this.loadRecentActivities();
       },
       error: (err: any) => {
+        this.isDownloading = false;
         console.error('Erro ao baixar', err);
         alert('Erro ao baixar documento. Tente novamente.');
       }
