@@ -7,6 +7,7 @@ import { DocumentViewerService } from '../../../../services/document-viewer.serv
 import { ModalWindowService } from '../../../../services/modal-window.service';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DomSanitizer } from '@angular/platform-browser';
+import { DownloadLoadingModalComponent } from '../../../../shared/components/download-loading-modal/download-loading-modal.component';
 import { Subscription } from 'rxjs';
 
 interface FinancialFolder {
@@ -45,7 +46,7 @@ const FINANCIAL_TYPE_DISPLAY_NAMES: { [key: string]: string } = {
 @Component({
   selector: 'app-financial-documents',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DownloadLoadingModalComponent],
   templateUrl: './financial-documents.component.html',
   styleUrls: ['./financial-documents.component.scss']
 })
@@ -61,6 +62,10 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
   modalViewerUrl: any;
   selectedDocumentId: string | null = null;
   modalIsLoading: boolean = false;
+
+  // Download loading
+  isDownloading = false;
+  downloadFileName = '';
 
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
@@ -279,10 +284,15 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Mostrar modal de loading
+    this.isDownloading = true;
+    this.downloadFileName = `document-${documentId}.pdf`;
+
     // Usar o método correto do DocumentsService
     this.documentsService.downloadDocument(documentId).subscribe({
       next: (response: Blob) => {
         console.log('✅ Download concluído');
+        this.isDownloading = false;
 
         // Criar URL para o blob e fazer download
         const url = window.URL.createObjectURL(response);
@@ -307,7 +317,8 @@ export class FinancialDocumentsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('❌ Erro no download:', error);
-        alert('Erro ao fazer download do arquivo');
+        this.isDownloading = false;
+        alert('Erro ao fazer download do arquivo. Tente novamente.');
       }
     });
   }

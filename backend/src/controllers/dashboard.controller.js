@@ -85,6 +85,21 @@ class DashboardController {
       const uniqueDocs = [];
       const seenKeys = new Set(); // Pode ser ID do banco ou Drive ID
 
+      // Coletar IDs de documentos que foram deletados para excluir dos recentes
+      const deletedDocIds = new Set();
+      const deletedDriveIds = new Set();
+      if (logs) {
+        for (const log of logs) {
+          if (log.activity_type === 'delete') {
+            if (log.document_id) deletedDocIds.add(log.document_id);
+            if (log.metadata?.drive_file_id) deletedDriveIds.add(log.metadata.drive_file_id);
+            if (log.metadata?.driveId) deletedDriveIds.add(log.metadata.driveId);
+            if (log.metadata?.google_drive_id) deletedDriveIds.add(log.metadata.google_drive_id);
+          }
+        }
+      }
+      console.log(`🗑️ [DASHBOARD] IDs deletados - docs: [${Array.from(deletedDocIds)}], drive: [${Array.from(deletedDriveIds)}]`);
+
       const dbDocumentIds = [];
       const driveIds = [];
 
@@ -193,8 +208,22 @@ class DashboardController {
       // 4. Construir lista final
       if (logs) {
         for (const log of logs) {
+          // Pular logs de delete
+          if (log.activity_type === 'delete') continue;
+
           let docItem = null;
           let uniqueKey = null;
+
+          // Verificar se este documento foi deletado
+          if (log.document_id && deletedDocIds.has(log.document_id)) {
+            console.log(`⏭️ [DASHBOARD] Pulando doc ID=${log.document_id} (foi deletado)`);
+            continue;
+          }
+          const logDriveId = log.metadata?.drive_file_id || log.metadata?.driveId;
+          if (logDriveId && deletedDriveIds.has(logDriveId)) {
+            console.log(`⏭️ [DASHBOARD] Pulando drive ID=${logDriveId} (foi deletado)`);
+            continue;
+          }
 
           // CASO 1: Documento de Banco (Direto ou via Drive ID)
           let dbDoc = null;
@@ -266,9 +295,21 @@ class DashboardController {
           }
           // CASO 2: Documento apenas do Drive (via Metadata)
           else if (log.metadata && (log.metadata.file_name || log.metadata.title)) {
+            // Se o log tinha document_id mas o documento não existe mais no banco, foi deletado
+            if (log.document_id) {
+              console.log(`⏭️ [DASHBOARD] Pulando doc ID=${log.document_id} (documento deletado do banco, não encontrado em dbDocsMap)`);
+              continue;
+            }
+
             // Tentar usar drive_file_id como chave unica
             const driveId = log.metadata.drive_file_id || log.metadata.driveId;
             if (!driveId) continue; // Sem ID, ignora
+
+            // Se o driveId foi consultado no banco mas não existe, provavelmente foi deletado
+            if (driveId && driveIds.includes(driveId) && !dbDocsMap[`drive_${driveId}`]) {
+              console.log(`⏭️ [DASHBOARD] Pulando drive ID=${driveId} (arquivo não encontrado no banco, possivelmente deletado)`);
+              continue;
+            }
 
             uniqueKey = `drive_${driveId}`;
 

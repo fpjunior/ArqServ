@@ -757,6 +757,26 @@ class DocumentController {
             // Não retornar erro, pois o arquivo já foi deletado do Drive
           }
 
+          // Registrar atividade de delete
+          try {
+            await ActivityLogService.logActivity({
+              activityType: 'delete',
+              documentId: (documents && documents.length > 0) ? documents[0].id : null,
+              userId: req.user?.id || null,
+              municipalityCode: req.user?.municipality_code || null,
+              metadata: {
+                drive_file_id: driveFileId,
+                file_name: (documents && documents.length > 0) ? documents[0].title : `drive_${driveFileId}`,
+                deleted_by: req.user?.email || 'desconhecido'
+              },
+              ipAddress: req.ip,
+              userAgent: req.get('User-Agent')
+            });
+            console.log(`📝 Atividade de delete registrada`);
+          } catch (logErr) {
+            console.error(`⚠️ Erro ao registrar atividade de delete:`, logErr.message);
+          }
+
           console.log(`========================================\n`);
 
           return res.status(200).json({
@@ -823,6 +843,28 @@ class DocumentController {
       console.log(`🗑️ Deletando registro do banco: ${id}`);
       await Document.deleteById(id);
       console.log(`✅ Registro DELETADO completamente do banco de dados`);
+
+      // Registrar atividade de delete
+      try {
+        await ActivityLogService.logActivity({
+          activityType: 'delete',
+          documentId: document.id,
+          userId: req.user?.id || null,
+          municipalityCode: document.municipality_code || req.user?.municipality_code || null,
+          metadata: {
+            drive_file_id: document.drive_file_id || document.google_drive_id || null,
+            google_drive_id: document.google_drive_id || null,
+            file_name: document.title || document.file_name || `doc_${id}`,
+            deleted_by: req.user?.email || 'desconhecido'
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+        console.log(`📝 Atividade de delete registrada`);
+      } catch (logErr) {
+        console.error(`⚠️ Erro ao registrar atividade de delete:`, logErr.message);
+      }
+
       console.log(`========================================\n`);
 
       return res.status(200).json({
@@ -854,6 +896,27 @@ class DocumentController {
           await googleDriveOAuthService.initialize();
         }
         await googleDriveOAuthService.deleteFile(driveFileId);
+
+        // Registrar atividade de delete
+        try {
+          await ActivityLogService.logActivity({
+            activityType: 'delete',
+            documentId: null,
+            userId: req.user?.id || null,
+            municipalityCode: req.user?.municipality_code || null,
+            metadata: {
+              drive_file_id: driveFileId,
+              file_name: `drive_${driveFileId}`,
+              deleted_by: req.user?.email || 'desconhecido',
+              document_type: 'financial'
+            },
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent')
+          });
+        } catch (logErr) {
+          console.error(`⚠️ Erro ao registrar atividade de delete:`, logErr.message);
+        }
+
         return res.status(200).json({ success: true, message: 'Arquivo financeiro deletado do Google Drive' });
       }
       // Caso contrário, é um documento do banco de dados
@@ -869,6 +932,28 @@ class DocumentController {
         }
       }
       await Document.deleteById(id);
+
+      // Registrar atividade de delete
+      try {
+        await ActivityLogService.logActivity({
+          activityType: 'delete',
+          documentId: document.id,
+          userId: req.user?.id || null,
+          municipalityCode: document.municipality_code || req.user?.municipality_code || null,
+          metadata: {
+            drive_file_id: document.google_drive_id || null,
+            google_drive_id: document.google_drive_id || null,
+            file_name: document.title || document.file_name || `doc_${id}`,
+            deleted_by: req.user?.email || 'desconhecido',
+            document_type: 'financial'
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+      } catch (logErr) {
+        console.error(`⚠️ Erro ao registrar atividade de delete:`, logErr.message);
+      }
+
       return res.status(200).json({ success: true, message: 'Documento financeiro deletado com sucesso' });
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Erro ao deletar documento financeiro' });
