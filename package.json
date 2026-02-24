@@ -1,6 +1,6 @@
 {
   "name": "arqserv",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sistema de Arquivo de Servidores - Gerenciamento de documentos digitalizados",
   "scripts": {
     "frontend:install": "cd frontend && npm install",
