@@ -10,6 +10,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
+import { DownloadLoadingModalComponent } from '../../../../shared/components/download-loading-modal/download-loading-modal.component';
 import { Subscription } from 'rxjs';
 
 interface FinancialDocument {
@@ -39,7 +40,7 @@ interface FinancialCategory {
 @Component({
   selector: 'app-financial-category-details',
   standalone: true,
-  imports: [CommonModule, ConfirmDeleteModalComponent, SuccessModalComponent],
+  imports: [CommonModule, ConfirmDeleteModalComponent, SuccessModalComponent, DownloadLoadingModalComponent],
   templateUrl: './financial-category-details.component.html',
   styleUrls: ['./financial-category-details.component.scss']
 })
@@ -66,6 +67,10 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   successModalVisible: boolean = false;
   successMessage: string = '';
   year: number | null = null;
+
+  // Download loading
+  isDownloading = false;
+  downloadFileName = '';
 
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
@@ -379,6 +384,10 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Mostrar modal de loading
+    this.isDownloading = true;
+    this.downloadFileName = doc.name;
+
     // Usar endpoint de download específico para Google Drive
     this.http.get(`${environment.apiUrl}/documents/drive/${googleDriveId}/download`, {
       headers: {
@@ -389,12 +398,13 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (response) => {
         console.log('✅ Download concluído');
+        this.isDownloading = false;
 
         // Criar URL para o blob e fazer download
         const blob = response.body;
         if (blob) {
           const url = window.URL.createObjectURL(blob);
-          const link = window.document.createElement('a'); // Corrigido para usar o objeto global document
+          const link = window.document.createElement('a');
           link.href = url;
           link.download = doc.name;
           window.document.body.appendChild(link);
@@ -415,7 +425,8 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('❌ Erro no download:', error);
-        alert('Erro ao fazer download do arquivo');
+        this.isDownloading = false;
+        alert('Erro ao fazer download do arquivo. Tente novamente.');
       }
     });
   }

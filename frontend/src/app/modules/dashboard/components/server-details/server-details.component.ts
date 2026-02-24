@@ -12,6 +12,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Location } from '@angular/common';
 import { ConfirmDeleteModalComponent } from '../../../../shared/components/confirm-delete-modal/confirm-delete-modal.component';
 import { SuccessModalComponent } from '../../../../shared/components/success-modal/success-modal.component';
+import { DownloadLoadingModalComponent } from '../../../../shared/components/download-loading-modal/download-loading-modal.component';
 import { Subscription } from 'rxjs';
 
 interface ServerFile {
@@ -46,7 +47,7 @@ interface ApiResponse {
 @Component({
   selector: 'app-server-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDeleteModalComponent, SuccessModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmDeleteModalComponent, SuccessModalComponent, DownloadLoadingModalComponent],
   templateUrl: './server-details.component.html',
   styleUrls: ['./server-details.component.scss']
 })
@@ -74,6 +75,10 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
   // Success modal
   successModalVisible: boolean = false;
   successMessage: string = '';
+
+  // Download loading
+  isDownloading = false;
+  downloadFileName = '';
 
   // Subscription do viewer
   private viewerStateSubscription: Subscription | null = null;
@@ -262,6 +267,10 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Mostrar modal de loading
+    this.isDownloading = true;
+    this.downloadFileName = file.file_name || file.title;
+
     // Usar endpoint de download específico para Google Drive
     this.http.get(`${environment.apiUrl}/documents/drive/${driveFileId}/download`, {
       headers: {
@@ -272,6 +281,7 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (response) => {
         console.log('✅ Download concluído');
+        this.isDownloading = false;
 
         // Criar URL para o blob e fazer download
         const blob = response.body;
@@ -288,7 +298,8 @@ export class ServerDetailsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('❌ Erro no download:', error);
-        alert('Erro ao fazer download do arquivo');
+        this.isDownloading = false;
+        alert('Erro ao fazer download do arquivo. Tente novamente.');
       }
     });
   }

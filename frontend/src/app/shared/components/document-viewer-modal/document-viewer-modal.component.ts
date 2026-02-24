@@ -161,6 +161,7 @@ export class DocumentViewerModalComponent implements OnChanges {
   viewerUrl: SafeResourceUrl | null = null;
   viewerError = false;
   currentViewerType = 0; // 0 = Google Docs Viewer, 1 = Drive Preview, 2 = Drive Embed
+  loadTimeout: any = null;
   
   // Limite de 100MB para visualização (limitação do Google)
   private readonly LARGE_FILE_THRESHOLD = 100 * 1024 * 1024;
@@ -181,6 +182,11 @@ export class DocumentViewerModalComponent implements OnChanges {
 
   loadDocument(): void {
     if (!this.file) return;
+
+    // Limpar timeout anterior se existir
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+    }
 
     this.isLoading = true;
     this.viewerUrl = null;
@@ -244,7 +250,13 @@ export class DocumentViewerModalComponent implements OnChanges {
   }
 
   onIframeLoad(): void {
+    // Limpar timeout quando iframe carregar com sucesso
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+      this.loadTimeout = null;
+    }
     this.isLoading = false;
+    console.log('✅ Iframe carregado com sucesso');
   }
 
   onIframeError(): void {
@@ -304,9 +316,15 @@ export class DocumentViewerModalComponent implements OnChanges {
     const driveFileId = this.file.drive_file_id || this.file.google_drive_id;
     
     if (driveFileId) {
-      window.open(`https://drive.google.com/file/d/${driveFileId}/view`, '_blank');
+      const driveUrl = `https://drive.google.com/file/d/${driveFileId}/view`;
+      console.log('🚀 Abrindo no Google Drive:', driveUrl);
+      window.open(driveUrl, '_blank');
     } else if (this.file.drive_url) {
+      console.log('🚀 Abrindo URL do Drive:', this.file.drive_url);
       window.open(this.file.drive_url, '_blank');
+    } else {
+      console.error('❌ Nenhum ID ou URL do Google Drive disponível');
+      alert('Não foi possível abrir o documento no Google Drive');
     }
   }
 
@@ -317,6 +335,11 @@ export class DocumentViewerModalComponent implements OnChanges {
   }
 
   close(): void {
+    // Limpar timeout ao fechar
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+      this.loadTimeout = null;
+    }
     this.isVisible = false;
     this.viewerUrl = null;
     this.viewerError = false;

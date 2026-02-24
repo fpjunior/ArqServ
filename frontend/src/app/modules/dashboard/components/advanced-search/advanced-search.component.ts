@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { environment } from '../../../../../environments/environment';
+import { DownloadLoadingModalComponent } from '../../../../shared/components/download-loading-modal/download-loading-modal.component';
 import { Subscription } from 'rxjs';
 
 interface SearchResult {
@@ -41,7 +42,8 @@ interface SearchResult {
         FormsModule,
         ReactiveFormsModule,
         MatIconModule,
-        MatProgressSpinnerModule
+        MatProgressSpinnerModule,
+        DownloadLoadingModalComponent
     ],
     templateUrl: './advanced-search.component.html',
     styleUrls: ['./advanced-search.component.scss']
@@ -69,6 +71,10 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     modalViewerUrl: SafeResourceUrl | null = null;
     modalIsLoading = false;
     modalIsLargeFile = false;
+
+    // Download loading
+    isDownloading = false;
+    downloadFileName = '';
 
     // Subscription do viewer
     private viewerStateSubscription: Subscription | null = null;
@@ -342,6 +348,10 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // Mostrar modal de loading
+        this.isDownloading = true;
+        this.downloadFileName = result.file_name || result.title;
+
         // Usar endpoint de download específico para Google Drive
         this.http.get(`${environment.apiUrl}/documents/drive/${driveFileId}/download`, {
             headers: { 'Authorization': `Bearer ${token}` },
@@ -349,6 +359,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             observe: 'response'
         }).subscribe({
             next: (response) => {
+                this.isDownloading = false;
                 const blob = response.body;
                 if (blob) {
                     const url = window.URL.createObjectURL(blob);
@@ -375,7 +386,8 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('❌ Erro no download:', error);
-                alert('Erro ao fazer download do arquivo');
+                this.isDownloading = false;
+                alert('Erro ao fazer download do arquivo. Tente novamente.');
             }
         });
     }

@@ -1,3 +1,12 @@
+<!-- Modal de Erro de Upload -->
+<app-upload-error-modal
+  [visible]="showUploadErrorModal"
+  [errorMessage]="uploadErrorMessage"
+  [fileName]="uploadErrorFileName"
+  (onClose)="closeUploadErrorModal()"
+  (onRetry)="retryUpload()">
+</app-upload-error-modal>
+
 <!-- Diálogo Novo Município usando MunicipalityDialogComponent -->
 <div *ngIf="showTailwindDialog" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex items-center justify-center">
   <app-municipality-dialog (municipalityCreated)="onMunicipalityCreated($event)"

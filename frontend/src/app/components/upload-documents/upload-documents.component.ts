@@ -9,6 +9,7 @@ import { DocumentsService, Municipality, Document, UploadProgress } from '../../
 import { MunicipalityDialogComponent } from '../../dialogs/municipality-dialog/municipality-dialog.component';
 import { ServerDialogComponent } from '../../dialogs/server-dialog/server-dialog.component';
 import { FinancialTypeDialogComponent } from '../../dialogs/financial-type-dialog/financial-type-dialog.component';
+import { UploadErrorModalComponent } from '../../shared/components/upload-error-modal/upload-error-modal.component';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -50,7 +51,8 @@ interface Server {
     MatSnackBarModule,
     MunicipalityDialogComponent,
     ServerDialogComponent,
-    FinancialTypeDialogComponent
+    FinancialTypeDialogComponent,
+    UploadErrorModalComponent
   ],
   templateUrl: './upload-documents.component.html',
   styleUrl: './upload-documents.component.scss'
@@ -100,6 +102,11 @@ export class UploadDocumentsComponent implements OnInit {
   // Tipos de documentos financeiros dinâmicos
   financialDocumentTypes: any[] = [];
   showFinancialTypeDialog = false;
+
+  // Modal de erro de upload
+  showUploadErrorModal = false;
+  uploadErrorMessage = '';
+  uploadErrorFileName = '';
 
   constructor(
     private fb: FormBuilder,
@@ -600,14 +607,17 @@ export class UploadDocumentsComponent implements OnInit {
 
           } else {
             console.log('❌ Upload falhou:', response.message);
-            this.showMessage('Erro no upload: ' + (response.message || 'Erro desconhecido'), 'error');
-            this.clearForm();
+            this.uploadErrorMessage = response.message || 'O arquivo não foi enviado ao servidor. Verifique sua conexão e tente novamente.';
+            this.uploadErrorFileName = this.selectedFile?.name || '';
+            this.showUploadErrorModal = true;
           }
         },
         error: (error: any) => {
           this.isUploading = false;
-          this.showMessage('Erro no upload: ' + (error?.message || 'Erro desconhecido'), 'error');
-          this.clearForm();
+          console.error('❌ Erro no upload:', error);
+          this.uploadErrorMessage = error?.error?.message || error?.message || 'Falha na comunicação com o servidor. Verifique sua conexão e tente novamente.';
+          this.uploadErrorFileName = this.selectedFile?.name || '';
+          this.showUploadErrorModal = true;
         }
       });
   }
@@ -662,6 +672,20 @@ export class UploadDocumentsComponent implements OnInit {
       horizontalPosition: 'center',
       verticalPosition: 'bottom'
     });
+  }
+
+  closeUploadErrorModal(): void {
+    this.showUploadErrorModal = false;
+    this.uploadErrorMessage = '';
+    this.uploadErrorFileName = '';
+    this.clearForm();
+  }
+
+  retryUpload(): void {
+    this.showUploadErrorModal = false;
+    this.uploadErrorMessage = '';
+    this.uploadErrorFileName = '';
+    // Não limpa o form - mantém os dados para o usuário tentar novamente
   }
 
   // Document Management Methods
