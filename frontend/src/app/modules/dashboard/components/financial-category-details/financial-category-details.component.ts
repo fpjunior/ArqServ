@@ -56,6 +56,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
   selectedDocumentId: string = '';
   modalIsLoading: boolean = false;
   modalViewerUrl: any;
+  private isClosingModal = false;
   storageUsed: number = 0;
   storageTotal: number = 0;
   confirmDeleteModalVisible = false;
@@ -227,6 +228,7 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
 
     // Assinar estado do viewer
     this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+      if (this.isClosingModal) return; // Ignorar atualizações durante fechamento
       this.isModalVisible = state.isVisible;
       this.modalViewerUrl = state.viewerUrl;
       this.modalIsLoading = state.isLoading;
@@ -601,8 +603,14 @@ export class FinancialCategoryDetailsComponent implements OnInit, OnDestroy {
    */
   async closeModal(): Promise<void> {
     console.log('🔒 [FINANCIAL-CATEGORY] Fechando modal');
+    this.isClosingModal = true;
+    this.isModalVisible = false;
+    this.modalViewerUrl = null;
+    this.modalIsLoading = false;
     this.selectedDocumentId = '';
+    this.cdr.detectChanges();
     await this.documentViewerService.closeViewer();
+    this.isClosingModal = false;
   }
 
   ngOnDestroy(): void {

@@ -70,6 +70,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
     selectedFile: SearchResult | null = null;
     modalViewerUrl: SafeResourceUrl | null = null;
     modalIsLoading = false;
+    private isClosingModal = false;
 
     // Download loading
     isDownloading = false;
@@ -110,6 +111,7 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
 
         // Assinar estado do viewer
         this.viewerStateSubscription = this.documentViewerService.state$.subscribe(state => {
+            if (this.isClosingModal) return; // Ignorar atualizações durante fechamento
             this.isModalVisible = state.isVisible;
             this.modalViewerUrl = state.viewerUrl;
             this.modalIsLoading = state.isLoading;
@@ -309,8 +311,14 @@ export class AdvancedSearchComponent implements OnInit, OnDestroy {
      */
     async closeModal(): Promise<void> {
         console.log('🔒 [ADVANCED-SEARCH] Fechando modal');
+        this.isClosingModal = true;
+        this.isModalVisible = false;
+        this.modalViewerUrl = null;
+        this.modalIsLoading = false;
         this.selectedFile = null;
+        this.cdr.detectChanges();
         await this.documentViewerService.closeViewer();
+        this.isClosingModal = false;
     }
 
     downloadDocument(result: SearchResult): void {

@@ -262,16 +262,6 @@
 
             <!-- Ações e Controles de Janela -->
             <div class="flex items-center space-x-1 shrink-0">
-                <!-- Botão Baixar -->
-                <button (click)="downloadDocument(selectedFile!); $event.stopPropagation()"
-                    class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors flex items-center space-x-1.5"
-                    title="Baixar documento">
-                    <span>⬇️</span>
-                    <span class="hidden sm:inline">Baixar</span>
-                </button>
-
-                <!-- Separador -->
-                <div class="w-px h-6 bg-gray-300 mx-2" *ngIf="!modalWindowService.isMobileDevice"></div>
 
                 <!-- Botões de Controle da Janela (desktop only) -->
                 <ng-container *ngIf="!modalWindowService.isMobileDevice">
@@ -324,7 +314,7 @@
             </iframe>
 
             <!-- Error State -->
-            <div *ngIf="!modalIsLoading && !modalViewerUrl"
+            <div *ngIf="isModalVisible && !modalIsLoading && !modalViewerUrl"
                 class="absolute inset-0 flex items-center justify-center bg-gray-100">
                 <div class="text-center">
                     <div class="text-red-500 text-6xl mb-4">❌</div>

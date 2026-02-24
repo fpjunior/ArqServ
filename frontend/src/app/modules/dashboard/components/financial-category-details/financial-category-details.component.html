@@ -174,9 +174,6 @@
 
       <!-- Ações e Controles de Janela -->
       <div class="flex items-center space-x-1 shrink-0">
-        <!-- Separador -->
-        <div class="w-px h-6 bg-gray-300 mx-2" *ngIf="!modalWindowService.isMobileDevice"></div>
-
         <!-- Botões de Controle da Janela (desktop only) -->
         <ng-container *ngIf="!modalWindowService.isMobileDevice">
           <!-- Maximizar/Restaurar -->
@@ -205,8 +202,9 @@
           </svg>
         </button>
       </div>
+    </div>
 
-      <!-- Conteúdo do Modal -->
+    <!-- Conteúdo do Modal -->
       <div class="flex-1 relative overflow-hidden">
         <!-- Overlay de proteção -->
         <div *ngIf="modalWindowService.isInteracting" class="absolute inset-0 z-50 bg-transparent"></div>
@@ -226,7 +224,7 @@
         </iframe>
 
         <!-- Error State -->
-        <div *ngIf="!modalIsLoading && !modalViewerUrl"
+        <div *ngIf="isModalVisible && !modalIsLoading && !modalViewerUrl"
           class="absolute inset-0 flex items-center justify-center bg-gray-100">
           <div class="text-center">
             <div class="text-red-500 text-6xl mb-4">❌</div>
